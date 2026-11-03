@@ -16,6 +16,7 @@ const HELP = {
   p1: ['第一部分（主观）', '每队“到达”上方的四格', '球权、到禁区附近的难度、意愿是拖动条（百分比），场面是三个选项，由你主观判断，比赛中随时可以改。球权只有一条：主队拖多一点，客队就自动少一点（两队加起来 100%）。每次放开都会记下时间（20 秒内再调算改正），以后可以统计在每种状态下角球多还是少。'],
   q: ['两个问题', '上方切换“两个问题”', '每队两个问题，都是拖动条（百分比）：一、他容不容易到对方禁区附近＝几次进攻里有百分之几能到对方禁区附近；二、他喜不喜欢传中和远射＝传中和远射的比例。随时可以改，每次放开都记下时间。上方的“角球 ＋1”可以顺便记角球。两个程序记在同一场比赛里，可以只用一个。'],
   sl: ['拖动条', '第一部分、两个问题、简易模型的标准；每格多少在功能 → 拖动条', '手指左右拖，或点一下条上的位置；条两边的按钮（− ＋，球权是往左、往右）每按一下动一格，按住不放会一直动，放开才记下。每格默认 1%，可以改成 0.5% 或 0.1%（模型的标准也一样）。格子越小越难刚好停在整数上：先拖到附近，再用两边的按钮微调。改了每格多少，已经记下的数字不会变。'],
+  hn: ['隐藏数字', '画面右上角的眼睛（iPad 上写着“隐藏数字”）、第一部分视窗上方、功能 → 拖动条', '把拖动条旁边的百分比藏起来，只看条的位置来判断，不受数字影响；隐藏中眼睛按钮会变成深色、划掉的眼睛。默认连分档的文字（例如“有难度但小”“很容易”）也一起藏起来，可以在功能 → 拖动条改成照样显示文字。再按一次眼睛（显示数字）就看得到。只影响画面：记录、统计、导出照样有数字，简易模型的标准也照样显示数字。'],
   mdl: ['简易模型', '上方“简易模型”、每队名字旁边、功能 → 简易模型', '按你定的标准提醒：某队满足“大角”的条件，名字旁边显示“大角”（这队角球会高于平均）；满足“小角”的条件显示“小角”。两队合起来：都大角提示投大角，都小角提示投小角；只有一队有提醒、或一队大角一队小角，提示投角球让球（投角球会比较多的那队）。点提示可以看每个条件现在满不满足；功能 → 简易模型可以用拖动条调标准、加项、删项、关掉提醒。这只是暂时的主观模型，不会改任何记录。'],
   stats: ['统计', 'iPad 两队中间；手机底部“统计”', '两队对比：到达次数和每 10 分钟几次、五个选择的比例（每队一条＝100%）和次数、传中＋远射占比、从到达到选择的秒数、传中和远射在范围内的比例、射门、角球和角球从哪里来。上方可以切换上半场、下半场、全场。'],
   ck: ['其他角球', '每队下面的“其他角球”', '不是从你记的那次到达直接来的角球（例如任意球、反击、忘了记的那次），点这里。到达链里选了“角球”的，不用再点。'],
@@ -25,7 +26,7 @@ const HELP = {
   arch: ['比赛仓库', '底部“仓库”', '保存结束时选“加入仓库”的比赛，以及还没结束的比赛。可以搜索、打开、导出、删除；“统计”有平均角球、你的到达和选择平均、你的逻辑检验，以及第一部分和两个问题每种选择下的角球（以后建模型用）；“备份”可以导出全部（JSON 或表格 CSV）和导入。'],
   pip: ['视频浮窗', '功能 → 视频浮窗', '用一台手机边看边记时：把视频切到画中画，拖到屏幕上方或下方，再在这里选同样的位置。app 会空出浮窗的位置，只留比分那一行，按键压缩。']
 };
-const HELP_ORDER = ['rec', 'p1', 'q', 'sl', 'mdl', 'stats', 'ck', 'net', 'clock', 'fix', 'arch', 'pip'];
+const HELP_ORDER = ['rec', 'p1', 'q', 'sl', 'hn', 'mdl', 'stats', 'ck', 'net', 'clock', 'fix', 'arch', 'pip'];
 const DEFS = [
   ['到达', '本队在对方禁区附近（禁区线外大约 10 米以内，或禁区两侧一直到底线的边路）把球控制住，点一次。同一次进攻在禁区附近来回传只点一次；做了一次选择以后（例如传中被解围），本队又在禁区附近拿到球、再做选择，就再点一次“到达”。角球、任意球本身不算。', null],
   ['传中', '从边路往禁区里传的球（下底传中、45 度传中、倒三角都算）。任意球、角球开出的不算。', ['内：球往有威胁的范围飞（禁区里、门前、队友能争到的地方），不管之后被挡、被解围、被门将拿到，还是有人射门', '外：传偏了：直接出界、飞过所有人、落点没有威胁', '内之后：禁区射门＝队友在禁区里射门（包括头球）；解围/中途拦截＝防守球员（包括门将）把球顶出、踢出、挡下、拿住']],
@@ -66,7 +67,7 @@ function renderSheet(){
         + t('wback', '备份与导入', ago == null ? '还没备份过：导出全部、导入' : '上次备份 ' + (ago ? ago + ' 天前' : '今天')) + '</div></div>'
         + '<div><h4>设置与说明</h4><div class="fcg">'
         + t('mset', '简易模型', MODEL.on ? '提醒开着：用拖动条调大角、小角的标准，加项、删项' : '提醒关着：点这里打开或调整标准')
-        + t('slset', '拖动条', '现在每格 ' + fp(pctStep()) + '%：可以改成 1%、0.5% 或 0.1%；两边的 − ＋ 微调')
+        + t('slset', '拖动条', '现在每格 ' + fp(pctStep()) + '%' + (hideNum() ? '，数字隐藏中' : '') + '：每格多少（1%、0.5%、0.1%）、隐藏数字')
         + t('net', '联网数据', !apiKey() ? '还没设定：API key、自动同步、画面延迟' : M.api ? '已连上 ' + esc(M.api.h) + ' vs ' + esc(M.api.a) : keyFromOther() ? '用角球数据记录的 key：查找比赛、同步' : '已设定 API key')
         + t('pip', '视频浮窗', PIP.pos === 'off' ? '一台手机边看浮窗边记录：空出浮窗的位置' : '已开启：浮窗在' + (PIP.pos === 'top' ? '上方' : '下方'))
         + t('defs', '按键定义', '到达、每个选择、内外、角球怎么算')
@@ -88,17 +89,17 @@ function renderSheet(){
       // 球权：一条，值＝主队的百分比
       const bh = svCur(M, 0, 'bq'), ba = svCur(M, 1, 'bq');
       const hv = bh && bh.v != null ? bh.v : ba && ba.v != null ? r1(100 - ba.v) : null, av = ba && ba.v != null ? ba.v : hv == null ? null : r1(100 - hv);
-      h = '<div class="card-h"><h3>第一部分</h3><button class="pill dark" data-a="close">完成</button></div>'
+      h = '<div class="card-h"><h3>第一部分</h3><button class="pill npill' + (hideNum() ? ' on' : '') + '" data-a="hidenum">' + numBtnHTML() + '</button><button class="pill dark" data-a="close">完成</button></div>'
         + '<div class="seg p1side">' + [0, 1].map(j => '<button data-a="p1side" data-v="' + j + '" aria-pressed="' + (i === j) + '">' + (j ? '客对主 ' : '主对客 ') + esc(teamName(j)) + '</button>').join('') + '</div>'
         + '<p class="hint">对球队未来能到对面禁区附近次数与呆在对方禁区附近总时长的预测。拖动或点一下条，两边的按钮一格一格微调（每格 ' + fp(pctStep()) + '%），随时可以改；每次放开都记下时间（20 秒内再调算改正）。</p>'
         + '<div class="p1g" id="p1g-bq"><h4>球权<small>' + when(svCur(M, i, 'bq')) + '</small>' + clr('bq', hv != null) + '</h4>'
-        + '<div class="bqv"><span class="h" id="p1v_bqh">主 ' + (hv == null ? '—' : fp(hv) + '%') + '</span><span class="lb">两队加起来 100%</span><span class="a" id="p1v_bqa">客 ' + (av == null ? '—' : fp(av) + '%') + '</span></div>'
+        + '<div class="bqv"><span class="h" id="p1v_bqh">主 ' + bqText(hv) + '</span><span class="lb">两队加起来 100%</span><span class="a" id="p1v_bqa">客 ' + bqText(av) + '</span></div>'
         + slHTML('p1', 'bq', hv, { cls: 'bq', lab: '球权：主队的百分比（客队自动是其余的）', lr: ['往左：客队多', '往右：主队多'] })
         + '<p class="p1n">蓝色是' + esc(teamName(0)) + '、红色是' + esc(teamName(1)) + '：往右主队多，往左客队多。</p></div>';
       for (const f of ['nd', 'yy']){
         const x = SVF[f], s = svCur(M, i, f), v = s && s.v != null ? s.v : null;
         h += '<div class="p1g" id="p1g-' + f + '"><h4>' + x.n + '<small>' + when(s) + '</small>' + clr(f, v != null) + '</h4>'
-          + '<div class="p1val"><b id="p1v_' + f + '">' + (v == null ? '未设' : fp(v) + '%') + '</b><span id="p1w_' + f + '">' + (v == null ? '拖动或点一下条' : esc(wordOf(f, v))) + '</span></div>'
+          + '<div class="p1val"><b id="p1v_' + f + '">' + p1NumHTML(v) + '</b><span id="p1w_' + f + '">' + (v == null ? '拖动或点一下条' : wordHTML(f, v)) + '</span></div>'
           + slHTML('p1', f, v, { cls: cls, lab: x.n })
           + '<div class="slends"><span>' + x.lo + '</span><span>' + x.hi + '</span></div></div>';
       }
@@ -294,7 +295,10 @@ function renderSheet(){
         + '<div class="lbl">试试看（不会记下来）</div>'
         + '<div class="p1val"><b id="sldv">' + fp(DEMO_V) + '%</b></div>'
         + slHTML('demo', 'd', DEMO_V, { cls: 'h', lab: '试试看' })
-        + '<p class="hint">' + HELP.sl[2] + '</p>';
+        + '<p class="hint">' + HELP.sl[2] + '</p>'
+        + '<div class="lbl">拖动条旁边的数字</div><div class="chips">' + [[0, '显示'], [1, '隐藏']].map(x => '<button class="chip" data-a="hnset" data-v="' + x[0] + '" aria-pressed="' + ((hideNum() ? 1 : 0) === x[0]) + '">' + x[1] + '</button>').join('') + '</div>'
+        + '<div class="lbl">隐藏数字时，按百分比分档的文字（例如“有难度但小”“很容易”）</div><div class="chips">' + [[1, '也隐藏'], [0, '照样显示']].map(x => '<button class="chip" data-a="hwset" data-v="' + x[0] + '" aria-pressed="' + ((PREF.hw !== 0 ? 1 : 0) === x[0]) + '">' + x[1] + '</button>').join('') + '</div>'
+        + '<p class="hint">' + HELP.hn[2] + '</p>';
       break;
     case 'import':
       h = '<div class="card-h"><h3>导入</h3><button class="pill" data-a="close">取消</button></div>'

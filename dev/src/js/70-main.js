@@ -88,6 +88,13 @@ document.addEventListener('click', ev => {
       showToast('已恢复默认标准', () => { MODEL = fixModel(old); saveModel(); renderAll(); if (sheetKind === 'mset') renderSheet(); });
       break;
     }
+    // 隐藏数字（画面右上角、第一部分视窗、功能 → 拖动条）
+    case 'hidenum': case 'hnset': {
+      PREF.hn = a === 'hnset' ? (+b.dataset.v ? 1 : 0) : (PREF.hn ? 0 : 1); savePref(); renderAll(); if (!sheet.hidden) renderSheet();
+      if (a === 'hidenum') showToast(PREF.hn ? '数字已隐藏，只看条的位置判断（再按一次显示）' : '数字已显示');
+      break;
+    }
+    case 'hwset': PREF.hw = +b.dataset.v ? 1 : 0; savePref(); renderAll(); renderSheet(); break;
     // 拖动条每格多少
     case 'slset': setMid(false); openSheet('slst'); break;
     case 'slst': {

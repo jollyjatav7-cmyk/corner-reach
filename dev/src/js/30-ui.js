@@ -20,6 +20,17 @@ const ICM = {
   no: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4.5 4.5l7 7M11.5 4.5l-7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
   na: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 8h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>'
 };
+/* 隐藏数字：眼睛（显示中）、划掉的眼睛（隐藏中） */
+const ICE = {
+  on: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M1.8 10S5 4.6 10 4.6 18.2 10 18.2 10 15 15.4 10 15.4 1.8 10 1.8 10z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><circle cx="10" cy="10" r="2.6" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>',
+  off: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M1.8 10S5 4.6 10 4.6 18.2 10 18.2 10 15 15.4 10 15.4 1.8 10 1.8 10z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" opacity=".55"/><circle cx="10" cy="10" r="2.6" fill="none" stroke="currentColor" stroke-width="1.6" opacity=".55"/><path d="M3.6 3.6l12.8 12.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>'
+};
+// 拖动条旁边的大字和文字（隐藏数字时换掉）：两个问题、第一部分视窗里的难度和意愿、球权两边
+const qValHTML = v => v == null ? '未设' : hideNum() ? '<span class="nh" title="数字已隐藏">' + ICE.off + '</span>' : fp(v) + '<small>%</small>';
+const p1NumHTML = v => v == null ? '未设' : hideNum() ? '<span class="nh">' + ICE.off + '<span>数字已隐藏</span></span>' : fp(v) + '%';
+const wordHTML = (f, v) => v == null || hideWord() ? '' : esc(wordOf(f, v));
+const bqText = v => v == null ? '—' : hideNum() ? (hideWord() ? '' : wordOf('bq', v)) : fp(v) + '%';
+const numBtnHTML = () => (hideNum() ? ICE.off : ICE.on) + '<span>' + (hideNum() ? '显示数字' : '隐藏数字') + '</span>';
 const teamName = i => (i ? M.a : M.h).trim() || (i ? '客队' : '主队');
 const isOpen = e => OC.some(o => o && o.k === e.k);
 function evLabel(e){
@@ -34,7 +45,12 @@ function evLabel(e){
 }
 function svLabel(s){
   const pr = svPair(s);
-  if (pr){ const h = s.i ? pr : s, a = s.i ? s : pr; return h.v == null && a.v == null ? '球权 → 清除' : '球权 → 主 ' + (h.v == null ? '—' : fp(h.v) + '%') + ' · 客 ' + (a.v == null ? '—' : fp(a.v) + '%'); }
+  if (pr){
+    const h = s.i ? pr : s, a = s.i ? s : pr;
+    if (h.v == null && a.v == null) return '球权 → 清除';
+    if (hideWord()) return '球权 → 已设';
+    return '球权 → 主 ' + (h.v == null ? '—' : pctText('bq', h.v)) + ' · 客 ' + (a.v == null ? '—' : pctText('bq', a.v));
+  }
   return SVF[s.f].s + ' → ' + svText(s.f, s.v);
 }
 /* 简易模型：每队的“大角／小角”、两队合起来的提示 */
@@ -73,6 +89,8 @@ function renderHeader(){
   if (document.activeElement !== fa) fa.value = M.a;
   if (document.activeElement !== fl) fl.value = M.lg;
   $('#mDate').textContent = M.d + (M.st === 2 ? ' · 已结束' : '');
+  const nb = $('#numBtn');
+  if (nb){ nb.innerHTML = numBtnHTML(); nb.classList.toggle('on', hideNum()); nb.setAttribute('aria-label', hideNum() ? '拖动条旁边的数字已隐藏，点一下显示' : '隐藏拖动条旁边的数字，只看条的位置'); }
   const sc = score(M), ck = cornersOf(M, 'ft');
   $('#glH').textContent = sc[0]; $('#glA').textContent = sc[1];
   const p = curP(), ck2 = cornersOf(M, 'h2');
@@ -102,7 +120,7 @@ const ocSecs = i => OC[i] && OC[i].at ? (Date.now() - OC[i].at) / 1000 : null;
 function p1SumHTML(i){
   return '<div class="p1s" role="group" aria-label="第一部分：点一项修改">' + P1.map(x => {
     const s = svCur(M, i, x.f), v = s ? s.v : null;
-    const t = v == null ? '未设' : x.pct ? fp(v) + '%' : x.ab[v];
+    const t = v == null ? '未设' : x.pct ? pctText(x.f, v) : x.ab[v];
     return '<button data-a="p1" data-i="' + i + '" data-f="' + x.f + '" aria-label="' + x.n + '：' + (v == null ? '未设' : x.pct ? fp(v) + '%' : x.o[v]) + '"><em>' + x.s + '</em><b' + (v == null ? ' class="na"' : '') + '>' + t + '</b>'
       + (x.pct ? '<i class="p1bar" aria-hidden="true"><i style="width:' + (v == null ? 0 : v) + '%"></i></i>' : '') + '</button>';
   }).join('') + '</div>';
@@ -147,9 +165,9 @@ function qPadHTML(i){
   for (const q of QS){
     const s = svCur(M, i, q.f), v = s ? s.v : null, x = i + '_' + q.f;
     let prev = null; for (const y of M.sv) if (y.i === i && y.f === q.f && s && y.k !== s.k && (!prev || y.k > prev.k)) prev = y;
-    const note = !s ? '还没设' : v == null ? fmtMin(s.p, s.t) + ' 清除' : fmtMin(s.p, s.t) + ' 设的' + (prev && prev.v != null ? '（之前 ' + fp(prev.v) + '%）' : '');
-    h += '<div class="qcard"><div class="qh"><h3 class="qq">' + q.n + '</h3><span class="qval' + (v == null ? ' na' : '') + '" id="qv_' + x + '">' + (v == null ? '未设' : fp(v) + '<small>%</small>') + '</span></div>'
-      + '<div class="qsub"><span class="qd">' + q.d + '</span><span class="qw" id="qw_' + x + '">' + esc(wordOf(q.f, v)) + '</span></div>'
+    const note = !s ? '还没设' : v == null ? fmtMin(s.p, s.t) + ' 清除' : fmtMin(s.p, s.t) + ' 设的' + (prev && prev.v != null && !hideNum() ? '（之前 ' + fp(prev.v) + '%）' : '');
+    h += '<div class="qcard"><div class="qh"><h3 class="qq">' + q.n + '</h3><span class="qval' + (v == null ? ' na' : '') + '" id="qv_' + x + '">' + qValHTML(v) + '</span></div>'
+      + '<div class="qsub"><span class="qd">' + q.d + '</span><span class="qw" id="qw_' + x + '">' + wordHTML(q.f, v) + '</span></div>'
       + slHTML('q', x, v, { cls: 'big lock ' + (i ? 'a' : 'h'), lab: q.n })
       + '<div class="qends"><span>' + q.lo + '</span><span class="qnote">' + note + '</span><span>' + q.hi + '</span></div></div>';
   }

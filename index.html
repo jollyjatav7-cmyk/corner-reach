@@ -72,6 +72,14 @@ input,textarea{font:inherit;color:inherit}
 .tbtn{height:36px;padding:0 12px;border:0;border-radius:10px;background:none;color:var(--ink2);font-weight:500;white-space:nowrap}
 .tbtn:active{background:var(--rule)}
 .tbtn.ic{width:40px;padding:0;display:grid;place-items:center}
+/* 隐藏数字：右上角的按钮、第一部分视窗的按钮；隐藏中按钮变深色，拖动条旁边只留划掉的眼睛 */
+.tbtn.nbtn{display:inline-flex;align-items:center;gap:5px;padding:0 10px;font-size:13px;font-weight:600}
+.tbtn.nbtn.on{background:var(--ink);color:var(--paper)}
+.tbtn.nbtn svg,.pill.npill svg{width:18px;height:18px;flex:none}
+.pill.npill{display:inline-flex;align-items:center;gap:6px;padding:0 12px}
+.nh{display:inline-flex;align-items:center;gap:6px;color:var(--muted);font:600 14px/1.2 var(--f-ui);white-space:nowrap}
+.nh svg{width:22px;height:22px;flex:none}
+.qval .nh svg{width:26px;height:26px}
 /* 两个程序的切换；右边是简易模型的提示（不会把下面的按键挤下去） */
 .modebar{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,420px) minmax(0,1fr);align-items:center;gap:12px;padding:0 20px 6px;flex:none}
 .mseg{grid-column:2;display:grid;grid-template-columns:1fr 1fr;width:100%;background:var(--card);border:1px solid var(--line2);border-radius:12px;padding:3px}
@@ -531,6 +539,7 @@ textarea.fi{height:140px;padding:10px 12px;font:12px/1.4 ui-monospace,Menlo,mono
   .app{height:100vh;height:100dvh}
   .bar{padding:6px 10px 4px}
   .bar .tools .tbtn{height:30px}
+  .tbtn.nbtn{width:34px;padding:0;justify-content:center} .tbtn.nbtn span{display:none}   /* 手机：只有眼睛（联网的标签也在这一行，留位置给联赛名） */
   .gl{font-size:30px}
   .clkbtn b{font-size:26px}
   .run{width:34px;height:34px}
@@ -686,6 +695,7 @@ textarea.fi{height:140px;padding:10px 12px;font:12px/1.4 ui-monospace,Menlo,mono
     </div>
     <div class="tools">
       <button class="netpill" id="netPill" data-a="netpill" hidden></button>
+      <button class="tbtn nbtn" id="numBtn" data-a="hidenum"></button>
       <button class="tbtn ic" data-a="menu" aria-label="功能"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M3 5h12M3 9h12M3 13h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
     </div>
   </header>
@@ -728,7 +738,7 @@ const f1 = v => ok(v) ? v.toFixed(1) : '—';
 const pc = v => ok(v) ? Math.round(v * 100) + '%' : '—';
 const r1 = v => Math.round(v * 10) / 10;   // 拖动条的值最多一位小数
 const fp = v => String(r1(v));             // 显示：62.5 → "62.5"，60 → "60"
-const APPVER = 'v3';
+const APPVER = 'v4';
 const APPNAME = '角球到达与选择';
 const LS = {
   get(k, d){ try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e){ return d; } },
@@ -796,7 +806,7 @@ const QS = [
 const SVF = {}; P1.concat(QS).forEach(x => { SVF[x.f] = x; });
 const bucketOf = (f, v) => { const b = SVF[f].bk; for (let j = 0; j < b.length; j++) if (v >= b[j][0] && v < b[j][1]) return j; return b.length - 1; };
 const wordOf = (f, v) => v == null ? '' : SVF[f].bk[bucketOf(f, v)][3];
-const svText = (f, v) => { const x = SVF[f]; if (v == null) return '清除'; return x.pct ? fp(v) + '%' : x.o[v]; };
+const svText = (f, v) => { const x = SVF[f]; if (v == null) return '清除'; return x.pct ? pctText(f, v) : x.o[v]; };
 /* 旧版（v1）存的是第几个选项：换成那一档中间的百分比（原来的选项留在 o） */
 const OLDPCT = { bq: [65, 50, 35], nd: [10, 30, 50, 70, 90], yy: [80, 50, 20], q1: [10, 30, 50, 70, 90], q2: [10, 30, 50, 70, 90] };
 const SIMPLE = { ar: '到达', ck: '其他角球', gl: '进球', rc: '红牌' };
@@ -873,11 +883,18 @@ window.addEventListener('pagehide', () => { if (saveT) saveNow(); });
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden' && saveT) saveNow(); });
 for (const id in store){ if (store[id] && typeof store[id] === 'object') fixMatch(store[id]); else delete store[id]; }
 M = store[LS.get(CURK, '')] || newMatch();
-const PREF = Object.assign({ scope: 'auto', mode: 'rec', st: 1 }, LS.get('corner-reach-pref', {}) || {});
+const PREF = Object.assign({ scope: 'auto', mode: 'rec', st: 1, hn: 0, hw: 1 }, LS.get('corner-reach-pref', {}) || {});
 const savePref = () => LS.set('corner-reach-pref', PREF);
 /* 拖动条每格多少（百分比的项目：第一部分、两个问题、模型的标准）：功能 → 拖动条 */
 const SLSTEPS = [1, 0.5, 0.1];
 const pctStep = () => SLSTEPS.indexOf(+PREF.st) >= 0 ? +PREF.st : 1;
+/* 隐藏数字（PREF.hn）：画面上不显示你拖的百分比，只看条的位置判断，不受数字影响。
+   PREF.hw＝1（默认）：隐藏时连按百分比分档的文字（例如“有难度但小”）也隐藏。
+   只影响画面：记录、统计、导出照样有数字；简易模型的标准照样显示数字。 */
+const hideNum = () => !!PREF.hn;
+const hideWord = () => !!PREF.hn && PREF.hw !== 0;
+// 一个拖动条的值写成字：62.5%；隐藏数字时是分档的文字，或“已设”
+const pctText = (f, v) => !hideNum() ? fp(v) + '%' : hideWord() ? '已设' : wordOf(f, v);
 
 /* ================= 计时（跟“角球数据记录”一样） ================= */
 const clockOf = m => m.tm.r ? m.tm.b + (Date.now() - m.tm.at) / 1000 : m.tm.b;
@@ -1319,7 +1336,7 @@ function fmtMV(k, v, c){
   const x = MET[k];
   if (x.cat) return P1[3].o[v] || '—';
   let s;
-  if (SVF[k]) s = fp(v);
+  if (SVF[k]){ if (hideNum()) return hideWord() ? '已设' : wordOf(k, v); s = fp(v); }   // 隐藏数字时，你拖的值也不在这里显示
   else {
     let d = x.u === '%' ? 0 : 1;
     while (d < 2 && c && condOK(c, { v: +v.toFixed(d) }) !== condOK(c, { v: v })) d++;
@@ -1355,6 +1372,17 @@ const ICM = {
   no: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4.5 4.5l7 7M11.5 4.5l-7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
   na: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 8h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>'
 };
+/* 隐藏数字：眼睛（显示中）、划掉的眼睛（隐藏中） */
+const ICE = {
+  on: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M1.8 10S5 4.6 10 4.6 18.2 10 18.2 10 15 15.4 10 15.4 1.8 10 1.8 10z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><circle cx="10" cy="10" r="2.6" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>',
+  off: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M1.8 10S5 4.6 10 4.6 18.2 10 18.2 10 15 15.4 10 15.4 1.8 10 1.8 10z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" opacity=".55"/><circle cx="10" cy="10" r="2.6" fill="none" stroke="currentColor" stroke-width="1.6" opacity=".55"/><path d="M3.6 3.6l12.8 12.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>'
+};
+// 拖动条旁边的大字和文字（隐藏数字时换掉）：两个问题、第一部分视窗里的难度和意愿、球权两边
+const qValHTML = v => v == null ? '未设' : hideNum() ? '<span class="nh" title="数字已隐藏">' + ICE.off + '</span>' : fp(v) + '<small>%</small>';
+const p1NumHTML = v => v == null ? '未设' : hideNum() ? '<span class="nh">' + ICE.off + '<span>数字已隐藏</span></span>' : fp(v) + '%';
+const wordHTML = (f, v) => v == null || hideWord() ? '' : esc(wordOf(f, v));
+const bqText = v => v == null ? '—' : hideNum() ? (hideWord() ? '' : wordOf('bq', v)) : fp(v) + '%';
+const numBtnHTML = () => (hideNum() ? ICE.off : ICE.on) + '<span>' + (hideNum() ? '显示数字' : '隐藏数字') + '</span>';
 const teamName = i => (i ? M.a : M.h).trim() || (i ? '客队' : '主队');
 const isOpen = e => OC.some(o => o && o.k === e.k);
 function evLabel(e){
@@ -1369,7 +1397,12 @@ function evLabel(e){
 }
 function svLabel(s){
   const pr = svPair(s);
-  if (pr){ const h = s.i ? pr : s, a = s.i ? s : pr; return h.v == null && a.v == null ? '球权 → 清除' : '球权 → 主 ' + (h.v == null ? '—' : fp(h.v) + '%') + ' · 客 ' + (a.v == null ? '—' : fp(a.v) + '%'); }
+  if (pr){
+    const h = s.i ? pr : s, a = s.i ? s : pr;
+    if (h.v == null && a.v == null) return '球权 → 清除';
+    if (hideWord()) return '球权 → 已设';
+    return '球权 → 主 ' + (h.v == null ? '—' : pctText('bq', h.v)) + ' · 客 ' + (a.v == null ? '—' : pctText('bq', a.v));
+  }
   return SVF[s.f].s + ' → ' + svText(s.f, s.v);
 }
 /* 简易模型：每队的“大角／小角”、两队合起来的提示 */
@@ -1408,6 +1441,8 @@ function renderHeader(){
   if (document.activeElement !== fa) fa.value = M.a;
   if (document.activeElement !== fl) fl.value = M.lg;
   $('#mDate').textContent = M.d + (M.st === 2 ? ' · 已结束' : '');
+  const nb = $('#numBtn');
+  if (nb){ nb.innerHTML = numBtnHTML(); nb.classList.toggle('on', hideNum()); nb.setAttribute('aria-label', hideNum() ? '拖动条旁边的数字已隐藏，点一下显示' : '隐藏拖动条旁边的数字，只看条的位置'); }
   const sc = score(M), ck = cornersOf(M, 'ft');
   $('#glH').textContent = sc[0]; $('#glA').textContent = sc[1];
   const p = curP(), ck2 = cornersOf(M, 'h2');
@@ -1437,7 +1472,7 @@ const ocSecs = i => OC[i] && OC[i].at ? (Date.now() - OC[i].at) / 1000 : null;
 function p1SumHTML(i){
   return '<div class="p1s" role="group" aria-label="第一部分：点一项修改">' + P1.map(x => {
     const s = svCur(M, i, x.f), v = s ? s.v : null;
-    const t = v == null ? '未设' : x.pct ? fp(v) + '%' : x.ab[v];
+    const t = v == null ? '未设' : x.pct ? pctText(x.f, v) : x.ab[v];
     return '<button data-a="p1" data-i="' + i + '" data-f="' + x.f + '" aria-label="' + x.n + '：' + (v == null ? '未设' : x.pct ? fp(v) + '%' : x.o[v]) + '"><em>' + x.s + '</em><b' + (v == null ? ' class="na"' : '') + '>' + t + '</b>'
       + (x.pct ? '<i class="p1bar" aria-hidden="true"><i style="width:' + (v == null ? 0 : v) + '%"></i></i>' : '') + '</button>';
   }).join('') + '</div>';
@@ -1482,9 +1517,9 @@ function qPadHTML(i){
   for (const q of QS){
     const s = svCur(M, i, q.f), v = s ? s.v : null, x = i + '_' + q.f;
     let prev = null; for (const y of M.sv) if (y.i === i && y.f === q.f && s && y.k !== s.k && (!prev || y.k > prev.k)) prev = y;
-    const note = !s ? '还没设' : v == null ? fmtMin(s.p, s.t) + ' 清除' : fmtMin(s.p, s.t) + ' 设的' + (prev && prev.v != null ? '（之前 ' + fp(prev.v) + '%）' : '');
-    h += '<div class="qcard"><div class="qh"><h3 class="qq">' + q.n + '</h3><span class="qval' + (v == null ? ' na' : '') + '" id="qv_' + x + '">' + (v == null ? '未设' : fp(v) + '<small>%</small>') + '</span></div>'
-      + '<div class="qsub"><span class="qd">' + q.d + '</span><span class="qw" id="qw_' + x + '">' + esc(wordOf(q.f, v)) + '</span></div>'
+    const note = !s ? '还没设' : v == null ? fmtMin(s.p, s.t) + ' 清除' : fmtMin(s.p, s.t) + ' 设的' + (prev && prev.v != null && !hideNum() ? '（之前 ' + fp(prev.v) + '%）' : '');
+    h += '<div class="qcard"><div class="qh"><h3 class="qq">' + q.n + '</h3><span class="qval' + (v == null ? ' na' : '') + '" id="qv_' + x + '">' + qValHTML(v) + '</span></div>'
+      + '<div class="qsub"><span class="qd">' + q.d + '</span><span class="qw" id="qw_' + x + '">' + wordHTML(q.f, v) + '</span></div>'
       + slHTML('q', x, v, { cls: 'big lock ' + (i ? 'a' : 'h'), lab: q.n })
       + '<div class="qends"><span>' + q.lo + '</span><span class="qnote">' + note + '</span><span>' + q.hi + '</span></div></div>';
   }
@@ -1836,17 +1871,18 @@ document.addEventListener('contextmenu', ev => { if (sbOf(ev.target)) ev.prevent
 const setTx = (id, h) => { const e = document.getElementById(id); if (e) e.innerHTML = h; };
 function svValText(s, v){
   if (v == null) return '清除';
-  const pr = svPair(s);
-  if (pr) return s.i ? '主 ' + fp(100 - v) + '% · 客 ' + fp(v) + '%' : '主 ' + fp(v) + '% · 客 ' + fp(100 - v) + '%';
-  const x = SVF[s.f];
-  return x.pct ? fp(v) + '%' + (s.f === 'bq' ? '' : ' ' + wordOf(s.f, v)) : x.o[v];
+  const pr = svPair(s), x = SVF[s.f];
+  if (!x.pct) return x.o[v];
+  if (hideWord()) return '数字已隐藏';
+  if (pr){ const h = s.i ? r1(100 - v) : v, a = s.i ? v : r1(100 - v); return '主 ' + pctText('bq', h) + ' · 客 ' + pctText('bq', a); }
+  return pctText(s.f, v) + (s.f === 'bq' || hideNum() ? '' : ' ' + wordOf(s.f, v));
 }
 const SLK = {
   // 第一部分（视窗里）：x＝bq（值＝主队的百分比）、nd、yy
   p1: {
     input(f, v){
-      if (f === 'bq'){ setTx('p1v_bqh', '主 ' + fp(v) + '%'); setTx('p1v_bqa', '客 ' + fp(100 - v) + '%'); }
-      else { setTx('p1v_' + f, fp(v) + '%'); setTx('p1w_' + f, esc(wordOf(f, v))); }
+      if (f === 'bq'){ setTx('p1v_bqh', '主 ' + bqText(v)); setTx('p1v_bqa', '客 ' + bqText(r1(100 - v))); }
+      else { setTx('p1v_' + f, p1NumHTML(v)); setTx('p1w_' + f, wordHTML(f, v)); }
     },
     commit(f, v){
       if (M.st === 2){ endedToast(); return; }
@@ -1857,7 +1893,7 @@ const SLK = {
   },
   // 两个问题（画面上）：x＝'0_q1'
   q: {
-    input(x, v){ const p = x.split('_'); setTx('qv_' + x, fp(v) + '<small>%</small>'); setTx('qw_' + x, esc(wordOf(p[1], v))); },
+    input(x, v){ const p = x.split('_'); setTx('qv_' + x, qValHTML(v)); setTx('qw_' + x, wordHTML(p[1], v)); },
     commit(x, v){ const p = x.split('_'); pickQ(+p[0], p[1], v); }
   },
   // 全部记录里改一笔：x＝那一笔的 k
@@ -1900,6 +1936,7 @@ const HELP = {
   p1: ['第一部分（主观）', '每队“到达”上方的四格', '球权、到禁区附近的难度、意愿是拖动条（百分比），场面是三个选项，由你主观判断，比赛中随时可以改。球权只有一条：主队拖多一点，客队就自动少一点（两队加起来 100%）。每次放开都会记下时间（20 秒内再调算改正），以后可以统计在每种状态下角球多还是少。'],
   q: ['两个问题', '上方切换“两个问题”', '每队两个问题，都是拖动条（百分比）：一、他容不容易到对方禁区附近＝几次进攻里有百分之几能到对方禁区附近；二、他喜不喜欢传中和远射＝传中和远射的比例。随时可以改，每次放开都记下时间。上方的“角球 ＋1”可以顺便记角球。两个程序记在同一场比赛里，可以只用一个。'],
   sl: ['拖动条', '第一部分、两个问题、简易模型的标准；每格多少在功能 → 拖动条', '手指左右拖，或点一下条上的位置；条两边的按钮（− ＋，球权是往左、往右）每按一下动一格，按住不放会一直动，放开才记下。每格默认 1%，可以改成 0.5% 或 0.1%（模型的标准也一样）。格子越小越难刚好停在整数上：先拖到附近，再用两边的按钮微调。改了每格多少，已经记下的数字不会变。'],
+  hn: ['隐藏数字', '画面右上角的眼睛（iPad 上写着“隐藏数字”）、第一部分视窗上方、功能 → 拖动条', '把拖动条旁边的百分比藏起来，只看条的位置来判断，不受数字影响；隐藏中眼睛按钮会变成深色、划掉的眼睛。默认连分档的文字（例如“有难度但小”“很容易”）也一起藏起来，可以在功能 → 拖动条改成照样显示文字。再按一次眼睛（显示数字）就看得到。只影响画面：记录、统计、导出照样有数字，简易模型的标准也照样显示数字。'],
   mdl: ['简易模型', '上方“简易模型”、每队名字旁边、功能 → 简易模型', '按你定的标准提醒：某队满足“大角”的条件，名字旁边显示“大角”（这队角球会高于平均）；满足“小角”的条件显示“小角”。两队合起来：都大角提示投大角，都小角提示投小角；只有一队有提醒、或一队大角一队小角，提示投角球让球（投角球会比较多的那队）。点提示可以看每个条件现在满不满足；功能 → 简易模型可以用拖动条调标准、加项、删项、关掉提醒。这只是暂时的主观模型，不会改任何记录。'],
   stats: ['统计', 'iPad 两队中间；手机底部“统计”', '两队对比：到达次数和每 10 分钟几次、五个选择的比例（每队一条＝100%）和次数、传中＋远射占比、从到达到选择的秒数、传中和远射在范围内的比例、射门、角球和角球从哪里来。上方可以切换上半场、下半场、全场。'],
   ck: ['其他角球', '每队下面的“其他角球”', '不是从你记的那次到达直接来的角球（例如任意球、反击、忘了记的那次），点这里。到达链里选了“角球”的，不用再点。'],
@@ -1909,7 +1946,7 @@ const HELP = {
   arch: ['比赛仓库', '底部“仓库”', '保存结束时选“加入仓库”的比赛，以及还没结束的比赛。可以搜索、打开、导出、删除；“统计”有平均角球、你的到达和选择平均、你的逻辑检验，以及第一部分和两个问题每种选择下的角球（以后建模型用）；“备份”可以导出全部（JSON 或表格 CSV）和导入。'],
   pip: ['视频浮窗', '功能 → 视频浮窗', '用一台手机边看边记时：把视频切到画中画，拖到屏幕上方或下方，再在这里选同样的位置。app 会空出浮窗的位置，只留比分那一行，按键压缩。']
 };
-const HELP_ORDER = ['rec', 'p1', 'q', 'sl', 'mdl', 'stats', 'ck', 'net', 'clock', 'fix', 'arch', 'pip'];
+const HELP_ORDER = ['rec', 'p1', 'q', 'sl', 'hn', 'mdl', 'stats', 'ck', 'net', 'clock', 'fix', 'arch', 'pip'];
 const DEFS = [
   ['到达', '本队在对方禁区附近（禁区线外大约 10 米以内，或禁区两侧一直到底线的边路）把球控制住，点一次。同一次进攻在禁区附近来回传只点一次；做了一次选择以后（例如传中被解围），本队又在禁区附近拿到球、再做选择，就再点一次“到达”。角球、任意球本身不算。', null],
   ['传中', '从边路往禁区里传的球（下底传中、45 度传中、倒三角都算）。任意球、角球开出的不算。', ['内：球往有威胁的范围飞（禁区里、门前、队友能争到的地方），不管之后被挡、被解围、被门将拿到，还是有人射门', '外：传偏了：直接出界、飞过所有人、落点没有威胁', '内之后：禁区射门＝队友在禁区里射门（包括头球）；解围/中途拦截＝防守球员（包括门将）把球顶出、踢出、挡下、拿住']],
@@ -1950,7 +1987,7 @@ function renderSheet(){
         + t('wback', '备份与导入', ago == null ? '还没备份过：导出全部、导入' : '上次备份 ' + (ago ? ago + ' 天前' : '今天')) + '</div></div>'
         + '<div><h4>设置与说明</h4><div class="fcg">'
         + t('mset', '简易模型', MODEL.on ? '提醒开着：用拖动条调大角、小角的标准，加项、删项' : '提醒关着：点这里打开或调整标准')
-        + t('slset', '拖动条', '现在每格 ' + fp(pctStep()) + '%：可以改成 1%、0.5% 或 0.1%；两边的 − ＋ 微调')
+        + t('slset', '拖动条', '现在每格 ' + fp(pctStep()) + '%' + (hideNum() ? '，数字隐藏中' : '') + '：每格多少（1%、0.5%、0.1%）、隐藏数字')
         + t('net', '联网数据', !apiKey() ? '还没设定：API key、自动同步、画面延迟' : M.api ? '已连上 ' + esc(M.api.h) + ' vs ' + esc(M.api.a) : keyFromOther() ? '用角球数据记录的 key：查找比赛、同步' : '已设定 API key')
         + t('pip', '视频浮窗', PIP.pos === 'off' ? '一台手机边看浮窗边记录：空出浮窗的位置' : '已开启：浮窗在' + (PIP.pos === 'top' ? '上方' : '下方'))
         + t('defs', '按键定义', '到达、每个选择、内外、角球怎么算')
@@ -1972,17 +2009,17 @@ function renderSheet(){
       // 球权：一条，值＝主队的百分比
       const bh = svCur(M, 0, 'bq'), ba = svCur(M, 1, 'bq');
       const hv = bh && bh.v != null ? bh.v : ba && ba.v != null ? r1(100 - ba.v) : null, av = ba && ba.v != null ? ba.v : hv == null ? null : r1(100 - hv);
-      h = '<div class="card-h"><h3>第一部分</h3><button class="pill dark" data-a="close">完成</button></div>'
+      h = '<div class="card-h"><h3>第一部分</h3><button class="pill npill' + (hideNum() ? ' on' : '') + '" data-a="hidenum">' + numBtnHTML() + '</button><button class="pill dark" data-a="close">完成</button></div>'
         + '<div class="seg p1side">' + [0, 1].map(j => '<button data-a="p1side" data-v="' + j + '" aria-pressed="' + (i === j) + '">' + (j ? '客对主 ' : '主对客 ') + esc(teamName(j)) + '</button>').join('') + '</div>'
         + '<p class="hint">对球队未来能到对面禁区附近次数与呆在对方禁区附近总时长的预测。拖动或点一下条，两边的按钮一格一格微调（每格 ' + fp(pctStep()) + '%），随时可以改；每次放开都记下时间（20 秒内再调算改正）。</p>'
         + '<div class="p1g" id="p1g-bq"><h4>球权<small>' + when(svCur(M, i, 'bq')) + '</small>' + clr('bq', hv != null) + '</h4>'
-        + '<div class="bqv"><span class="h" id="p1v_bqh">主 ' + (hv == null ? '—' : fp(hv) + '%') + '</span><span class="lb">两队加起来 100%</span><span class="a" id="p1v_bqa">客 ' + (av == null ? '—' : fp(av) + '%') + '</span></div>'
+        + '<div class="bqv"><span class="h" id="p1v_bqh">主 ' + bqText(hv) + '</span><span class="lb">两队加起来 100%</span><span class="a" id="p1v_bqa">客 ' + bqText(av) + '</span></div>'
         + slHTML('p1', 'bq', hv, { cls: 'bq', lab: '球权：主队的百分比（客队自动是其余的）', lr: ['往左：客队多', '往右：主队多'] })
         + '<p class="p1n">蓝色是' + esc(teamName(0)) + '、红色是' + esc(teamName(1)) + '：往右主队多，往左客队多。</p></div>';
       for (const f of ['nd', 'yy']){
         const x = SVF[f], s = svCur(M, i, f), v = s && s.v != null ? s.v : null;
         h += '<div class="p1g" id="p1g-' + f + '"><h4>' + x.n + '<small>' + when(s) + '</small>' + clr(f, v != null) + '</h4>'
-          + '<div class="p1val"><b id="p1v_' + f + '">' + (v == null ? '未设' : fp(v) + '%') + '</b><span id="p1w_' + f + '">' + (v == null ? '拖动或点一下条' : esc(wordOf(f, v))) + '</span></div>'
+          + '<div class="p1val"><b id="p1v_' + f + '">' + p1NumHTML(v) + '</b><span id="p1w_' + f + '">' + (v == null ? '拖动或点一下条' : wordHTML(f, v)) + '</span></div>'
           + slHTML('p1', f, v, { cls: cls, lab: x.n })
           + '<div class="slends"><span>' + x.lo + '</span><span>' + x.hi + '</span></div></div>';
       }
@@ -2178,7 +2215,10 @@ function renderSheet(){
         + '<div class="lbl">试试看（不会记下来）</div>'
         + '<div class="p1val"><b id="sldv">' + fp(DEMO_V) + '%</b></div>'
         + slHTML('demo', 'd', DEMO_V, { cls: 'h', lab: '试试看' })
-        + '<p class="hint">' + HELP.sl[2] + '</p>';
+        + '<p class="hint">' + HELP.sl[2] + '</p>'
+        + '<div class="lbl">拖动条旁边的数字</div><div class="chips">' + [[0, '显示'], [1, '隐藏']].map(x => '<button class="chip" data-a="hnset" data-v="' + x[0] + '" aria-pressed="' + ((hideNum() ? 1 : 0) === x[0]) + '">' + x[1] + '</button>').join('') + '</div>'
+        + '<div class="lbl">隐藏数字时，按百分比分档的文字（例如“有难度但小”“很容易”）</div><div class="chips">' + [[1, '也隐藏'], [0, '照样显示']].map(x => '<button class="chip" data-a="hwset" data-v="' + x[0] + '" aria-pressed="' + ((PREF.hw !== 0 ? 1 : 0) === x[0]) + '">' + x[1] + '</button>').join('') + '</div>'
+        + '<p class="hint">' + HELP.hn[2] + '</p>';
       break;
     case 'import':
       h = '<div class="card-h"><h3>导入</h3><button class="pill" data-a="close">取消</button></div>'
@@ -3214,6 +3254,13 @@ document.addEventListener('click', ev => {
       showToast('已恢复默认标准', () => { MODEL = fixModel(old); saveModel(); renderAll(); if (sheetKind === 'mset') renderSheet(); });
       break;
     }
+    // 隐藏数字（画面右上角、第一部分视窗、功能 → 拖动条）
+    case 'hidenum': case 'hnset': {
+      PREF.hn = a === 'hnset' ? (+b.dataset.v ? 1 : 0) : (PREF.hn ? 0 : 1); savePref(); renderAll(); if (!sheet.hidden) renderSheet();
+      if (a === 'hidenum') showToast(PREF.hn ? '数字已隐藏，只看条的位置判断（再按一次显示）' : '数字已显示');
+      break;
+    }
+    case 'hwset': PREF.hw = +b.dataset.v ? 1 : 0; savePref(); renderAll(); renderSheet(); break;
     // 拖动条每格多少
     case 'slset': setMid(false); openSheet('slst'); break;
     case 'slst': {

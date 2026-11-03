@@ -57,6 +57,14 @@ input,textarea{font:inherit;color:inherit}
 .tbtn{height:36px;padding:0 12px;border:0;border-radius:10px;background:none;color:var(--ink2);font-weight:500;white-space:nowrap}
 .tbtn:active{background:var(--rule)}
 .tbtn.ic{width:40px;padding:0;display:grid;place-items:center}
+/* 隐藏数字：右上角的按钮、第一部分视窗的按钮；隐藏中按钮变深色，拖动条旁边只留划掉的眼睛 */
+.tbtn.nbtn{display:inline-flex;align-items:center;gap:5px;padding:0 10px;font-size:13px;font-weight:600}
+.tbtn.nbtn.on{background:var(--ink);color:var(--paper)}
+.tbtn.nbtn svg,.pill.npill svg{width:18px;height:18px;flex:none}
+.pill.npill{display:inline-flex;align-items:center;gap:6px;padding:0 12px}
+.nh{display:inline-flex;align-items:center;gap:6px;color:var(--muted);font:600 14px/1.2 var(--f-ui);white-space:nowrap}
+.nh svg{width:22px;height:22px;flex:none}
+.qval .nh svg{width:26px;height:26px}
 /* 两个程序的切换；右边是简易模型的提示（不会把下面的按键挤下去） */
 .modebar{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,420px) minmax(0,1fr);align-items:center;gap:12px;padding:0 20px 6px;flex:none}
 .mseg{grid-column:2;display:grid;grid-template-columns:1fr 1fr;width:100%;background:var(--card);border:1px solid var(--line2);border-radius:12px;padding:3px}
@@ -516,6 +524,7 @@ textarea.fi{height:140px;padding:10px 12px;font:12px/1.4 ui-monospace,Menlo,mono
   .app{height:100vh;height:100dvh}
   .bar{padding:6px 10px 4px}
   .bar .tools .tbtn{height:30px}
+  .tbtn.nbtn{width:34px;padding:0;justify-content:center} .tbtn.nbtn span{display:none}   /* 手机：只有眼睛（联网的标签也在这一行，留位置给联赛名） */
   .gl{font-size:30px}
   .clkbtn b{font-size:26px}
   .run{width:34px;height:34px}

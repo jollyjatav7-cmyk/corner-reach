@@ -78,7 +78,7 @@ const QS = [
 const SVF = {}; P1.concat(QS).forEach(x => { SVF[x.f] = x; });
 const bucketOf = (f, v) => { const b = SVF[f].bk; for (let j = 0; j < b.length; j++) if (v >= b[j][0] && v < b[j][1]) return j; return b.length - 1; };
 const wordOf = (f, v) => v == null ? '' : SVF[f].bk[bucketOf(f, v)][3];
-const svText = (f, v) => { const x = SVF[f]; if (v == null) return '清除'; return x.pct ? fp(v) + '%' : x.o[v]; };
+const svText = (f, v) => { const x = SVF[f]; if (v == null) return '清除'; return x.pct ? pctText(f, v) : x.o[v]; };
 /* 旧版（v1）存的是第几个选项：换成那一档中间的百分比（原来的选项留在 o） */
 const OLDPCT = { bq: [65, 50, 35], nd: [10, 30, 50, 70, 90], yy: [80, 50, 20], q1: [10, 30, 50, 70, 90], q2: [10, 30, 50, 70, 90] };
 const SIMPLE = { ar: '到达', ck: '其他角球', gl: '进球', rc: '红牌' };
@@ -155,11 +155,18 @@ window.addEventListener('pagehide', () => { if (saveT) saveNow(); });
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden' && saveT) saveNow(); });
 for (const id in store){ if (store[id] && typeof store[id] === 'object') fixMatch(store[id]); else delete store[id]; }
 M = store[LS.get(CURK, '')] || newMatch();
-const PREF = Object.assign({ scope: 'auto', mode: 'rec', st: 1 }, LS.get('corner-reach-pref', {}) || {});
+const PREF = Object.assign({ scope: 'auto', mode: 'rec', st: 1, hn: 0, hw: 1 }, LS.get('corner-reach-pref', {}) || {});
 const savePref = () => LS.set('corner-reach-pref', PREF);
 /* 拖动条每格多少（百分比的项目：第一部分、两个问题、模型的标准）：功能 → 拖动条 */
 const SLSTEPS = [1, 0.5, 0.1];
 const pctStep = () => SLSTEPS.indexOf(+PREF.st) >= 0 ? +PREF.st : 1;
+/* 隐藏数字（PREF.hn）：画面上不显示你拖的百分比，只看条的位置判断，不受数字影响。
+   PREF.hw＝1（默认）：隐藏时连按百分比分档的文字（例如“有难度但小”）也隐藏。
+   只影响画面：记录、统计、导出照样有数字；简易模型的标准照样显示数字。 */
+const hideNum = () => !!PREF.hn;
+const hideWord = () => !!PREF.hn && PREF.hw !== 0;
+// 一个拖动条的值写成字：62.5%；隐藏数字时是分档的文字，或“已设”
+const pctText = (f, v) => !hideNum() ? fp(v) + '%' : hideWord() ? '已设' : wordOf(f, v);
 
 /* ================= 计时（跟“角球数据记录”一样） ================= */
 const clockOf = m => m.tm.r ? m.tm.b + (Date.now() - m.tm.at) / 1000 : m.tm.b;

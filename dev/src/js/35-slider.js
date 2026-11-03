@@ -174,17 +174,18 @@ document.addEventListener('contextmenu', ev => { if (sbOf(ev.target)) ev.prevent
 const setTx = (id, h) => { const e = document.getElementById(id); if (e) e.innerHTML = h; };
 function svValText(s, v){
   if (v == null) return '清除';
-  const pr = svPair(s);
-  if (pr) return s.i ? '主 ' + fp(100 - v) + '% · 客 ' + fp(v) + '%' : '主 ' + fp(v) + '% · 客 ' + fp(100 - v) + '%';
-  const x = SVF[s.f];
-  return x.pct ? fp(v) + '%' + (s.f === 'bq' ? '' : ' ' + wordOf(s.f, v)) : x.o[v];
+  const pr = svPair(s), x = SVF[s.f];
+  if (!x.pct) return x.o[v];
+  if (hideWord()) return '数字已隐藏';
+  if (pr){ const h = s.i ? r1(100 - v) : v, a = s.i ? v : r1(100 - v); return '主 ' + pctText('bq', h) + ' · 客 ' + pctText('bq', a); }
+  return pctText(s.f, v) + (s.f === 'bq' || hideNum() ? '' : ' ' + wordOf(s.f, v));
 }
 const SLK = {
   // 第一部分（视窗里）：x＝bq（值＝主队的百分比）、nd、yy
   p1: {
     input(f, v){
-      if (f === 'bq'){ setTx('p1v_bqh', '主 ' + fp(v) + '%'); setTx('p1v_bqa', '客 ' + fp(100 - v) + '%'); }
-      else { setTx('p1v_' + f, fp(v) + '%'); setTx('p1w_' + f, esc(wordOf(f, v))); }
+      if (f === 'bq'){ setTx('p1v_bqh', '主 ' + bqText(v)); setTx('p1v_bqa', '客 ' + bqText(r1(100 - v))); }
+      else { setTx('p1v_' + f, p1NumHTML(v)); setTx('p1w_' + f, wordHTML(f, v)); }
     },
     commit(f, v){
       if (M.st === 2){ endedToast(); return; }
@@ -195,7 +196,7 @@ const SLK = {
   },
   // 两个问题（画面上）：x＝'0_q1'
   q: {
-    input(x, v){ const p = x.split('_'); setTx('qv_' + x, fp(v) + '<small>%</small>'); setTx('qw_' + x, esc(wordOf(p[1], v))); },
+    input(x, v){ const p = x.split('_'); setTx('qv_' + x, qValHTML(v)); setTx('qw_' + x, wordHTML(p[1], v)); },
     commit(x, v){ const p = x.split('_'); pickQ(+p[0], p[1], v); }
   },
   // 全部记录里改一笔：x＝那一笔的 k

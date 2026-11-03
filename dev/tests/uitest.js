@@ -54,7 +54,7 @@ const slAttr = (p, sel) => p.$eval(sel, el => ({ v: el.dataset.v, st: el.dataset
 async function layout(p, tag){
   const r = await S(p, () => {
     const de = document.documentElement, bad = [];
-    for (const el of document.querySelectorAll('.k .l, .k .c, .qval, .qw, .qends span, .p1s b, .p1s em, .mr-t .v, .sgb i, .qck, .sth .tm, .stf button, .mseg button, .undo, .mbn, .mbg')){
+    for (const el of document.querySelectorAll('.k .l, .k .c, .qval, .qw, .qends span, .p1s b, .p1s em, .mr-t .v, .sgb i, .qck, .sth .tm, .stf button, .mseg button, .undo, .mbn, .mbg, .nbtn')){
       const cs = getComputedStyle(el); if (cs.display === 'none' || !el.offsetParent) continue;
       if (el.scrollWidth > el.clientWidth + 1 && cs.textOverflow !== 'ellipsis') bad.push(el.className + ':' + el.textContent.trim().slice(0, 12));
     }
@@ -544,6 +544,76 @@ async function layout(p, tag){
   check(svOf(await MM(p), 1, 'q2')[0].v === 56 && kf === '1', 'Enter on a focused ＋ → 56%, and the focus stays on ＋');
   await layout(p, 'iPad two questions with buttons');
   console.log('fine-iPad errors:', p.errs.length ? p.errs.join('\n') : 'none'); if (p.errs.length) fails++;
+  await ctx.close();
+  // ================= E. hide the numbers =================
+  ({ ctx, p } = await open(b, 390, 763, true));
+  await p.fill('#fH', '鹿岛鹿角'); await p.fill('#fA', '横滨水手');
+  await p.click('#runBtn'); await p.clock.runFor(3 * 60000);
+  const PCT = /\d+(\.\d)?%/;
+  check((await txt(p, '#numBtn')) === '隐藏数字', 'the top bar has a 隐藏数字 button');
+  await p.click('.pad[data-i="0"] [data-a="p1"][data-f="nd"]');
+  await slide(p, '#card .sl[data-x="bq"]', 60); await slide(p, '#card .sl[data-x="nd"]', 30);
+  await p.click('#card [data-a="close"]');
+  await p.click('#mseg [data-v="q"]');
+  await slide(p, '.pad[data-i="0"] .sl[data-x="0_q1"]', 70);
+  await p.clock.runFor(30000);
+  await slide(p, '.pad[data-i="0"] .sl[data-x="0_q1"]', 75);
+  check((await txt(p, '#qv_0_q1')) === '75%' && (await txt(p, '.pad[data-i="0"] .qcard .qnote')).indexOf('（之前 70%）') >= 0, 'numbers shown: 75% (之前 70%)');
+  await p.click('#numBtn');
+  check((await S(p, () => window.__reach.PREF.hn)) === 1 && (await txt(p, '#numBtn')) === '显示数字' && (await p.getAttribute('#numBtn', 'class')).indexOf('on') >= 0, 'tapping it hides the numbers (the button now says 显示数字)');
+  const qt = await txt(p, '.pad[data-i="0"]');
+  check(!PCT.test(qt) && (await txt(p, '#qw_0_q1')) === '' && !!(await p.$('#qv_0_q1 .nh')) && (await txt(p, '#qv_1_q1')) === '未设', 'two questions: no percent, no word, an eye icon where the number was; unset still says 未设');
+  let midT = null;
+  await dragSlide(p, '.pad[data-i="0"] .sl[data-x="0_q2"]', 50, 65, async () => { midT = await txt(p, '#qv_0_q2'); });
+  m = await MM(p);
+  check(midT === '' && svOf(m, 0, 'q2')[0].v === 65 && !!(await p.$('#qv_0_q2 .nh')), 'dragging while hidden shows no number, but 65% is recorded');
+  await sbTouch(p, '.pad[data-i="0"] .sl[data-x="0_q2"]', 1);
+  check(svOf(await MM(p), 0, 'q2')[0].v === 66 && (await txt(p, '#qv_0_q2')) === '', 'the ＋ button still works while hidden (66% recorded, nothing shown)');
+  await layout(p, 'phone two questions, numbers hidden');
+  await p.screenshot({ path: `${out}/t_phone_q_hidden.png` });
+  await p.click('#mseg [data-v="rec"]');
+  const ps = (await txt(p, '.pad[data-i="0"] .p1s')).replace(/ /g, '');
+  check(ps === '球权已设难度已设意愿未设场面未设', 'part-one summary: 已设 instead of numbers (' + ps + ')');
+  await layout(p, 'phone, numbers hidden');
+  await p.click('.pad[data-i="0"] [data-a="p1"][data-f="nd"]');
+  const sh = (await txt(p, '#card')).replace('两队加起来 100%', '').replace(/每格 [\d.]+%/, '');
+  check(!PCT.test(sh) && (await txt(p, '#p1v_nd')) === '数字已隐藏' && (await txt(p, '#p1v_bqh')) === '主' && (await txt(p, '#card [data-a="hidenum"]')) === '显示数字', 'part-one sheet: no percents, 难度 says 数字已隐藏, and the sheet has its own 显示数字 button');
+  await sbTouch(p, '#card .sl[data-x="nd"]', 1);
+  m = await MM(p);
+  check(svOf(m, 0, 'nd').slice(-1)[0].v === 31 && (await txt(p, '#p1v_nd')) === '数字已隐藏', '＋ on 难度 records 31% and still shows no number');
+  await p.screenshot({ path: `${out}/t_phone_p1_hidden.png` });
+  await p.click('#card [data-a="close"]');
+  await p.click('#qbMenu'); await p.click('#card [data-a="list"]');
+  const lt2 = await txt(p, '#card .list');
+  check(lt2.indexOf('球权 → 已设') >= 0 && lt2.indexOf('难度 → 已设') >= 0 && !PCT.test(lt2), 'the record list says 已设 instead of numbers');
+  await p.keyboard.press('Escape');
+  await p.click('#qbUndo');
+  const ut = await txt(p, '#toastMsg');
+  check(ut.indexOf('已撤销') >= 0 && !PCT.test(ut), 'the undo message has no number (' + ut + ')');
+  await p.click('#toastBtn');
+  await p.click('#mBan');
+  const md = await txt(p, '#card .mdg');
+  check(md.indexOf('现在 已设') >= 0 && md.indexOf('现在 31%') < 0 && md.indexOf('现在 60%') < 0, 'model detail: your own values show as 已设 (the standards keep their numbers)');
+  await p.click('#card [data-a="close"]');
+  await p.click('#qbMenu');
+  check((await txt(p, '#card [data-a="slset"]')).indexOf('数字隐藏中') >= 0, 'the menu says the numbers are hidden');
+  await p.click('#card [data-a="slset"]');
+  check((await p.getAttribute('#card [data-a="hnset"][data-v="1"]', 'aria-pressed')) === 'true' && (await p.getAttribute('#card [data-a="hwset"][data-v="1"]', 'aria-pressed')) === 'true', 'settings: numbers 隐藏, words 也隐藏 by default');
+  await p.click('#card [data-a="hwset"][data-v="0"]');
+  await p.click('#card [data-a="close"]');
+  const pw = (await txt(p, '.pad[data-i="0"] .p1s')).replace(/ /g, '');
+  check(pw === '球权中难度有难度但小意愿未设场面未设', 'with 文字 照样显示 the summary shows the words (' + pw + ')');
+  await p.click('#mseg [data-v="q"]');
+  check((await txt(p, '#qw_0_q1')) === '容易' && !PCT.test(await txt(p, '#qv_0_q1')), '…and two questions show the word (容易) but still no number');
+  await p.click('#qbMenu'); await p.click('#card [data-a="exp1"]');
+  const hj = JSON.parse(await p.$eval('#expText', el => el.value)).matches[0];
+  check(hj.sv.some(s => s.f === 'q1' && s.v === 75) && hj.sv.some(s => s.f === 'nd' && s.v === 31), 'the export still has the numbers');
+  await p.click('#card [data-a="close"]');
+  await p.reload(); await p.clock.runFor(1000);
+  check((await txt(p, '#numBtn')) === '显示数字' && !PCT.test(await txt(p, '#qv_0_q1')), 'hidden stays hidden after reopening the app');
+  await p.click('#numBtn');
+  check((await txt(p, '#qv_0_q1')) === '75%' && (await txt(p, '#numBtn')) === '隐藏数字', '显示数字 brings the numbers back (75%)');
+  console.log('hide-number errors:', p.errs.length ? p.errs.join('\n') : 'none'); if (p.errs.length) fails++;
   await ctx.close();
   // old (v1) records are converted to percents
   const oldM = { id: 'rold1', c: 1, u: 2, d: '2026-11-01', lg: 'J1', h: '旧主', a: '旧客', st: 2, keep: 1, tm: { p: 2, b: 5400, r: 0, at: 0, ht: 0 }, pe: { 1: 2760 }, obs: { p: 1, t: 0 }, stop: { p: 2, t: 5400 }, note: '', api: null,

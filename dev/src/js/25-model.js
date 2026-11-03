@@ -130,7 +130,7 @@ function fmtMV(k, v, c){
   const x = MET[k];
   if (x.cat) return P1[3].o[v] || '—';
   let s;
-  if (SVF[k]) s = fp(v);
+  if (SVF[k]){ if (hideNum()) return hideWord() ? '已设' : wordOf(k, v); s = fp(v); }   // 隐藏数字时，你拖的值也不在这里显示
   else {
     let d = x.u === '%' ? 0 : 1;
     while (d < 2 && c && condOK(c, { v: +v.toFixed(d) }) !== condOK(c, { v: v })) d++;
