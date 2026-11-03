@@ -56,19 +56,27 @@ const paLabel = (pa, sep) => walk(pa).map(n => n.s || n.n).join(sep || ' › ');
 const CHN = { x: '传中', l: '远射', m: '中路渗透', b: '回传', g: '丢球' };
 
 /* ================= 第一部分（主观，随时可以改）和两个问题 =================
-   数值存成第几个选项（0 开始，跟画面上从左到右的顺序一样）。两个问题显示成 1–5。 */
+   球权、难度、意愿和两个问题都是拖动条：存百分比（0–100，每格 5%）。场面还是三个选项：存第几个（0 开始）。
+   球权只有一条：主队＋客队＝100%，两队各存一笔，用同一个 g 配对。
+   bk 是统计用的区间 [下限, 上限)，跟画面上显示的字。 */
+const BK3 = w => [[0, 40, '0–35%', w[0]], [40, 61, '40–60%', w[1]], [61, 101, '65–100%', w[2]]];
+const BK5 = w => [[0, 20, '0–15%', w[0]], [20, 40, '20–35%', w[1]], [40, 60, '40–55%', w[2]], [60, 80, '60–75%', w[3]], [80, 101, '80–100%', w[4]]];
 const P1 = [
-  { f: 'bq', col: 3, n: '球权', s: '球权', o: ['多', '中', '少'], ab: ['多', '中', '少'] },
-  { f: 'nd', col: 1, n: '到禁区附近的难度', s: '难度', o: ['没难度', '有难度但小', '有难度但进得去', '有很大难度但勉强进得去', '难且进不去'], ab: ['没难度', '难度小', '进得去', '勉强进', '进不去'] },
-  { f: 'yy', col: 3, n: '到禁区附近的意愿', s: '意愿', o: ['强', '中', '弱'], ab: ['强', '中', '弱'] },
-  { f: 'cm', col: 1, n: '到禁区附近的场面', s: '场面', o: ['包饺子', '包一会饺子然后转换球权', '快速转换球权'], ab: ['包饺子', '包一会', '快转换'] }
+  { f: 'bq', pct: 1, n: '球权', s: '球权', lo: '少', hi: '多', bk: BK3(['少', '中', '多']) },
+  { f: 'nd', pct: 1, n: '到禁区附近的难度', s: '难度', lo: '没难度', hi: '难且进不去', bk: BK5(['没难度', '有难度但小', '有难度但进得去', '有很大难度但勉强进得去', '难且进不去']) },
+  { f: 'yy', pct: 1, n: '到禁区附近的意愿', s: '意愿', lo: '弱', hi: '强', bk: BK3(['弱', '中', '强']) },
+  { f: 'cm', n: '到禁区附近的场面', s: '场面', o: ['包饺子', '包一会饺子然后转换球权', '快速转换球权'], ab: ['包饺子', '包一会', '快转换'] }
 ];
 const QS = [
-  { f: 'q1', n: '他容不容易到对方禁区附近？', s: '容不容易到禁区附近', o: ['很难', '难', '一般', '容易', '很容易'] },
-  { f: 'q2', n: '他喜不喜欢传中和远射？', s: '喜不喜欢传中和远射', o: ['很不喜欢', '不喜欢', '一般', '喜欢', '很喜欢'] }
+  { f: 'q1', pct: 1, n: '他容不容易到对方禁区附近？', s: '容不容易到禁区附近', d: '几次进攻里有百分之几能到对方禁区附近', lo: '很难', hi: '很容易', bk: BK5(['很难', '难', '一般', '容易', '很容易']) },
+  { f: 'q2', pct: 1, n: '他喜不喜欢传中和远射？', s: '喜不喜欢传中和远射', d: '传中和远射的比例', lo: '很不喜欢', hi: '很喜欢', bk: BK5(['很不喜欢', '不喜欢', '一般', '喜欢', '很喜欢']) }
 ];
 const SVF = {}; P1.concat(QS).forEach(x => { SVF[x.f] = x; });
-const svText = (f, v) => { const x = SVF[f]; if (v == null) return '没选'; return f[0] === 'q' ? (v + 1) + ' ' + x.o[v] : x.o[v]; };
+const bucketOf = (f, v) => { const b = SVF[f].bk; for (let j = 0; j < b.length; j++) if (v >= b[j][0] && v < b[j][1]) return j; return b.length - 1; };
+const wordOf = (f, v) => v == null ? '' : SVF[f].bk[bucketOf(f, v)][3];
+const svText = (f, v) => { const x = SVF[f]; if (v == null) return '清除'; return x.pct ? v + '%' : x.o[v]; };
+/* 旧版（v1）存的是第几个选项：换成那一档中间的百分比（原来的选项留在 o） */
+const OLDPCT = { bq: [65, 50, 35], nd: [10, 30, 50, 70, 90], yy: [80, 50, 20], q1: [10, 30, 50, 70, 90], q2: [10, 30, 50, 70, 90] };
 const SIMPLE = { ar: '到达', ck: '其他角球', gl: '进球', rc: '红牌' };
 
 /* ================= 保存 ================= */
@@ -80,7 +88,7 @@ function newMatch(prev){
   const d = new Date();
   return { id: 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), c: nowSec(), u: nowSec(),
     d: d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()), lg: prev ? prev.lg : '', h: '', a: '', st: 1,
-    tm: { p: 1, b: 0, r: 0, at: 0, ht: 0 }, pe: {}, obs: null, stop: null, note: '', keep: 0, api: null, apiNo: null, kw: null, ev: [], sv: [] };
+    tm: { p: 1, b: 0, r: 0, at: 0, ht: 0 }, pe: {}, obs: null, stop: null, note: '', keep: 0, api: null, apiNo: null, kw: null, ev: [], sv: [], pv: 1, al: [], mc: null };
 }
 const numOr = (v, d) => ok(v) ? v : d;
 function fixEv(e){
@@ -90,12 +98,21 @@ function fixEv(e){
   else { if (e.b) x.b = 1; if (e.a) x.a = 1; }
   return x;
 }
-function fixSv(s){
+function fixSv(s, old){
   if (!s || !SVF[s.f] || !PER[s.p] || (s.i !== 0 && s.i !== 1)) return null;
-  const n = SVF[s.f].o.length, v = s.v == null ? null : Math.round(+s.v);
-  if (v != null && !(v >= 0 && v < n)) return null;
-  return { t: Math.max(0, Math.round(numOr(+s.t, 0))), p: +s.p, i: s.i, f: s.f, v: v, k: ++seq };
+  const x = SVF[s.f];
+  let v = s.v == null || s.v === '' ? null : Math.round(+s.v), o = null;
+  if (v != null && !isFinite(v)) return null;
+  if (x.pct && v != null){
+    if (old){ const mp = OLDPCT[s.f]; if (!(v >= 0 && v < mp.length)) return null; o = v; v = mp[v]; }
+    else { v = clamp(v, 0, 100); if (s.o != null && isFinite(+s.o)) o = +s.o; }
+  } else if (v != null && !(v >= 0 && v < x.o.length)) return null;
+  const r = { t: Math.max(0, Math.round(numOr(+s.t, 0))), p: +s.p, i: s.i, f: s.f, v: v, k: ++seq };
+  if (o != null) r.o = o;
+  if (s.g != null && isFinite(+s.g)) r.g = +s.g;
+  return r;
 }
+const fixAl = a => a && PER[a.p] && (a.g === 'r' || a.g === 'q') && (a.i === 0 || a.i === 1) && (a.v === 'b' || a.v === 's' || a.v === '') ? { t: Math.max(0, Math.round(numOr(+a.t, 0))), p: +a.p, g: a.g, i: a.i, v: a.v } : null;
 function fixMatch(m){
   m.lg = String(m.lg || ''); m.h = String(m.h || ''); m.a = String(m.a || ''); m.d = String(m.d || '');
   m.st = m.st === 2 ? 2 : 1;
@@ -110,7 +127,11 @@ function fixMatch(m){
   m.apiNo = typeof m.apiNo === 'string' ? m.apiNo : null; m.apiErr = null;
   m.kw = m.kw && typeof m.kw === 'object' ? m.kw : null;
   m.ev = (Array.isArray(m.ev) ? m.ev : []).map(fixEv).filter(Boolean);
-  m.sv = (Array.isArray(m.sv) ? m.sv : []).map(fixSv).filter(Boolean);
+  const old = m.pv !== 1;   // v1 的比赛：主观选择还是选项，换成百分比
+  m.sv = (Array.isArray(m.sv) ? m.sv : []).map(s => fixSv(s, old)).filter(Boolean);
+  m.pv = 1;
+  m.al = (Array.isArray(m.al) ? m.al : []).map(fixAl).filter(Boolean);   // 简易模型的提醒什么时候出现、消失
+  m.mc = m.mc && typeof m.mc === 'object' ? m.mc : null;                 // 当时用的模型标准
   sortEv(m);
   return m;
 }
@@ -219,16 +240,32 @@ const svByK = k => { for (const s of M.sv) if (s.k === k) return s; return null;
 function removeEv(e){ const j = M.ev.indexOf(e); if (j >= 0) M.ev.splice(j, 1); save(); }
 function lastOf(i){ let best = null; for (const e of M.ev) if ((i == null || e.i === i) && !e.b && (!best || e.k > best.k)) best = e; return best; }
 /* 主观选择：同一项 20 秒内又改，当作改正（取代上一笔），不另记一笔 */
-function setSv(i, f, v){
+function setSv(i, f, v, g){
   const s = nowStamp(), cur = svCur(M, i, f);
   if (cur && cur.p === s.p && Math.abs(s.t - cur.t) <= 20 && cur.k === lastSvK(i, f) && Date.now() - (cur.at || 0) < 20000){
     cur.v = v; cur.t = s.t; cur.at = Date.now(); M.sv.sort(byTime); save(); return cur;
   }
   if (!M.obs) M.obs = { p: s.p, t: Math.min(s.t, PER[s.p][0]) };
   const x = { t: s.t, p: s.p, i: i, f: f, v: v, k: ++seq, at: Date.now() };
+  if (g != null) x.g = g;
   M.sv.push(x); M.sv.sort(byTime); save();
   return x;
 }
+/* 球权：v＝主队的百分比（null＝清除），客队自动是 100−v */
+let bqG = 0;
+function setBq(v){
+  const h = svCur(M, 0, 'bq'), a = svCur(M, 1, 'bq'), av = v == null ? null : 100 - v;
+  if (h && a && h.v === v && a.v === av) return;
+  const g = Math.max(Date.now(), bqG + 1); bqG = g;
+  setSv(0, 'bq', v, g); setSv(1, 'bq', av, g);
+}
+/* 球权配对的另一笔（同一个 g、另一队） */
+function svPair(s){
+  if (!s || s.f !== 'bq' || s.g == null) return null;
+  for (const x of M.sv) if (x !== s && x.f === 'bq' && x.g === s.g && x.i !== s.i) return x;
+  return null;
+}
+let SL = null, rdPend = 0;   // 正在拖的拖动条；拖的时候先不重画画面
 const lastSvK = (i, f) => { let k = 0; for (const s of M.sv) if (s.i === i && s.f === f && s.k > k) k = s.k; return k; };
 /* 现在的选择：最后记的那一笔；某个时间点的选择：那个时间以前最后一笔 */
 function svCur(m, i, f){ let best = null; for (const s of m.sv) if (s.i === i && s.f === f && (!best || s.k > best.k)) best = s; return best; }
@@ -297,9 +334,12 @@ const score = m => [statOf(m, 0, 'ft').gl, statOf(m, 1, 'ft').gl];
 const cornersOf = (m, scope) => [statOf(m, 0, scope).ck, statOf(m, 1, scope).ck];
 const avg = a => a.length ? a.reduce((s, x) => s + x, 0) / a.length : null;
 function median(a){ if (!a.length) return null; const s = a.slice().sort((x, y) => x - y), n = s.length; return n % 2 ? s[(n - 1) / 2] : (s[n / 2 - 1] + s[n / 2]) / 2; }
-/* 每个选择状态停留了几分钟、那段时间几个角球（统计和导出用） */
+/* 每个区间（拖动条）或选项（场面）停留了几分钟、那段时间几个角球（统计和导出用）。
+   键：区间或选项第几个，-1＝没设；avg＝按时间平均的百分比（拖动条才有） */
 function stateSplit(m, i, f, scope){
-  const out = {}; const n = SVF[f].o.length;
+  const x = SVF[f], n = x.pct ? x.bk.length : x.o.length;
+  const key = v => v == null ? -1 : x.pct ? bucketOf(f, v) : v;
+  const out = { avg: null }; let sw = 0, sm = 0;
   for (let v = -1; v < n; v++) out[v] = { mins: 0, ck: 0, ar: 0, xl: 0 };
   const ps = scope === 'ft' || !scope ? [1, 2] : [+scope[1]];
   for (const p of ps){
@@ -310,16 +350,21 @@ function stateSplit(m, i, f, scope){
     let t0 = sp[0];
     const pts = cuts.concat([sp[1]]);
     for (const t1 of pts){
-      if (t1 > t0){ const s = svAt(m, i, f, p, t0), v = s && s.v != null ? s.v : -1; out[v].mins += (t1 - t0) / 60; }
+      if (t1 > t0){
+        const s = svAt(m, i, f, p, t0), v = s ? s.v : null, d = (t1 - t0) / 60;
+        out[key(v)].mins += d;
+        if (x.pct && v != null){ sw += v * d; sm += d; }
+      }
       t0 = t1;
     }
     for (const e of m.ev){
       if (e.i !== i || e.p !== p || e.b) continue;
       if (e.t < sp[0] || e.t > sp[1]) continue;
-      const s = svAt(m, i, f, p, e.t), v = s && s.v != null ? s.v : -1;
-      if (e.c === 'ck' || (e.c === 'ar' && resOf(e.pa) === 'c')) out[v].ck++;
-      if (e.c === 'ar'){ out[v].ar++; if (e.pa && (e.pa[0] === 'x' || e.pa[0] === 'l')) out[v].xl++; }
+      const s = svAt(m, i, f, p, e.t), o = out[key(s ? s.v : null)];
+      if (e.c === 'ck' || (e.c === 'ar' && resOf(e.pa) === 'c')) o.ck++;
+      if (e.c === 'ar'){ o.ar++; if (e.pa && (e.pa[0] === 'x' || e.pa[0] === 'l')) o.xl++; }
     }
   }
+  out.avg = sm > 0 ? sw / sm : null;
   return out;
 }

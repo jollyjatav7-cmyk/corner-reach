@@ -50,10 +50,13 @@ function renderStats(){
     for (const i of [0, 1]) h += '<div class="sgr"><span class="who">' + teamDot(i) + (i ? '客' : '主') + '</span>' + segBar(CH.map(c => ({ c: CHC[c], v: S[i].ch[c], n: CHN[c] })), { empty: '还没有选择' }) + '</div>';
     h += segLegend(CH.map(c => [CHC[c], CHN[c]]));
     const xl = r => r.chosen ? (r.ch.x + r.ch.l) / r.chosen : null;
-    h += mrow('传中＋远射 占比', xl(S[0]), xl(S[1]), { fmt: pc, big: true });
+    const x3 = r => { const n = r.ch.x + r.ch.l + r.ch.m; return n ? (r.ch.x + r.ch.l) / n : null; };
+    h += mrow('传中＋远射 占三项', x3(S[0]), x3(S[1]), { fmt: pc, big: true })
+      + mrow('传中＋远射 占五项', xl(S[0]), xl(S[1]), { fmt: pc });
     for (const c of CH) h += mrow(CHN[c], S[0].ch[c], S[1].ch[c], { dot: CHC[c] });
     h += mrow('禁区射门', S[0].bs, S[1].bs);
     const nn = [0, 1].map(i => { const e = ocEv(i); return S[i].none - (e && !e.pa && (sc === 'ft' || e.p === +sc[1]) ? 1 : 0); });   // 正在选的那次不算
+    h += '<p class="snote">三项＝传中、远射、中路渗透（简易模型用这个比例）；五项再加回传、丢球。</p>';
     if (nn[0] + nn[1]) h += '<p class="snote">没选就结束的到达：主 ' + nn[0] + '、客 ' + nn[1] + '（不算进比例）</p>';
   } else h += '<p class="empty">还没有选择。点“到达”，再点传中、远射、中路渗透、回传或丢球。</p>';
   h += '</div>';

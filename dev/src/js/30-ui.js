@@ -10,6 +10,16 @@ const IC = {
   menu: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 6h12M4 10h12M4 14h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
   sync: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M16 10a6 6 0 1 1-1.8-4.3M16 3.5v3.5h-3.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 };
+/* 简易模型的图标：大角（往上）、小角（往下）、让球（一上一下）、模型、满足／不满足／还不算 */
+const ICM = {
+  up: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5l5.5 6.2H10v4.8H6V8.7H2.5z" fill="currentColor"/></svg>',
+  dn: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13.5L2.5 7.3H6V2.5h4v4.8h3.5z" fill="currentColor"/></svg>',
+  hc: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4.5 2l3.5 4.2H5.8V14H3.2V6.2H1zM11.5 14L8 9.8h2.2V2h2.6v7.8H15z" fill="currentColor"/></svg>',
+  mdl: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 13.5h11M4 11V7.5M8 11V4M12 11V6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
+  ok: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  no: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4.5 4.5l7 7M11.5 4.5l-7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+  na: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 8h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>'
+};
 const teamName = i => (i ? M.a : M.h).trim() || (i ? '客队' : '主队');
 const isOpen = e => OC.some(o => o && o.k === e.k);
 function evLabel(e){
@@ -22,7 +32,39 @@ function evLabel(e){
   if (e.c === 'gl') return e.b ? '进球（补录）' : '进球';
   return SIMPLE[e.c] || e.c;
 }
-const svLabel = s => SVF[s.f].s + ' → ' + svText(s.f, s.v);
+function svLabel(s){
+  const pr = svPair(s);
+  if (pr){ const h = s.i ? pr : s, a = s.i ? s : pr; return h.v == null && a.v == null ? '球权 → 清除' : '球权 → 主 ' + (h.v == null ? '—' : h.v + '%') + ' · 客 ' + (a.v == null ? '—' : a.v + '%'); }
+  return SVF[s.f].s + ' → ' + svText(s.f, s.v);
+}
+/* 简易模型：每队的“大角／小角”、两队合起来的提示 */
+function mBadge(g, i){
+  if (!MODEL.on || !MN) return '';
+  const v = MN[g].t[i].v; if (!v) return '';
+  return '<button class="mbg ' + (v === 'b' ? 'big' : 'small') + '" data-a="mdl" data-g="' + g + '" aria-label="简易模型：' + esc(teamName(i)) + (v === 'b' ? ' 大角，角球高于平均' : ' 小角，角球低于平均') + '">' + (v === 'b' ? ICM.up : ICM.dn) + '<span>' + (v === 'b' ? '大角' : '小角') + '</span></button>';
+}
+const betCls = b => !b ? 'none' : b.k === 'hc' ? 'hc' + b.i : b.k;
+const betIcon = b => !b ? ICM.mdl : b.k === 'big' ? ICM.up : b.k === 'small' ? ICM.dn : ICM.hc;
+function betText(b){
+  if (!b) return '现在没有提示';
+  if (b.k === 'big') return '可以投大角';
+  if (b.k === 'small') return '可以投小角';
+  return '可以投角球让球：' + teamName(b.i);
+}
+let banNew = 0;
+function renderBanner(){
+  const el = $('#mBan'); if (!el) return;
+  if (!MODEL.on || M.st === 2 || !MN){ el.hidden = true; return; }
+  el.hidden = false;
+  const g = PREF.mode === 'q' ? 'q' : 'r', b = MN[g].bet;
+  const sig = g + betCls(b);
+  if (el.dataset.sig !== sig){ el.dataset.sig = sig; banNew = b ? Date.now() + 2500 : 0; el.className = 'mbn'; void el.offsetWidth; }
+  el.className = 'mbn ' + betCls(b) + (Date.now() < banNew ? ' new' : '');
+  el.dataset.g = g;
+  el.setAttribute('aria-label', '简易模型（' + MPROG[g] + '）：' + betText(b));
+  el.innerHTML = betIcon(b) + '<span class="tx"><span class="t1">简易模型</span><span class="t2">' + (!b ? '没有提示' : b.k === 'hc' ? '投角球让球' : b.k === 'big' ? '投大角' : '投小角') + '</span></span>'
+    + (b && b.k === 'hc' ? '<span class="tm">' + esc(teamName(b.i)) + '</span>' : '');
+}
 
 function renderHeader(){
   const fh = $('#fH'), fa = $('#fA'), fl = $('#fLg');
@@ -60,7 +102,9 @@ const ocSecs = i => OC[i] && OC[i].at ? (Date.now() - OC[i].at) / 1000 : null;
 function p1SumHTML(i){
   return '<div class="p1s" role="group" aria-label="第一部分：点一项修改">' + P1.map(x => {
     const s = svCur(M, i, x.f), v = s ? s.v : null;
-    return '<button data-a="p1" data-i="' + i + '" data-f="' + x.f + '" aria-label="' + x.n + '：' + (v == null ? '未选' : x.o[v]) + '"><em>' + x.s + '</em><b' + (v == null ? ' class="na"' : '') + '>' + (v == null ? '未选' : x.ab[v]) + '</b></button>';
+    const t = v == null ? '未设' : x.pct ? v + '%' : x.ab[v];
+    return '<button data-a="p1" data-i="' + i + '" data-f="' + x.f + '" aria-label="' + x.n + '：' + (v == null ? '未设' : x.pct ? v + '%' : x.o[v]) + '"><em>' + x.s + '</em><b' + (v == null ? ' class="na"' : '') + '>' + t + '</b>'
+      + (x.pct ? '<i class="p1bar" aria-hidden="true"><i style="width:' + (v == null ? 0 : v) + '%"></i></i>' : '') + '</button>';
   }).join('') + '</div>';
 }
 function optBtn(i, c, name, o){
@@ -89,23 +133,25 @@ function stageHTML(i, r){
 function recPadHTML(i, sc){
   const r = statOf(M, i, sc), last = lastOf(i);
   const hot = last && lastAdd && lastAdd.k === last.k && Date.now() - lastAdd.at < 8000;
-  return '<div class="pad-h"><i></i><b>' + esc(teamName(i)) + '</b><span class="who">' + (i ? '客对主' : '主对客') + ' · ' + SCN[sc] + '</span><span class="sp"></span>'
+  return '<div class="pad-h"><i></i><b>' + esc(teamName(i)) + '</b>' + mBadge('r', i) + '<span class="who">' + (i ? '客对主' : '主对客') + ' · ' + SCN[sc] + '</span><span class="sp"></span>'
     + '<button class="undo' + (hot ? ' hot' : '') + '" data-a="undoT" data-i="' + i + '" ' + (last ? '' : 'disabled') + '>撤销</button></div>'
     + p1SumHTML(i)
     + '<div class="board"><button class="k arb' + (ocEv(i) ? ' on' : '') + '" data-a="ar" data-i="' + i + '"><span class="l">到达</span><span class="c">' + r.ar + '</span></button>'
     + stageHTML(i, r)
     + '<button class="k ckb" data-a="ck" data-i="' + i + '">' + FLAG + '<span class="l">其他角球</span><span class="c">' + r.cks.o + '</span></button></div>';
 }
-/* ---------- 两个问题：每队一栏，字大 ---------- */
+/* ---------- 两个问题：每队一栏，字大，拖动条（百分比） ---------- */
 function qPadHTML(i){
-  let h = '<div class="pad-h"><i></i><b>' + esc(teamName(i)) + '</b><span class="who">' + (i ? '客对主' : '主对客') + '</span><span class="sp"></span>'
+  let h = '<div class="pad-h"><i></i><b>' + esc(teamName(i)) + '</b>' + mBadge('q', i) + '<span class="who">' + (i ? '客对主' : '主对客') + '</span><span class="sp"></span>'
     + '<button class="qck" data-a="ck" data-i="' + i + '" aria-label="' + esc(teamName(i)) + ' 角球加一">' + FLAG + '<span>角球</span><b>' + statOf(M, i, 'ft').ck + '</b><small>＋1</small></button></div>';
   for (const q of QS){
-    const s = svCur(M, i, q.f), v = s ? s.v : null;
-    let prev = null; for (const x of M.sv) if (x.i === i && x.f === q.f && s && x.k !== s.k && (!prev || x.k > prev.k)) prev = x;
-    const note = v == null ? '还没选' : fmtMin(s.p, s.t) + ' 选的' + (prev && prev.v != null ? '（之前 ' + (prev.v + 1) + '）' : '');
-    h += '<div class="qcard"><div class="qh"><h3 class="qq">' + q.n + '</h3><span class="qnote">' + note + '</span></div><div class="qlv">'
-      + q.o.map((lab, j) => '<button data-a="qv" data-i="' + i + '" data-f="' + q.f + '" data-v="' + j + '" aria-pressed="' + (v === j) + '" aria-label="' + q.n + ' ' + (j + 1) + ' ' + lab + '"><b>' + (j + 1) + '</b><small>' + lab + '</small></button>').join('') + '</div></div>';
+    const s = svCur(M, i, q.f), v = s ? s.v : null, x = i + '_' + q.f;
+    let prev = null; for (const y of M.sv) if (y.i === i && y.f === q.f && s && y.k !== s.k && (!prev || y.k > prev.k)) prev = y;
+    const note = !s ? '还没设' : v == null ? fmtMin(s.p, s.t) + ' 清除' : fmtMin(s.p, s.t) + ' 设的' + (prev && prev.v != null ? '（之前 ' + prev.v + '%）' : '');
+    h += '<div class="qcard"><div class="qh"><h3 class="qq">' + q.n + '</h3><span class="qval' + (v == null ? ' na' : '') + '" id="qv_' + x + '">' + (v == null ? '未设' : v + '<small>%</small>') + '</span></div>'
+      + '<div class="qsub"><span class="qd">' + q.d + '</span><span class="qw" id="qw_' + x + '">' + esc(wordOf(q.f, v)) + '</span></div>'
+      + slHTML('q', x, v, { cls: 'big lock ' + (i ? 'a' : 'h'), lab: q.n })
+      + '<div class="qends"><span>' + q.lo + '</span><span class="qnote">' + note + '</span><span>' + q.hi + '</span></div></div>';
   }
   return h;
 }
@@ -140,12 +186,16 @@ function renderStrip(){
   $('#qbStats').innerHTML = IC.stats + '<span>统计</span>';
   $('#qbArch').innerHTML = IC.arch + '<span>仓库</span>';
   $('#qbMenu').innerHTML = IC.menu + '<span>功能</span>';
-  const rec = M.ev.filter(e => !e.b).map(e => ({ k: e.k, p: e.p, t: e.t, i: e.i, l: evLabel(e) })).concat(M.sv.map(s => ({ k: s.k, p: s.p, t: s.t, i: s.i, l: svLabel(s) })))
+  const rec = M.ev.filter(e => !e.b).map(e => ({ k: e.k, p: e.p, t: e.t, i: e.i, l: evLabel(e) }))
+    .concat(M.sv.filter(s => !(s.i === 1 && svPair(s))).map(s => { const pr = svPair(s); return { k: pr ? Math.max(s.k, pr.k) : s.k, p: s.p, t: s.t, i: pr ? -1 : s.i, l: svLabel(s) }; }))
     .sort((a, b) => b.k - a.k).slice(0, 3);
-  $('#recent').innerHTML = rec.length ? rec.map(e => '<button data-a="list"><span class="t">' + fmtClock(e.p, e.t) + '</span><span class="d' + e.i + '">' + esc(teamName(e.i)) + '</span>' + esc(e.l) + '</button>').join('') : '<span class="empty">开球时按时间旁边的 ▶；到了对方禁区附近点“到达”</span>';
+  $('#recent').innerHTML = rec.length ? rec.map(e => '<button data-a="list"><span class="t">' + fmtClock(e.p, e.t) + '</span>' + (e.i < 0 ? '' : '<span class="d' + e.i + '">' + esc(teamName(e.i)) + '</span>') + esc(e.l) + '</button>').join('') : '<span class="empty">开球时按时间旁边的 ▶；到了对方禁区附近点“到达”</span>';
 }
 function renderAll(){
-  renderMode(); renderHeader(); renderPads(); renderStats(); renderStrip(); renderNet();
+  if (SL && SL.s === 'd'){ rdPend = 1; return; }   // 正在拖：放开以后再重画
+  mAll();
+  renderMode(); renderHeader(); renderPads(); renderStats(); renderStrip(); renderNet(); renderBanner();
+  mLog();
 }
 /* 计时器每秒更新时间；统计每 15 秒更新（时间在走，每 10 分钟的次数会变） */
 let lastSlow = 0;
@@ -153,7 +203,13 @@ setInterval(() => {
   tickClock();
   if (M.api && M.api.hold && M.api.hold.length) flushHold();
   if (M.api && apiKey() && NET.iv > 0 && M.st === 1 && isRecording() && !netBusy && sheet.hidden && LIVE_ST.indexOf(M.api.st) >= 0 && nowSec() - (M.api.at || 0) >= NET.iv) apiSync(false);
-  if (Date.now() - lastSlow > 15000 && M.tm.r){ lastSlow = Date.now(); renderStats(); }
+  if (Date.now() - lastSlow > 15000 && M.tm.r){
+    lastSlow = Date.now(); renderStats();
+    // 时间在走：每 10 分钟到达这类项目会变，简易模型的判断也跟着更新
+    const sg = mSig(); mAll();
+    if (mSig() !== sg){ if (SL && SL.s === 'd') rdPend = 1; else { renderPads(); renderBanner(); mLog(); } }
+    else renderBanner();
+  }
   if (sheetKind === 'join' && sheetData.tp && sheetData.tp.live) tpShow(sheetData.tp);
   if (sheetKind === 'clock'){ const b = $('#shClk'); if (b) b.textContent = M.tm.ht ? '中场' : fmtClock(M.tm.p, clockOf(M)); if (sheetData.tp && sheetData.tp.live) tpShow(sheetData.tp); }
 }, 1000);
@@ -263,8 +319,8 @@ function undoTeam(i){
 function undoAny(){
   const la = lastAny(); if (!la) return;
   if (la.kind === 'ev'){ undoTeam(la.x.i); return; }
-  const s = la.x, j = M.sv.indexOf(s);
-  if (j >= 0) M.sv.splice(j, 1);
+  const s = la.x, pr = svPair(s), rm = pr ? [s, pr] : [s], lab = (pr ? '' : teamName(s.i) + ' ') + svLabel(s);   // 球权两队一起撤销
+  for (const x of rm){ const j = M.sv.indexOf(x); if (j >= 0) M.sv.splice(j, 1); }
   save(); renderAll(); if (sheetKind === 'p1') renderSheet();
-  showToast('已撤销 ' + teamName(s.i) + ' ' + svLabel(s), () => { M.sv.push(s); M.sv.sort(byTime); save(); renderAll(); if (sheetKind === 'p1') renderSheet(); }, '恢复');
+  showToast('已撤销 ' + lab, () => { for (const x of rm) M.sv.push(x); M.sv.sort(byTime); save(); renderAll(); if (sheetKind === 'p1') renderSheet(); }, '恢复');
 }

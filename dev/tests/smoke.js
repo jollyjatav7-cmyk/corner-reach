@@ -37,13 +37,14 @@ const [base, out] = process.argv.slice(2);
     await p.screenshot({ path: `${out}/${tag}_4after.png` });
     if (mob){ await p.click('#qbStats'); await p.waitForTimeout(400); await p.screenshot({ path: `${out}/${tag}_5stats.png` }); await p.evaluate(() => { const m = document.querySelector('#mid'); m.scrollTop = m.scrollHeight; }); await p.screenshot({ path: `${out}/${tag}_6stats2.png` }); await p.click('[data-a="midclose"]'); await p.waitForTimeout(300); }
     else { await p.screenshot({ path: `${out}/${tag}_5full.png`, fullPage: true }); }
+    const slide = async (sel, v) => { const r = await p.$eval(sel + ' .sl-t', el => { el.scrollIntoView({ block: 'center' }); const b = el.getBoundingClientRect(); return { x: b.left, y: b.top + b.height / 2, w: b.width }; }); await p.mouse.click(r.x + r.w * v / 100, r.y); await p.clock.runFor(300); };
     await p.click('.pad[data-i="0"] [data-a="p1"]');
+    await slide('#card .sl[data-x="bq"]', 60); await slide('#card .sl[data-x="nd"]', 70);
     await p.screenshot({ path: `${out}/${tag}_7p1.png` });
-    await p.click('#card [data-a="p1v"][data-f="nd"][data-v="3"]');
     await p.click('#card [data-a="close"]');
     await p.click('#mseg [data-v="q"]');
-    await p.click('.pad[data-i="0"] [data-a="qv"][data-f="q1"][data-v="3"]');
-    await p.click('.pad[data-i="1"] [data-a="qv"][data-f="q2"][data-v="1"]');
+    await slide('.pad[data-i="0"] .sl[data-x="0_q1"]', 70);
+    await slide('.pad[data-i="1"] .sl[data-x="1_q2"]', 30);
     await p.screenshot({ path: `${out}/${tag}_8q.png` });
     console.log(tag, 'errors:', errs.length ? errs.join('\n') : 'none');
     console.log(tag, JSON.stringify(await p.evaluate(() => window.__reach.M.ev.map(e => e.c + ':' + (e.pa || '') + ':' + (e.dt || '')))));

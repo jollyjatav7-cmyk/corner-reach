@@ -39,7 +39,6 @@ document.addEventListener('click', ev => {
     case 'ste': stageEnd(+b.dataset.i); break;
     case 'stx': stageCancel(+b.dataset.i); break;
     case 'ck': tapCorner(+b.dataset.i); break;
-    case 'qv': pickQ(+b.dataset.i, b.dataset.f, +b.dataset.v); break;
     case 'p1': {
       if (M.st === 2){ endedToast(); break; }
       openSheet('p1', { i: +b.dataset.i });
@@ -48,11 +47,46 @@ document.addEventListener('click', ev => {
       break;
     }
     case 'p1side': d.i = +b.dataset.v; renderSheet(); break;
-    case 'p1v': {
+    case 'p1v': {   // 场面（选项）：再点一次选中的就是清除
       if (M.st === 2){ endedToast(); break; }
       const f = b.dataset.f, v = +b.dataset.v, cur = svCur(M, d.i, f);
       setSv(d.i, f, cur && cur.v === v ? null : v);
       renderAll(); renderSheet(); break;
+    }
+    case 'p1clr': {   // 拖动条清除（球权两队一起）
+      if (M.st === 2){ endedToast(); break; }
+      if (b.dataset.f === 'bq') setBq(null); else setSv(d.i, b.dataset.f, null);
+      renderAll(); renderSheet(); break;
+    }
+    // 简易模型
+    case 'mdl': setMid(false); openSheet('mdl', { g: b.dataset.g || (sheetKind === 'mset' && d.g) || (PREF.mode === 'q' ? 'q' : 'r') }); break;
+    case 'mset': setMid(false); openSheet('mset', { g: (sheetKind === 'mdl' && d.g) || (PREF.mode === 'q' ? 'q' : 'r') }); break;
+    case 'mtab': d.g = b.dataset.v; d.add = null; renderSheet(); break;
+    case 'mon': MODEL.on = +b.dataset.v ? 1 : 0; saveModel(); renderAll(); renderSheet(); break;
+    case 'msc': MODEL.sc = b.dataset.v === 'ft' ? 'ft' : 'half'; saveModel(); renderAll(); renderSheet(); break;
+    case 'mop': { const c = mCondAt(b.dataset.p); if (c){ c.op = b.dataset.v; saveModel(); renderAll(); renderSheet(); } break; }
+    case 'mcin': {
+      const c = mCondAt(b.dataset.p), v = +b.dataset.v; if (!c || !c.in) break;
+      const j = c.in.indexOf(v); if (j >= 0) c.in.splice(j, 1); else { c.in.push(v); c.in.sort(); }
+      saveModel(); renderAll(); renderSheet(); break;
+    }
+    case 'mcadd': d.add = b.dataset.p || null; renderSheet(); break;
+    case 'mcpick': {
+      const p = String(b.dataset.p).split('.'), L = MODEL[p[0]] && MODEL[p[0]][p[1]] && MODEL[p[0]][p[1]][p[2]];
+      if (L && MET[b.dataset.v]){ L.push(newCond(b.dataset.v)); d.add = null; saveModel(); renderAll(); renderSheet(); }
+      break;
+    }
+    case 'mcdel': {
+      const p = String(b.dataset.p).split('.'), L = MODEL[p[0]] && MODEL[p[0]][p[1]] && MODEL[p[0]][p[1]][p[2]], j = +p[3];
+      if (!L || !L[j]) break;
+      const c = L.splice(j, 1)[0]; saveModel(); renderAll(); renderSheet();
+      showToast('已删除：' + condText(c), () => { L.splice(Math.min(j, L.length), 0, c); saveModel(); renderAll(); if (sheetKind === 'mset') renderSheet(); });
+      break;
+    }
+    case 'mreset': {
+      const old = clone(MODEL); MODEL = fixModel(clone(MDEF)); MODEL.on = old.on; saveModel(); d.add = null; renderAll(); renderSheet();
+      showToast('已恢复默认标准', () => { MODEL = fixModel(old); saveModel(); renderAll(); if (sheetKind === 'mset') renderSheet(); });
+      break;
     }
     case 'undoT': undoTeam(+b.dataset.i); break;
     case 'undo': undoAny(); break;
@@ -76,8 +110,15 @@ document.addEventListener('click', ev => {
     case 'evtime': { const e = evByK(d.k); if (e){ e.t = clamp(e.t + +b.dataset.v, PER[e.p][0], PER[e.p][1] + 1200); sortEv(M); save(); renderAll(); renderSheet(); } break; }
     case 'evdel': { const e = evByK(d.k); if (e){ closeChainOf(e); removeEv(e); renderAll(); openSheet('list'); showToast('已删除 ' + evLabel(e), () => { M.ev.push(e); sortEv(M); save(); renderAll(); if (sheetKind === 'list') renderSheet(); }); } break; }
     case 'svval': { const s = svByK(d.k); if (s){ s.v = +b.dataset.v; save(); renderAll(); renderSheet(); } break; }
-    case 'svtime': { const s = svByK(d.k); if (s){ s.t = clamp(s.t + +b.dataset.v, PER[s.p][0], PER[s.p][1] + 1200); sortEv(M); save(); renderAll(); renderSheet(); } break; }
-    case 'svdel': { const s = svByK(d.k); if (s){ M.sv.splice(M.sv.indexOf(s), 1); save(); renderAll(); openSheet('list'); showToast('已删除 ' + svLabel(s), () => { M.sv.push(s); sortEv(M); save(); renderAll(); if (sheetKind === 'list') renderSheet(); }); } break; }
+    case 'svtime': { const s = svByK(d.k); if (s){ const pr = svPair(s); s.t = clamp(s.t + +b.dataset.v, PER[s.p][0], PER[s.p][1] + 1200); if (pr) pr.t = s.t; sortEv(M); save(); renderAll(); renderSheet(); } break; }
+    case 'svdel': {
+      const s = svByK(d.k); if (!s) break;
+      const pr = svPair(s), rm = pr ? [s, pr] : [s], lab = svLabel(s);   // 球权两队一起删
+      for (const x of rm) M.sv.splice(M.sv.indexOf(x), 1);
+      save(); renderAll(); openSheet('list');
+      showToast('已删除 ' + lab, () => { for (const x of rm) M.sv.push(x); sortEv(M); save(); renderAll(); if (sheetKind === 'list') renderSheet(); });
+      break;
+    }
     // 联网
     case 'qsync': setMid(false); quickSync(); break;
     case 'netpill': if (M.api || apiKey()) quickSync(); else openSheet('net'); break;
@@ -216,4 +257,5 @@ if ('serviceWorker' in navigator && window.isSecureContext && location.protocol 
   }).then(() => { offline = '离线使用：已准备好，没有网络也能从主屏幕打开。'; }).catch(() => {});
 }
 renderAll();
-window.__reach = { get M(){ return M; }, store: () => store, statOf: statOf, stateSplit: stateSplit, walk: walk, paLabel: paLabel, OC: OC, minsOf: minsOf };
+window.__reach = { get M(){ return M; }, store: () => store, statOf: statOf, stateSplit: stateSplit, walk: walk, paLabel: paLabel, OC: OC, minsOf: minsOf,
+  get MODEL(){ return MODEL; }, mAll: mAll, get MN(){ return MN; }, render: () => renderAll() };
