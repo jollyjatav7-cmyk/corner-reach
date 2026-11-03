@@ -202,6 +202,14 @@ body.ended .pad[data-i="1"]{display:none}
 .sl.big .sl-t{height:12px;border-radius:6px}
 .sl.big .sl-k{width:38px;height:38px;margin:-19px 0 0 -19px}
 .slends{display:flex;justify-content:space-between;gap:10px;font-size:12px;color:var(--muted);margin-top:-6px;padding:0 4px}
+/* 拖动条两边的按钮：− ＋（球权是往左、往右），点一下动一格，按住一直动 */
+.slw{display:flex;align-items:center;min-width:0}
+.slw .sl{flex:1;min-width:0}
+.slb{flex:none;width:36px;height:36px;padding:0;border:0;border-radius:18px;background:var(--paper);box-shadow:inset 0 0 0 1px var(--rule);color:var(--ink2);display:flex;align-items:center;justify-content:center;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.slb svg{width:16px;height:16px;pointer-events:none}
+.slb:active,.slb.on{background:var(--rule);color:var(--ink)}
+.slw.big .slb{width:40px;height:40px;border-radius:20px}
+.slw.big .slb svg{width:18px;height:18px}
 
 /* ---------- 两个问题 ---------- */
 .qcard{background:var(--card);border:1px solid var(--line2);border-radius:18px;padding:14px 14px 10px;display:flex;flex-direction:column;gap:6px;margin-bottom:10px}
@@ -643,6 +651,7 @@ textarea.fi{height:140px;padding:10px 12px;font:12px/1.4 ui-monospace,Menlo,mono
   body.pip-on .qval{font-size:22px} body.pip-on .qval small{font-size:12px}
   body.pip-on .qval.na{font-size:13px}
   body.pip-on .sl.big{height:38px} body.pip-on .sl.big .sl-k{width:32px;height:32px;margin:-16px 0 0 -16px}
+  body.pip-on .slw.big .slb{width:34px;height:34px;border-radius:17px}
   body.pip-on.qmode .pad-h{padding:0 2px 2px} body.pip-on .qck{height:28px}
 }
 @media (max-width:599px) and (max-height:700px){
@@ -717,7 +726,9 @@ const nowSec = () => Math.floor(Date.now() / 1000);
 const ok = v => typeof v === 'number' && isFinite(v);
 const f1 = v => ok(v) ? v.toFixed(1) : '—';
 const pc = v => ok(v) ? Math.round(v * 100) + '%' : '—';
-const APPVER = 'v2';
+const r1 = v => Math.round(v * 10) / 10;   // 拖动条的值最多一位小数
+const fp = v => String(r1(v));             // 显示：62.5 → "62.5"，60 → "60"
+const APPVER = 'v3';
 const APPNAME = '角球到达与选择';
 const LS = {
   get(k, d){ try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e){ return d; } },
@@ -765,11 +776,13 @@ const paLabel = (pa, sep) => walk(pa).map(n => n.s || n.n).join(sep || ' › ');
 const CHN = { x: '传中', l: '远射', m: '中路渗透', b: '回传', g: '丢球' };
 
 /* ================= 第一部分（主观，随时可以改）和两个问题 =================
-   球权、难度、意愿和两个问题都是拖动条：存百分比（0–100，每格 5%）。场面还是三个选项：存第几个（0 开始）。
+   球权、难度、意愿和两个问题都是拖动条：存百分比（0–100，最多一位小数；每格多少在功能 → 拖动条，默认 1%）。
+   场面还是三个选项：存第几个（0 开始）。
    球权只有一条：主队＋客队＝100%，两队各存一笔，用同一个 g 配对。
-   bk 是统计用的区间 [下限, 上限)，跟画面上显示的字。 */
-const BK3 = w => [[0, 40, '0–35%', w[0]], [40, 61, '40–60%', w[1]], [61, 101, '65–100%', w[2]]];
-const BK5 = w => [[0, 20, '0–15%', w[0]], [20, 40, '20–35%', w[1]], [40, 60, '40–55%', w[2]], [60, 80, '60–75%', w[3]], [80, 101, '80–100%', w[4]]];
+   bk 是统计用的区间 [下限, 上限)，跟画面上显示的字。值最多一位小数，所以 60.05 当上限＝60% 还算中间那一档；
+   三档的中间一档两头都算（40% 和 60% 都是“中”，球权主 40%／客 60% 两队才对称）。 */
+const BK3 = w => [[0, 40, '0–39.9%', w[0]], [40, 60.05, '40–60%', w[1]], [60.05, 101, '60.1–100%', w[2]]];
+const BK5 = w => [[0, 20, '0–19.9%', w[0]], [20, 40, '20–39.9%', w[1]], [40, 60, '40–59.9%', w[2]], [60, 80, '60–79.9%', w[3]], [80, 101, '80–100%', w[4]]];
 const P1 = [
   { f: 'bq', pct: 1, n: '球权', s: '球权', lo: '少', hi: '多', bk: BK3(['少', '中', '多']) },
   { f: 'nd', pct: 1, n: '到禁区附近的难度', s: '难度', lo: '没难度', hi: '难且进不去', bk: BK5(['没难度', '有难度但小', '有难度但进得去', '有很大难度但勉强进得去', '难且进不去']) },
@@ -783,7 +796,7 @@ const QS = [
 const SVF = {}; P1.concat(QS).forEach(x => { SVF[x.f] = x; });
 const bucketOf = (f, v) => { const b = SVF[f].bk; for (let j = 0; j < b.length; j++) if (v >= b[j][0] && v < b[j][1]) return j; return b.length - 1; };
 const wordOf = (f, v) => v == null ? '' : SVF[f].bk[bucketOf(f, v)][3];
-const svText = (f, v) => { const x = SVF[f]; if (v == null) return '清除'; return x.pct ? v + '%' : x.o[v]; };
+const svText = (f, v) => { const x = SVF[f]; if (v == null) return '清除'; return x.pct ? fp(v) + '%' : x.o[v]; };
 /* 旧版（v1）存的是第几个选项：换成那一档中间的百分比（原来的选项留在 o） */
 const OLDPCT = { bq: [65, 50, 35], nd: [10, 30, 50, 70, 90], yy: [80, 50, 20], q1: [10, 30, 50, 70, 90], q2: [10, 30, 50, 70, 90] };
 const SIMPLE = { ar: '到达', ck: '其他角球', gl: '进球', rc: '红牌' };
@@ -810,12 +823,12 @@ function fixEv(e){
 function fixSv(s, old){
   if (!s || !SVF[s.f] || !PER[s.p] || (s.i !== 0 && s.i !== 1)) return null;
   const x = SVF[s.f];
-  let v = s.v == null || s.v === '' ? null : Math.round(+s.v), o = null;
+  let v = s.v == null || s.v === '' ? null : +s.v, o = null;
   if (v != null && !isFinite(v)) return null;
   if (x.pct && v != null){
-    if (old){ const mp = OLDPCT[s.f]; if (!(v >= 0 && v < mp.length)) return null; o = v; v = mp[v]; }
-    else { v = clamp(v, 0, 100); if (s.o != null && isFinite(+s.o)) o = +s.o; }
-  } else if (v != null && !(v >= 0 && v < x.o.length)) return null;
+    if (old){ v = Math.round(v); const mp = OLDPCT[s.f]; if (!(v >= 0 && v < mp.length)) return null; o = v; v = mp[v]; }
+    else { v = clamp(r1(v), 0, 100); if (s.o != null && isFinite(+s.o)) o = +s.o; }   // 百分比留一位小数
+  } else if (v != null){ v = Math.round(v); if (!(v >= 0 && v < x.o.length)) return null; }
   const r = { t: Math.max(0, Math.round(numOr(+s.t, 0))), p: +s.p, i: s.i, f: s.f, v: v, k: ++seq };
   if (o != null) r.o = o;
   if (s.g != null && isFinite(+s.g)) r.g = +s.g;
@@ -860,8 +873,11 @@ window.addEventListener('pagehide', () => { if (saveT) saveNow(); });
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden' && saveT) saveNow(); });
 for (const id in store){ if (store[id] && typeof store[id] === 'object') fixMatch(store[id]); else delete store[id]; }
 M = store[LS.get(CURK, '')] || newMatch();
-const PREF = Object.assign({ scope: 'auto', mode: 'rec' }, LS.get('corner-reach-pref', {}) || {});
+const PREF = Object.assign({ scope: 'auto', mode: 'rec', st: 1 }, LS.get('corner-reach-pref', {}) || {});
 const savePref = () => LS.set('corner-reach-pref', PREF);
+/* 拖动条每格多少（百分比的项目：第一部分、两个问题、模型的标准）：功能 → 拖动条 */
+const SLSTEPS = [1, 0.5, 0.1];
+const pctStep = () => SLSTEPS.indexOf(+PREF.st) >= 0 ? +PREF.st : 1;
 
 /* ================= 计时（跟“角球数据记录”一样） ================= */
 const clockOf = m => m.tm.r ? m.tm.b + (Date.now() - m.tm.at) / 1000 : m.tm.b;
@@ -963,7 +979,7 @@ function setSv(i, f, v, g){
 /* 球权：v＝主队的百分比（null＝清除），客队自动是 100−v */
 let bqG = 0;
 function setBq(v){
-  const h = svCur(M, 0, 'bq'), a = svCur(M, 1, 'bq'), av = v == null ? null : 100 - v;
+  const h = svCur(M, 0, 'bq'), a = svCur(M, 1, 'bq'), av = v == null ? null : r1(100 - v);
   if (h && a && h.v === v && a.v === av) return;
   const g = Math.max(Date.now(), bqG + 1); bqG = g;
   setSv(0, 'bq', v, g); setSv(1, 'bq', av, g);
@@ -974,7 +990,9 @@ function svPair(s){
   for (const x of M.sv) if (x !== s && x.f === 'bq' && x.g === s.g && x.i !== s.i) return x;
   return null;
 }
-let SL = null, rdPend = 0;   // 正在拖的拖动条；拖的时候先不重画画面
+let SL = null, SB = null, rdPend = 0;   // 正在拖的拖动条、正在按的 −／＋；这时候先不重画画面
+const slBusy = () => !!((SL && SL.s === 'd') || SB);
+const slBusyEl = () => SL && SL.s === 'd' ? SL.el : SB ? SB.el : null;
 const lastSvK = (i, f) => { let k = 0; for (const s of M.sv) if (s.i === i && s.f === f && s.k > k) k = s.k; return k; };
 /* 现在的选择：最后记的那一笔；某个时间点的选择：那个时间以前最后一笔 */
 function svCur(m, i, f){ let best = null; for (const s of m.sv) if (s.i === i && s.f === f && (!best || s.k > best.k)) best = s; return best; }
@@ -1186,15 +1204,16 @@ const MET = {
   xin: { n: '传中在范围内的比例', s: '传中内', u: '%', gp: 2, d: '传中里“内”的比例' },
   lin: { n: '远射在范围内的比例', s: '远射内', u: '%', gp: 2, d: '远射里“内”的比例' },
   bg: { n: '回传＋丢球 占五项', s: '回传＋丢球', u: '%', gp: 2, d: '到达后回传或丢球的比例' },
-  ar10: { n: '每 10 分钟到达', s: '每10分钟到达', u: '次', lo: 0, hi: 10, st: 0.5, gp: 2, d: '要看满 10 分钟才算' },
-  dt: { n: '从到达到选择的平均秒数', s: '平均用时', u: '秒', lo: 0, hi: 15, st: 0.5, gp: 2, d: '越短越果断' }
+  ar10: { n: '每 10 分钟到达', s: '每10分钟到达', u: '次', lo: 0, hi: 10, st: 0.1, gp: 2, d: '要看满 10 分钟才算' },
+  dt: { n: '从到达到选择的平均秒数', s: '平均用时', u: '秒', lo: 0, hi: 15, st: 0.1, gp: 2, d: '越短越果断' }
 };
 const MORD = ['bq', 'nd', 'yy', 'cm', 'q1', 'q2', 'xl', 'xin', 'lin', 'bg', 'ar10', 'dt'];
 const MGP = ['你的判断（第一部分）', '两个问题', '记下的到达和选择'];
 const OPS = { gt: '高于', ge: '至少', lt: '低于', le: '最多' };
 const OPK = ['gt', 'ge', 'lt', 'le'];
 const MPROG = { r: '到达与选择', q: '两个问题' };
-const mLo = k => MET[k].lo == null ? 0 : MET[k].lo, mHi = k => MET[k].hi == null ? 100 : MET[k].hi, mSt = k => MET[k].st || 5;
+// 标准的拖动条每格多少：百分比的项目跟着“功能 → 拖动条”，次数和秒数每格 0.1
+const mLo = k => MET[k].lo == null ? 0 : MET[k].lo, mHi = k => MET[k].hi == null ? 100 : MET[k].hi, mSt = k => MET[k].st || pctStep();
 const MDEF = { on: 1, sc: 'half', min: 4,
   r: { b: { all: [{ m: 'bq', op: 'ge', v: 30 }, { m: 'nd', op: 'lt', v: 50 }, { m: 'yy', op: 'gt', v: 50 }, { m: 'xl', op: 'gt', v: 50 }], any: [] },
        s: { all: [{ m: 'bq', op: 'le', v: 70 }, { m: 'nd', op: 'gt', v: 60 }, { m: 'yy', op: 'lt', v: 50 }, { m: 'xl', op: 'lt', v: 40 }], any: [{ m: 'nd', op: 'gt', v: 80 }, { m: 'xl', op: 'lt', v: 20 }] } },
@@ -1207,8 +1226,8 @@ function fixCond(c){
     const a = []; for (const v of Array.isArray(c.in) ? c.in : []){ const n = +v; if (n >= 0 && n < P1[3].o.length && a.indexOf(n) < 0) a.push(n); }
     return { m: c.m, in: a.sort() };
   }
-  const k = c.m, st = mSt(k);
-  return { m: k, op: OPS[c.op] ? c.op : 'gt', v: clamp(Math.round(numOr(+c.v, (mLo(k) + mHi(k)) / 2) / st) * st, mLo(k), mHi(k)) };
+  const k = c.m;   // 标准最多一位小数（不管现在每格多少，之前用小格子定的标准照样留着）
+  return { m: k, op: OPS[c.op] ? c.op : 'gt', v: clamp(r1(numOr(+c.v, (mLo(k) + mHi(k)) / 2)), mLo(k), mHi(k)) };
 }
 function fixModel(o){
   const d = clone(MDEF); if (!o || typeof o !== 'object') return d;
@@ -1293,12 +1312,20 @@ function newCond(k){
   if (k === 'dt') return { m: k, op: 'lt', v: 3 };
   return { m: k, op: 'gt', v: 50 };
 }
-const fmtTh = (k, v) => MET[k].u === '%' ? v + '%' : String(+(+v).toFixed(1)) + ' ' + MET[k].u;
-function fmtMV(k, v, th){
+const fmtTh = (k, v) => MET[k].u === '%' ? fp(v) + '%' : fp(v) + ' ' + MET[k].u;
+/* 现在的值：你设的（第一部分、两个问题）照原样；算出来的比例、次数、秒数用够看得出满不满足标准的位数
+   （例如标准是高于 50%、现在 50.3%，就不能显示成 50%） */
+function fmtMV(k, v, c){
   const x = MET[k];
   if (x.cat) return P1[3].o[v] || '—';
-  if (x.u === '%'){ const r = Math.round(v); return (th != null && r === th && Math.abs(v - th) > EPS ? v.toFixed(1) : r) + '%'; }
-  return (x.u === '秒' ? fmtS(v) : f1(v)) + ' ' + x.u;
+  let s;
+  if (SVF[k]) s = fp(v);
+  else {
+    let d = x.u === '%' ? 0 : 1;
+    while (d < 2 && c && condOK(c, { v: +v.toFixed(d) }) !== condOK(c, { v: v })) d++;
+    s = String(+v.toFixed(d));
+  }
+  return x.u === '%' ? s + '%' : s + ' ' + x.u;
 }
 const mName = k => MET[k].s || MET[k].n;
 function condText(c){
@@ -1342,7 +1369,7 @@ function evLabel(e){
 }
 function svLabel(s){
   const pr = svPair(s);
-  if (pr){ const h = s.i ? pr : s, a = s.i ? s : pr; return h.v == null && a.v == null ? '球权 → 清除' : '球权 → 主 ' + (h.v == null ? '—' : h.v + '%') + ' · 客 ' + (a.v == null ? '—' : a.v + '%'); }
+  if (pr){ const h = s.i ? pr : s, a = s.i ? s : pr; return h.v == null && a.v == null ? '球权 → 清除' : '球权 → 主 ' + (h.v == null ? '—' : fp(h.v) + '%') + ' · 客 ' + (a.v == null ? '—' : fp(a.v) + '%'); }
   return SVF[s.f].s + ' → ' + svText(s.f, s.v);
 }
 /* 简易模型：每队的“大角／小角”、两队合起来的提示 */
@@ -1410,8 +1437,8 @@ const ocSecs = i => OC[i] && OC[i].at ? (Date.now() - OC[i].at) / 1000 : null;
 function p1SumHTML(i){
   return '<div class="p1s" role="group" aria-label="第一部分：点一项修改">' + P1.map(x => {
     const s = svCur(M, i, x.f), v = s ? s.v : null;
-    const t = v == null ? '未设' : x.pct ? v + '%' : x.ab[v];
-    return '<button data-a="p1" data-i="' + i + '" data-f="' + x.f + '" aria-label="' + x.n + '：' + (v == null ? '未设' : x.pct ? v + '%' : x.o[v]) + '"><em>' + x.s + '</em><b' + (v == null ? ' class="na"' : '') + '>' + t + '</b>'
+    const t = v == null ? '未设' : x.pct ? fp(v) + '%' : x.ab[v];
+    return '<button data-a="p1" data-i="' + i + '" data-f="' + x.f + '" aria-label="' + x.n + '：' + (v == null ? '未设' : x.pct ? fp(v) + '%' : x.o[v]) + '"><em>' + x.s + '</em><b' + (v == null ? ' class="na"' : '') + '>' + t + '</b>'
       + (x.pct ? '<i class="p1bar" aria-hidden="true"><i style="width:' + (v == null ? 0 : v) + '%"></i></i>' : '') + '</button>';
   }).join('') + '</div>';
 }
@@ -1455,8 +1482,8 @@ function qPadHTML(i){
   for (const q of QS){
     const s = svCur(M, i, q.f), v = s ? s.v : null, x = i + '_' + q.f;
     let prev = null; for (const y of M.sv) if (y.i === i && y.f === q.f && s && y.k !== s.k && (!prev || y.k > prev.k)) prev = y;
-    const note = !s ? '还没设' : v == null ? fmtMin(s.p, s.t) + ' 清除' : fmtMin(s.p, s.t) + ' 设的' + (prev && prev.v != null ? '（之前 ' + prev.v + '%）' : '');
-    h += '<div class="qcard"><div class="qh"><h3 class="qq">' + q.n + '</h3><span class="qval' + (v == null ? ' na' : '') + '" id="qv_' + x + '">' + (v == null ? '未设' : v + '<small>%</small>') + '</span></div>'
+    const note = !s ? '还没设' : v == null ? fmtMin(s.p, s.t) + ' 清除' : fmtMin(s.p, s.t) + ' 设的' + (prev && prev.v != null ? '（之前 ' + fp(prev.v) + '%）' : '');
+    h += '<div class="qcard"><div class="qh"><h3 class="qq">' + q.n + '</h3><span class="qval' + (v == null ? ' na' : '') + '" id="qv_' + x + '">' + (v == null ? '未设' : fp(v) + '<small>%</small>') + '</span></div>'
       + '<div class="qsub"><span class="qd">' + q.d + '</span><span class="qw" id="qw_' + x + '">' + esc(wordOf(q.f, v)) + '</span></div>'
       + slHTML('q', x, v, { cls: 'big lock ' + (i ? 'a' : 'h'), lab: q.n })
       + '<div class="qends"><span>' + q.lo + '</span><span class="qnote">' + note + '</span><span>' + q.hi + '</span></div></div>';
@@ -1500,7 +1527,7 @@ function renderStrip(){
   $('#recent').innerHTML = rec.length ? rec.map(e => '<button data-a="list"><span class="t">' + fmtClock(e.p, e.t) + '</span>' + (e.i < 0 ? '' : '<span class="d' + e.i + '">' + esc(teamName(e.i)) + '</span>') + esc(e.l) + '</button>').join('') : '<span class="empty">开球时按时间旁边的 ▶；到了对方禁区附近点“到达”</span>';
 }
 function renderAll(){
-  if (SL && SL.s === 'd'){ rdPend = 1; return; }   // 正在拖：放开以后再重画
+  if (slBusy()){ rdPend = 1; return; }   // 正在拖或按着 −／＋：放开以后再重画
   mAll();
   renderMode(); renderHeader(); renderPads(); renderStats(); renderStrip(); renderNet(); renderBanner();
   mLog();
@@ -1515,7 +1542,7 @@ setInterval(() => {
     lastSlow = Date.now(); renderStats();
     // 时间在走：每 10 分钟到达这类项目会变，简易模型的判断也跟着更新
     const sg = mSig(); mAll();
-    if (mSig() !== sg){ if (SL && SL.s === 'd') rdPend = 1; else { renderPads(); renderBanner(); mLog(); } }
+    if (mSig() !== sg){ if (slBusy()) rdPend = 1; else { renderPads(); renderBanner(); mLog(); } }
     else renderBanner();
   }
   if (sheetKind === 'join' && sheetData.tp && sheetData.tp.live) tpShow(sheetData.tp);
@@ -1634,21 +1661,44 @@ function undoAny(){
 }
 
 /* ================= 拖动条 =================
-   slHTML(种类, 参数, 值, 设定) 画一条；手指拖、点一下、方向键都可以，放开才记下（SLK[种类].commit）。
+   slHTML(种类, 参数, 值, 设定) 画一条，两边各有一个按钮（− 和 ＋；球权是往左、往右）。
+   手指拖、点一下条、方向键、两边的按钮都可以；放开才记下（SLK[种类].commit）。
    拖的时候只更新这一条和旁边的数字（SLK[种类].input），整个画面等放开以后才重画。
-   在可以上下捲动的视窗里，要先往左右移才开始拖（往上下就是捲动）；有 lock 的（两个问题）一按就开始。 */
+   在可以上下捲动的视窗里，要先往左右移才开始拖（往上下就是捲动）；有 lock 的（两个问题）一按就开始。
+   每格多少：百分比的项目跟着“功能 → 拖动条”（默认 1%），其他的看 o.st。
+   两边的按钮：点一下动一格；按住不放，0.4 秒后开始一直动，放开才记下。 */
+const ICS = {
+  m: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8h9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+  p: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8h9M8 3.5v9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+  l: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3.5L5.5 8l4.5 4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  r: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3.5L10.5 8 6 12.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+};
 function slHTML(kind, x, v, o){
   o = o || {};
-  const lo = o.lo == null ? 0 : o.lo, hi = o.hi == null ? 100 : o.hi, st = o.st || 5;
+  const lo = o.lo == null ? 0 : o.lo, hi = o.hi == null ? 100 : o.hi, st = o.st || pctStep(), one = fp(st) + (o.u == null ? '%' : o.u);
   const w = (v == null ? 50 : (clamp(v, lo, hi) - lo) / (hi - lo) * 100).toFixed(1) + '%';
-  return '<div class="sl' + (o.cls ? ' ' + o.cls : '') + (v == null ? ' na' : '') + '" data-sl="' + kind + '" data-x="' + esc(x) + '" data-lo="' + lo + '" data-hi="' + hi + '" data-st="' + st + '" data-v="' + (v == null ? '' : v) + '"'
+  // o.lr：两边按钮的说明（球权用“往左／往右”，因为两队一起动）
+  const btn = d => '<button type="button" class="slb" data-sb="' + d + '" aria-label="' + esc(o.lr ? o.lr[d > 0 ? 1 : 0] + ' ' + one : (o.lab || '') + (d > 0 ? ' 加 ' : ' 减 ') + one) + '">'
+    + (o.lr ? (d > 0 ? ICS.r : ICS.l) : (d > 0 ? ICS.p : ICS.m)) + '</button>';
+  return '<div class="slw' + (o.cls && /(^| )big( |$)/.test(o.cls) ? ' big' : '') + '">' + btn(-1)
+    + '<div class="sl' + (o.cls ? ' ' + o.cls : '') + (v == null ? ' na' : '') + '" data-sl="' + kind + '" data-x="' + esc(x) + '" data-lo="' + lo + '" data-hi="' + hi + '" data-st="' + st + '" data-v="' + (v == null ? '' : v) + '"'
     + ' role="slider" tabindex="0" aria-label="' + esc(o.lab || '') + '" aria-valuemin="' + lo + '" aria-valuemax="' + hi + '"' + (v == null ? ' aria-valuetext="还没设"' : ' aria-valuenow="' + v + '"') + '>'
-    + '<div class="sl-t"><i class="sl-f" style="width:' + w + '"></i><b class="sl-k" style="left:' + w + '"></b></div></div>';
+    + '<div class="sl-t"><i class="sl-f" style="width:' + w + '"></i><b class="sl-k" style="left:' + w + '"></b></div></div>' + btn(1) + '</div>';
 }
+/* 手指或滑鼠的位置 → 值（对齐到格子） */
 function slVal(el, cx){
   const t = el.querySelector('.sl-t').getBoundingClientRect(), lo = +el.dataset.lo, hi = +el.dataset.hi, st = +el.dataset.st;
   const r = t.width > 0 ? clamp((cx - t.left) / t.width, 0, 1) : 0.5;
   return clamp(+(Math.round((lo + r * (hi - lo)) / st) * st).toFixed(2), lo, hi);
+}
+/* 往右（d=1）或往左（d=-1）一格；big＝一大格（大约全长的十分之一，键盘的 PageUp／PageDown）。
+   不在格子上的值（例如之前每格 0.5% 记的 62.5%，现在每格 1%）先走到旁边的格子；还没设的从中间开始。 */
+function slNext(el, d, big){
+  const lo = +el.dataset.lo, hi = +el.dataset.hi, st = +el.dataset.st, cur = el.dataset.v === '' ? null : +el.dataset.v;
+  const inc = big ? st * Math.max(1, Math.round((hi - lo) / 10 / st)) : st;
+  const base = cur == null ? (lo + hi) / 2 : cur;
+  const n = d > 0 ? Math.floor(base / inc + 1e-6) + 1 : Math.ceil(base / inc - 1e-6) - 1;
+  return clamp(+(n * inc).toFixed(2), lo, hi);
 }
 function slShow(el, v){
   const lo = +el.dataset.lo, hi = +el.dataset.hi, w = ((v - lo) / (hi - lo) * 100).toFixed(1) + '%';
@@ -1658,12 +1708,18 @@ function slShow(el, v){
   const k = SLK[el.dataset.sl]; if (k && k.input) k.input(el.dataset.x, v, el);
 }
 function slFlush(){ if (rdPend){ rdPend = 0; renderAll(); if (!sheet.hidden) renderSheet(); } }
-function slCommit(el, v){
-  const k = SLK[el.dataset.sl], key = el.dataset.sl + '|' + el.dataset.x, foc = document.activeElement === el;
+/* 记下来、重画；原来在这一条（或它的按钮）上的键盘焦点，重画以后放回去 */
+function slCommit(el, v, btn){
+  const k = SLK[el.dataset.sl], key = el.dataset.sl + '|' + el.dataset.x, ae = document.activeElement;
+  const foc = ae === el ? 'sl' : btn && ae === btn ? btn.dataset.sb : null;
   SL = null; rdPend = 0;
   if (k && v != null) k.commit(el.dataset.x, v);
   renderAll(); if (!sheet.hidden) renderSheet();
-  if (foc){ const n = $$('.sl').filter(e => e.dataset.sl + '|' + e.dataset.x === key)[0]; if (n) n.focus(); }
+  if (foc){
+    const n = $$('.sl').filter(e => e.dataset.sl + '|' + e.dataset.x === key)[0];
+    const f = n && (foc === 'sl' ? n : n.parentNode.querySelector('.slb[data-sb="' + foc + '"]'));
+    if (f) f.focus();
+  }
 }
 let slTouchAt = 0;
 const slOf = t => t && t.closest ? t.closest('.sl') : null;
@@ -1702,31 +1758,95 @@ document.addEventListener('mousemove', ev => { if (!SL || SL.touch) return; SL.v
 document.addEventListener('mouseup', () => { if (!SL || SL.touch) return; slCommit(SL.el, SL.v); });
 document.addEventListener('keydown', ev => {
   const el = ev.target && ev.target.classList && ev.target.classList.contains('sl') ? ev.target : null; if (!el) return;
-  const lo = +el.dataset.lo, hi = +el.dataset.hi, st = +el.dataset.st, cur = el.dataset.v === '' ? null : +el.dataset.v;
   let v;
-  if (ev.key === 'ArrowRight' || ev.key === 'ArrowUp') v = cur == null ? (lo + hi) / 2 : cur + st;
-  else if (ev.key === 'ArrowLeft' || ev.key === 'ArrowDown') v = cur == null ? (lo + hi) / 2 : cur - st;
-  else if (ev.key === 'Home') v = lo;
-  else if (ev.key === 'End') v = hi;
+  if (ev.key === 'ArrowRight' || ev.key === 'ArrowUp') v = slNext(el, 1);
+  else if (ev.key === 'ArrowLeft' || ev.key === 'ArrowDown') v = slNext(el, -1);
+  else if (ev.key === 'PageUp') v = slNext(el, 1, true);
+  else if (ev.key === 'PageDown') v = slNext(el, -1, true);
+  else if (ev.key === 'Home') v = +el.dataset.lo;
+  else if (ev.key === 'End') v = +el.dataset.hi;
   else return;
   ev.preventDefault();
-  v = clamp(+(Math.round(v / st) * st).toFixed(2), lo, hi);
   slShow(el, v); slCommit(el, v);
 });
+
+/* ---------- 两边的按钮（−／＋）----------
+   SB＝正在按的那一个：{ b 按钮, el 拖动条, d 方向, v 现在的值, rep 已经连续动了几次 }。按着的时候画面先不重画（slBusy）。 */
+let sbAt = 0;   // 刚用手指或滑鼠按完（后面跟来的 click 不要再算一次）
+const sbOf = t => t && t.closest ? t.closest('.slb') : null;
+const slOfB = b => b && b.parentNode ? b.parentNode.querySelector('.sl') : null;
+function sbClear(){ if (SB){ clearTimeout(SB.tm); SB.b.classList.remove('on'); } SB = null; }
+function sbDown(b, touch, x, y){
+  const el = slOfB(b); if (!el) return;
+  sbClear();
+  SB = { b: b, el: el, d: +b.dataset.sb > 0 ? 1 : -1, v: null, rep: 0, touch: touch, x0: x, y0: y, t0: Date.now() };
+  SB.tm = setTimeout(sbRep, 400);
+}
+function sbRep(){
+  if (!SB) return;
+  if (!document.body.contains(SB.el) || Date.now() - SB.t0 > 30000){ sbClear(); rdPend = 1; slFlush(); return; }   // 保险：按钮不见了或按太久
+  SB.rep++; SB.b.classList.add('on');
+  SB.v = slNext(SB.el, SB.d); slShow(SB.el, SB.v);
+  SB.tm = setTimeout(sbRep, SB.rep < 8 ? 110 : 45);
+}
+function sbUp(){
+  if (!SB) return;
+  const s = SB; sbClear(); sbAt = Date.now();
+  if (!s.rep){ s.v = slNext(s.el, s.d); slShow(s.el, s.v); }   // 点一下：动一格
+  slCommit(s.el, s.v, s.b);
+}
+function sbCancel(){
+  if (!SB) return;
+  const s = SB; sbClear(); sbAt = Date.now();
+  if (s.rep) slCommit(s.el, s.v, s.b); else { rdPend = 1; slFlush(); }
+}
+document.addEventListener('touchstart', ev => {
+  const b = sbOf(ev.target);
+  if (!b || ev.touches.length !== 1) return;
+  const t = ev.touches[0]; slTouchAt = Date.now();
+  sbDown(b, 1, t.clientX, t.clientY);
+}, { passive: false });
+document.addEventListener('touchmove', ev => {
+  if (!SB || !SB.touch) return;
+  const t = ev.touches[0]; if (!t) return;
+  if (SB.rep){ if (ev.cancelable) ev.preventDefault(); return; }   // 一直动的时候不要捲动
+  if (Math.abs(t.clientX - SB.x0) > 10 || Math.abs(t.clientY - SB.y0) > 10) sbCancel();   // 手指移开了：是在捲动
+}, { passive: false });
+document.addEventListener('touchend', ev => {
+  if (!SB || !SB.touch) return;
+  slTouchAt = Date.now();
+  if (ev.cancelable) ev.preventDefault();   // 自己处理，不要再变成一下滑鼠点击
+  sbUp();
+}, { passive: false });
+document.addEventListener('touchcancel', () => { if (SB && SB.touch) sbCancel(); });
+document.addEventListener('mousedown', ev => {
+  if (Date.now() - slTouchAt < 800 || ev.button !== 0) return;
+  const b = sbOf(ev.target); if (!b) return;
+  ev.preventDefault();
+  sbDown(b, 0, ev.clientX, ev.clientY);
+});
+document.addEventListener('mouseup', () => { if (SB && !SB.touch) sbUp(); });
+document.addEventListener('click', ev => {   // 键盘（Enter、空白键）或读屏软件按的
+  const b = sbOf(ev.target); if (!b || Date.now() - sbAt < 700) return;
+  const el = slOfB(b); if (!el) return;
+  const v = slNext(el, +b.dataset.sb > 0 ? 1 : -1); slShow(el, v); slCommit(el, v, b);
+});
+document.addEventListener('contextmenu', ev => { if (sbOf(ev.target)) ev.preventDefault(); });
+
 const setTx = (id, h) => { const e = document.getElementById(id); if (e) e.innerHTML = h; };
 function svValText(s, v){
   if (v == null) return '清除';
   const pr = svPair(s);
-  if (pr) return s.i ? '主 ' + (100 - v) + '% · 客 ' + v + '%' : '主 ' + v + '% · 客 ' + (100 - v) + '%';
+  if (pr) return s.i ? '主 ' + fp(100 - v) + '% · 客 ' + fp(v) + '%' : '主 ' + fp(v) + '% · 客 ' + fp(100 - v) + '%';
   const x = SVF[s.f];
-  return x.pct ? v + '%' + (s.f === 'bq' ? '' : ' ' + wordOf(s.f, v)) : x.o[v];
+  return x.pct ? fp(v) + '%' + (s.f === 'bq' ? '' : ' ' + wordOf(s.f, v)) : x.o[v];
 }
 const SLK = {
   // 第一部分（视窗里）：x＝bq（值＝主队的百分比）、nd、yy
   p1: {
     input(f, v){
-      if (f === 'bq'){ setTx('p1v_bqh', '主 ' + v + '%'); setTx('p1v_bqa', '客 ' + (100 - v) + '%'); }
-      else { setTx('p1v_' + f, v + '%'); setTx('p1w_' + f, esc(wordOf(f, v))); }
+      if (f === 'bq'){ setTx('p1v_bqh', '主 ' + fp(v) + '%'); setTx('p1v_bqa', '客 ' + fp(100 - v) + '%'); }
+      else { setTx('p1v_' + f, fp(v) + '%'); setTx('p1w_' + f, esc(wordOf(f, v))); }
     },
     commit(f, v){
       if (M.st === 2){ endedToast(); return; }
@@ -1737,13 +1857,13 @@ const SLK = {
   },
   // 两个问题（画面上）：x＝'0_q1'
   q: {
-    input(x, v){ const p = x.split('_'); setTx('qv_' + x, v + '<small>%</small>'); setTx('qw_' + x, esc(wordOf(p[1], v))); },
+    input(x, v){ const p = x.split('_'); setTx('qv_' + x, fp(v) + '<small>%</small>'); setTx('qw_' + x, esc(wordOf(p[1], v))); },
     commit(x, v){ const p = x.split('_'); pickQ(+p[0], p[1], v); }
   },
   // 全部记录里改一笔：x＝那一笔的 k
   sve: {
     input(k, v){ const s = svByK(+k); if (s) setTx('svev', esc(svValText(s, v))); },
-    commit(k, v){ const s = svByK(+k); if (!s) return; const pr = svPair(s); s.v = v; if (pr) pr.v = 100 - v; save(); }
+    commit(k, v){ const s = svByK(+k); if (!s) return; const pr = svPair(s); s.v = v; if (pr) pr.v = r1(100 - v); save(); }
   },
   // 简易模型的标准：x＝'r.b.all.0'
   mth: {
@@ -1753,8 +1873,14 @@ const SLK = {
   mmin: {
     input(x, v){ setTx('mminv', Math.round(v) + ' 次'); },
     commit(x, v){ MODEL.min = clamp(Math.round(v), 1, 10); saveModel(); }
+  },
+  // 功能 → 拖动条：试试看（不记任何东西）
+  demo: {
+    input(x, v){ setTx('sldv', fp(v) + '%'); },
+    commit(x, v){ DEMO_V = v; }
   }
 };
+let DEMO_V = 50;
 
 /* ================= 弹出视窗 ================= */
 const sheet = $('#sheet'), card = $('#card');
@@ -1771,8 +1897,9 @@ function openClock(){
 }
 const HELP = {
   rec: ['到达与选择', '上方切换“到达与选择”', '左边记主对客（主队进攻）、右边记客对主（客队进攻）。球队到了对方禁区附近点“到达”，秒数开始走；做出选择时点传中、远射、中路渗透、回传或丢球，app 记下用了几秒。传中和远射接着选内或外；传中内再选禁区射门或解围/中途拦截；中路渗透选有没有禁区射门；最后选进球、角球或无角球。同一次进攻里又做了一次选择（例如传中被解围后再传中），就再按一次“到达”。点错了按“返回”，或球队名字旁边的“撤销”。'],
-  p1: ['第一部分（主观）', '每队“到达”上方的四格', '球权、到禁区附近的难度、意愿是拖动条（百分比，每格 5%），场面是三个选项，由你主观判断，比赛中随时可以改。球权只有一条：主队拖多一点，客队就自动少一点（两队加起来 100%）。每次放开都会记下时间（20 秒内再调算改正），以后可以统计在每种状态下角球多还是少。'],
+  p1: ['第一部分（主观）', '每队“到达”上方的四格', '球权、到禁区附近的难度、意愿是拖动条（百分比），场面是三个选项，由你主观判断，比赛中随时可以改。球权只有一条：主队拖多一点，客队就自动少一点（两队加起来 100%）。每次放开都会记下时间（20 秒内再调算改正），以后可以统计在每种状态下角球多还是少。'],
   q: ['两个问题', '上方切换“两个问题”', '每队两个问题，都是拖动条（百分比）：一、他容不容易到对方禁区附近＝几次进攻里有百分之几能到对方禁区附近；二、他喜不喜欢传中和远射＝传中和远射的比例。随时可以改，每次放开都记下时间。上方的“角球 ＋1”可以顺便记角球。两个程序记在同一场比赛里，可以只用一个。'],
+  sl: ['拖动条', '第一部分、两个问题、简易模型的标准；每格多少在功能 → 拖动条', '手指左右拖，或点一下条上的位置；条两边的按钮（− ＋，球权是往左、往右）每按一下动一格，按住不放会一直动，放开才记下。每格默认 1%，可以改成 0.5% 或 0.1%（模型的标准也一样）。格子越小越难刚好停在整数上：先拖到附近，再用两边的按钮微调。改了每格多少，已经记下的数字不会变。'],
   mdl: ['简易模型', '上方“简易模型”、每队名字旁边、功能 → 简易模型', '按你定的标准提醒：某队满足“大角”的条件，名字旁边显示“大角”（这队角球会高于平均）；满足“小角”的条件显示“小角”。两队合起来：都大角提示投大角，都小角提示投小角；只有一队有提醒、或一队大角一队小角，提示投角球让球（投角球会比较多的那队）。点提示可以看每个条件现在满不满足；功能 → 简易模型可以用拖动条调标准、加项、删项、关掉提醒。这只是暂时的主观模型，不会改任何记录。'],
   stats: ['统计', 'iPad 两队中间；手机底部“统计”', '两队对比：到达次数和每 10 分钟几次、五个选择的比例（每队一条＝100%）和次数、传中＋远射占比、从到达到选择的秒数、传中和远射在范围内的比例、射门、角球和角球从哪里来。上方可以切换上半场、下半场、全场。'],
   ck: ['其他角球', '每队下面的“其他角球”', '不是从你记的那次到达直接来的角球（例如任意球、反击、忘了记的那次），点这里。到达链里选了“角球”的，不用再点。'],
@@ -1782,7 +1909,7 @@ const HELP = {
   arch: ['比赛仓库', '底部“仓库”', '保存结束时选“加入仓库”的比赛，以及还没结束的比赛。可以搜索、打开、导出、删除；“统计”有平均角球、你的到达和选择平均、你的逻辑检验，以及第一部分和两个问题每种选择下的角球（以后建模型用）；“备份”可以导出全部（JSON 或表格 CSV）和导入。'],
   pip: ['视频浮窗', '功能 → 视频浮窗', '用一台手机边看边记时：把视频切到画中画，拖到屏幕上方或下方，再在这里选同样的位置。app 会空出浮窗的位置，只留比分那一行，按键压缩。']
 };
-const HELP_ORDER = ['rec', 'p1', 'q', 'mdl', 'stats', 'ck', 'net', 'clock', 'fix', 'arch', 'pip'];
+const HELP_ORDER = ['rec', 'p1', 'q', 'sl', 'mdl', 'stats', 'ck', 'net', 'clock', 'fix', 'arch', 'pip'];
 const DEFS = [
   ['到达', '本队在对方禁区附近（禁区线外大约 10 米以内，或禁区两侧一直到底线的边路）把球控制住，点一次。同一次进攻在禁区附近来回传只点一次；做了一次选择以后（例如传中被解围），本队又在禁区附近拿到球、再做选择，就再点一次“到达”。角球、任意球本身不算。', null],
   ['传中', '从边路往禁区里传的球（下底传中、45 度传中、倒三角都算）。任意球、角球开出的不算。', ['内：球往有威胁的范围飞（禁区里、门前、队友能争到的地方），不管之后被挡、被解围、被门将拿到，还是有人射门', '外：传偏了：直接出界、飞过所有人、落点没有威胁', '内之后：禁区射门＝队友在禁区里射门（包括头球）；解围/中途拦截＝防守球员（包括门将）把球顶出、踢出、挡下、拿住']],
@@ -1798,7 +1925,7 @@ const DEFS = [
   ['简易模型', '你主观定的暂时标准，可以在功能 → 简易模型里改。默认：', ['到达与选择·大角：球权至少 30%、难度低于 50%、意愿高于 50%、传中＋远射占三项高于 50%，全部满足', '到达与选择·小角：球权最多 70%、难度高于 60%、意愿低于 50%、传中＋远射占三项低于 40%，全部满足；或者难度高于 80%、或者传中＋远射占三项低于 20%，任意一项满足', '三项＝传中、远射、中路渗透；这类比例要三项加起来满 4 次才算', '两个问题·大角：两个问题都高于 60%；小角：都低于 40%', '两队都大角→投大角；都小角→投小角；只有一队有提醒，或一队大角一队小角→投角球让球（投角球会比较多的那队）']]
 ];
 function renderSheet(){
-  if (SL && SL.s === 'd' && card.contains(SL.el)){ rdPend = 1; return; }   // 正在拖视窗里的拖动条
+  const bz = slBusyEl(); if (bz && card.contains(bz)){ rdPend = 1; return; }   // 正在拖（或按着 −／＋）视窗里的拖动条
   const d = sheetData;
   let h = '';
   card.className = 'card';
@@ -1823,6 +1950,7 @@ function renderSheet(){
         + t('wback', '备份与导入', ago == null ? '还没备份过：导出全部、导入' : '上次备份 ' + (ago ? ago + ' 天前' : '今天')) + '</div></div>'
         + '<div><h4>设置与说明</h4><div class="fcg">'
         + t('mset', '简易模型', MODEL.on ? '提醒开着：用拖动条调大角、小角的标准，加项、删项' : '提醒关着：点这里打开或调整标准')
+        + t('slset', '拖动条', '现在每格 ' + fp(pctStep()) + '%：可以改成 1%、0.5% 或 0.1%；两边的 − ＋ 微调')
         + t('net', '联网数据', !apiKey() ? '还没设定：API key、自动同步、画面延迟' : M.api ? '已连上 ' + esc(M.api.h) + ' vs ' + esc(M.api.a) : keyFromOther() ? '用角球数据记录的 key：查找比赛、同步' : '已设定 API key')
         + t('pip', '视频浮窗', PIP.pos === 'off' ? '一台手机边看浮窗边记录：空出浮窗的位置' : '已开启：浮窗在' + (PIP.pos === 'top' ? '上方' : '下方'))
         + t('defs', '按键定义', '到达、每个选择、内外、角球怎么算')
@@ -1843,18 +1971,18 @@ function renderSheet(){
       const clr = (f, on) => '<button class="p1clr" data-a="p1clr" data-f="' + f + '"' + (on ? '' : ' disabled') + '>清除</button>';
       // 球权：一条，值＝主队的百分比
       const bh = svCur(M, 0, 'bq'), ba = svCur(M, 1, 'bq');
-      const hv = bh && bh.v != null ? bh.v : ba && ba.v != null ? 100 - ba.v : null, av = ba && ba.v != null ? ba.v : hv == null ? null : 100 - hv;
+      const hv = bh && bh.v != null ? bh.v : ba && ba.v != null ? r1(100 - ba.v) : null, av = ba && ba.v != null ? ba.v : hv == null ? null : r1(100 - hv);
       h = '<div class="card-h"><h3>第一部分</h3><button class="pill dark" data-a="close">完成</button></div>'
         + '<div class="seg p1side">' + [0, 1].map(j => '<button data-a="p1side" data-v="' + j + '" aria-pressed="' + (i === j) + '">' + (j ? '客对主 ' : '主对客 ') + esc(teamName(j)) + '</button>').join('') + '</div>'
-        + '<p class="hint">对球队未来能到对面禁区附近次数与呆在对方禁区附近总时长的预测。拖动或点一下条，随时可以改；每次放开都记下时间（20 秒内再调算改正）。</p>'
+        + '<p class="hint">对球队未来能到对面禁区附近次数与呆在对方禁区附近总时长的预测。拖动或点一下条，两边的按钮一格一格微调（每格 ' + fp(pctStep()) + '%），随时可以改；每次放开都记下时间（20 秒内再调算改正）。</p>'
         + '<div class="p1g" id="p1g-bq"><h4>球权<small>' + when(svCur(M, i, 'bq')) + '</small>' + clr('bq', hv != null) + '</h4>'
-        + '<div class="bqv"><span class="h" id="p1v_bqh">主 ' + (hv == null ? '—' : hv + '%') + '</span><span class="lb">两队加起来 100%</span><span class="a" id="p1v_bqa">客 ' + (av == null ? '—' : av + '%') + '</span></div>'
-        + slHTML('p1', 'bq', hv, { cls: 'bq', lab: '球权：主队的百分比（客队自动是其余的）' })
-        + '<p class="p1n">蓝色是' + esc(teamName(0)) + '、红色是' + esc(teamName(1)) + '：往右拖主队多，往左拖客队多。</p></div>';
+        + '<div class="bqv"><span class="h" id="p1v_bqh">主 ' + (hv == null ? '—' : fp(hv) + '%') + '</span><span class="lb">两队加起来 100%</span><span class="a" id="p1v_bqa">客 ' + (av == null ? '—' : fp(av) + '%') + '</span></div>'
+        + slHTML('p1', 'bq', hv, { cls: 'bq', lab: '球权：主队的百分比（客队自动是其余的）', lr: ['往左：客队多', '往右：主队多'] })
+        + '<p class="p1n">蓝色是' + esc(teamName(0)) + '、红色是' + esc(teamName(1)) + '：往右主队多，往左客队多。</p></div>';
       for (const f of ['nd', 'yy']){
         const x = SVF[f], s = svCur(M, i, f), v = s && s.v != null ? s.v : null;
         h += '<div class="p1g" id="p1g-' + f + '"><h4>' + x.n + '<small>' + when(s) + '</small>' + clr(f, v != null) + '</h4>'
-          + '<div class="p1val"><b id="p1v_' + f + '">' + (v == null ? '未设' : v + '%') + '</b><span id="p1w_' + f + '">' + (v == null ? '拖动或点一下条' : esc(wordOf(f, v))) + '</span></div>'
+          + '<div class="p1val"><b id="p1v_' + f + '">' + (v == null ? '未设' : fp(v) + '%') + '</b><span id="p1w_' + f + '">' + (v == null ? '拖动或点一下条' : esc(wordOf(f, v))) + '</span></div>'
           + slHTML('p1', f, v, { cls: cls, lab: x.n })
           + '<div class="slends"><span>' + x.lo + '</span><span>' + x.hi + '</span></div></div>';
       }
@@ -1928,7 +2056,7 @@ function renderSheet(){
       const x = SVF[s.f], pr = svPair(s);
       const body = x.pct
         ? '<div class="lbl">' + x.n + (pr ? '（两队一起改，加起来 100%）' : '') + '</div><div class="p1val"><b id="svev">' + esc(svValText(s, s.v)) + '</b></div>'
-          + slHTML('sve', s.k, s.v, { cls: pr && !s.i ? 'bq' : s.i ? 'a' : 'h', lab: x.n })
+          + slHTML('sve', s.k, s.v, { cls: pr && !s.i ? 'bq' : s.i ? 'a' : 'h', lab: x.n, lr: pr ? (s.i ? ['往左：主队多', '往右：客队多'] : ['往左：客队多', '往右：主队多']) : null })
           + (pr ? '' : '<div class="slends"><span>' + x.lo + '</span><span>' + x.hi + '</span></div>')
         : '<div class="lbl">' + x.n + '</div><div class="chips">' + x.o.map((lab, j) => '<button class="chip" data-a="svval" data-v="' + j + '" aria-pressed="' + (s.v === j) + '">' + lab + '</button>').join('') + '</div>';
       h = '<div class="card-h"><h3>修改这笔选择</h3><button class="pill" data-a="list">返回</button></div>'
@@ -2034,7 +2162,7 @@ function renderSheet(){
       h = '<div class="card-h"><h3>简易模型：标准</h3><button class="pill" data-a="mdl">看现在的判断</button><button class="pill dark" data-a="close">完成</button></div>'
         + '<div class="mopt"><span>提醒</span>' + seg('mon', [[1, '开'], [0, '关']], MODEL.on) + '</div>'
         + '<div class="mopt"><span>比例用哪段数据</span>' + seg('msc', [['half', '本半场'], ['ft', '全场']], MODEL.sc) + '</div>'
-        + '<div class="mopt col"><span>比例最少要几次才算<b id="mminv">' + MODEL.min + ' 次</b></span>' + slHTML('mmin', 'min', MODEL.min, { lo: 1, hi: 10, st: 1, lab: '比例最少要几次才算' })
+        + '<div class="mopt col"><span>比例最少要几次才算<b id="mminv">' + MODEL.min + ' 次</b></span>' + slHTML('mmin', 'min', MODEL.min, { lo: 1, hi: 10, st: 1, u: ' 次', lab: '比例最少要几次才算' })
         + '<p class="hint">传中＋远射占三项：传中、远射、中路渗透加起来要满这么多次；传中、远射内的比例：传中（远射）要满这么多次。没满就当作还不算。</p></div>'
         + '<div class="seg" style="width:100%">' + ['r', 'q'].map(k => '<button style="flex:1" data-a="mtab" data-v="' + k + '" aria-pressed="' + (g === k) + '">' + MPROG[k] + '</button>').join('') + '</div>'
         + mRuleHTML(g, 'b') + mRuleHTML(g, 's')
@@ -2043,6 +2171,15 @@ function renderSheet(){
         + '<p class="hint">改了马上生效，存在这台设备上。大角和小角同时成立时（标准互相冲突）不提醒。</p>';
       break;
     }
+    case 'slst':
+      h = '<div class="card-h"><h3>拖动条</h3><button class="pill dark" data-a="close">完成</button></div>'
+        + '<div class="lbl">每格多少（第一部分、两个问题、简易模型的标准）</div>'
+        + '<div class="chips">' + SLSTEPS.map(x => '<button class="chip" data-a="slst" data-v="' + x + '" aria-pressed="' + (pctStep() === x) + '">每格 ' + fp(x) + '%</button>').join('') + '</div>'
+        + '<div class="lbl">试试看（不会记下来）</div>'
+        + '<div class="p1val"><b id="sldv">' + fp(DEMO_V) + '%</b></div>'
+        + slHTML('demo', 'd', DEMO_V, { cls: 'h', lab: '试试看' })
+        + '<p class="hint">' + HELP.sl[2] + '</p>';
+      break;
     case 'import':
       h = '<div class="card-h"><h3>导入</h3><button class="pill" data-a="close">取消</button></div>'
         + '<p class="hint">选择之前导出的 .json 文件，或把导出的文字贴在下面。同一场比赛会用导入的版本取代。</p>'
@@ -2055,7 +2192,7 @@ function renderSheet(){
 function mTeamHTML(T, i){
   const vb = T.v === 'b' ? '<span class="mbg big">' + ICM.up + '<span>大角</span></span>' : T.v === 's' ? '<span class="mbg small">' + ICM.dn + '<span>小角</span></span>' : '<span class="mbg off">没有提醒</span>';
   const row = x => '<li class="' + (x.ok === true ? 'y' : x.ok === false ? 'n' : 'u') + '">' + (x.ok === true ? ICM.ok : x.ok === false ? ICM.no : ICM.na)
-    + '<span class="ct">' + esc(condText(x.c)) + '</span><span class="cv">' + esc(x.mv.v == null ? x.mv.why : '现在 ' + fmtMV(x.c.m, x.mv.v, x.c.v)) + '</span></li>';
+    + '<span class="ct">' + esc(condText(x.c)) + '</span><span class="cv">' + esc(x.mv.v == null ? x.mv.why : '现在 ' + fmtMV(x.c.m, x.mv.v, x.c)) + '</span></li>';
   const grp = (L, title) => L.length ? '<h6>' + title + '</h6><ul class="mcl">' + L.map(row).join('') + '</ul>' : '';
   const side = (w, title) => { const S = T[w]; return '<div class="mside ' + (w === 'b' ? 'big' : 'small') + (S.ok ? ' on' : '') + '"><h5>' + (w === 'b' ? ICM.up : ICM.dn) + '<span>' + title + '</span>' + (S.ok ? '<em>成立</em>' : '') + '</h5>'
     + grp(S.all, '全部满足') + grp(S.any, '满足任意一项就算') + (S.all.length + S.any.length ? '' : '<p class="hint">没有条件</p>') + '</div>'; };
@@ -2082,7 +2219,7 @@ function mCondEd(c, x){
   return '<div class="mce"><div class="mch"><b>' + esc(MET[k].n) + '</b>' + (MET[k].d ? '<span>' + esc(MET[k].d) + '</span>' : '') + del + '</div>'
     + '<div class="mco"><div class="seg">' + OPK.map(o => '<button data-a="mop" data-p="' + x + '" data-v="' + o + '" aria-pressed="' + (c.op === o) + '">' + OPS[o] + '</button>').join('') + '</div>'
     + '<b class="mthv" id="mv_' + x.replace(/\./g, '_') + '">' + esc(fmtTh(k, c.v)) + '</b></div>'
-    + slHTML('mth', x, c.v, { lo: mLo(k), hi: mHi(k), st: mSt(k), lab: MET[k].n + '的标准' }) + '</div>';
+    + slHTML('mth', x, c.v, { lo: mLo(k), hi: mHi(k), st: mSt(k), u: MET[k].u === '%' ? '%' : ' ' + MET[k].u, lab: MET[k].n + '的标准' }) + '</div>';
 }
 function mPicker(path){
   return '<div class="mpick"><div class="mpk-h"><b>加哪一项？</b><button class="chip" data-a="mcadd" data-p="">取消</button></div>'
@@ -2199,7 +2336,7 @@ function whStats(){
   };
   let st = P1.map(x => stTab(x, '第一部分：' + x.n)).join('') + QS.map(x => stTab(x, '两个问题：' + x.s)).join('');
   h += st || '<p class="hint">还没有第一部分或两个问题的记录。比赛中设了以后，这里会有每个区间下平均几个角球。</p>';
-  if (st) h += '<p class="hint">分钟＝这一队处在这个区间（或选项）的时间（所有比赛加起来），角球和到达都算这一队的。数据多了以后，可以导出给 Claude 建模型。</p>';
+  if (st) h += '<p class="hint">分钟＝这一队处在这个区间（或选项）的时间（所有比赛加起来），角球和到达都算这一队的。拖动条的值最多一位小数，所以区间写到 .9（例如 20–39.9%）。数据多了以后，可以导出给 Claude 建模型。</p>';
   return h + '</div>';
 }
 function whBack(){
@@ -2231,7 +2368,7 @@ function askNew(){ if (M.st === 2 || !hasContent(M)){ startNew(); return; } open
 const README = APPNAME + '导出档（fmt=2）。matches 是比赛阵列，每场：id、d 日期、lg 联赛、h 主队、a 客队、st 状态(1进行中/2已结束)、keep(1=结束时选了加入仓库)、pe 各半场结束时的比赛时钟秒数、obs 开始记录的位置{p 半场, t 比赛时钟秒数}、stop 结束记录的位置、note 备注、ev 事件、sv 主观选择、al 简易模型的提醒、mc 当时用的模型标准。只有 obs 到 stop 之间是实际看到的。'
   + 'ev 每笔 = {t 比赛时钟秒数（下半场从2700起算）, p 半场(1/2), i 进攻的队伍(0主队/1客队), c 类型}。c：ar 到达（本队在对方禁区附近控制住球）、ck 其他角球（不是从记下的那次到达直接来的）、gl 进球（补录、点球等）、rc 红牌；b=1 加入前补录、时间不详；a=1 联网同步补上的，时间是估计。'
   + 'ar 另有 pa 选择路径（一串字母，见 tree）和 dt 从按到达到第一个选择的秒数（没有＝不详）。路径第一个字母：x 传中、l 远射、m 中路渗透、b 回传、g 丢球；传中 x 后 i 内/o 外，xi 后 s 禁区射门/c 解围或中途拦截，再后 g 进球/c 角球/n 无角球；远射 l 后 i 内/o 外，li 后 g/c/n；中路渗透 m 后 s 禁区射门/n 无禁区射门，ms 后 g/c/n；回传、丢球没有后续。路径以 c 结果结束的（例如 xisc、xicc、lic、msc）＝这次到达直接得到角球。空字串＝到达后没选。'
-  + 'sv 每笔 = {t, p, i 进攻的队伍, f 项目, v 值(null=清除)}，从这个时间起一直有效到下一笔。拖动条的项目 v 是百分比 0–100（每格 5）：bq 球权（两队加起来 100，同一次调整的两笔有同一个 g）、nd 到禁区附近的难度(0 没难度…100 难且进不去)、yy 到禁区附近的意愿(0 弱…100 强)、q1 他容不容易到对方禁区附近（几次进攻里有百分之几能到对方禁区附近）、q2 他喜不喜欢传中和远射（传中和远射的比例）。cm 到禁区附近的场面 v 是选第几个(0 包饺子/1 包一会饺子然后转换球权/2 快速转换球权)。'
+  + 'sv 每笔 = {t, p, i 进攻的队伍, f 项目, v 值(null=清除)}，从这个时间起一直有效到下一笔。拖动条的项目 v 是百分比 0–100，最多一位小数（v2 每格 5，v3 起默认每格 1，可以设成 0.5 或 0.1）：bq 球权（两队加起来 100，同一次调整的两笔有同一个 g）、nd 到禁区附近的难度(0 没难度…100 难且进不去)、yy 到禁区附近的意愿(0 弱…100 强)、q1 他容不容易到对方禁区附近（几次进攻里有百分之几能到对方禁区附近）、q2 他喜不喜欢传中和远射（传中和远射的比例）。cm 到禁区附近的场面 v 是选第几个(0 包饺子/1 包一会饺子然后转换球权/2 快速转换球权)。'
   + '旧版（v1，选项）记的会换成那一档中间的百分比，原来选第几个留在 o：bq 多/中/少→65/50/35、nd 五档→10/30/50/70/90、yy 强/中/弱→80/50/20、q1/q2 1–5 档→10/30/50/70/90。'
   + 'al 每笔 = {t, p, g 程序(r 到达与选择/q 两个问题), i 队伍, v 提醒(b 大角=角球高于平均/s 小角=角球低于平均/空字串=没有提醒)}：简易模型的提醒从这个时间起变成 v。两队合起来：都 b→投大角；都 s→投小角；只有一队有提醒、或一队 b 一队 s→投角球让球（投角球会比较多的那队）。model 是导出时的模型标准（mc 是这场最后一次提醒变化时的标准）：每个程序 b/s 两条规则，all=全部满足、any=满足任意一项；条件 {m 项目, op gt高于/ge至少/lt低于/le最多, v 标准} 或场面 {m:cm, in 选项}；xl=传中＋远射占三项（传中、远射、中路渗透），min=比例最少要几次才算，sc=half 本半场/ft 全场。'
   + 'api 是联网连上的比赛（API-Football fixture id、两队英文名、sw=1 主客相反，最后同步到的 st 状态、el 分钟、g 比分、ck 角球、ck1 上半场角球、sh 射门{t 全部, b 被挡, on 射正}、pos 控球%、rc 红牌、dl 你的画面比实时慢几秒）。';
@@ -3077,6 +3214,14 @@ document.addEventListener('click', ev => {
       showToast('已恢复默认标准', () => { MODEL = fixModel(old); saveModel(); renderAll(); if (sheetKind === 'mset') renderSheet(); });
       break;
     }
+    // 拖动条每格多少
+    case 'slset': setMid(false); openSheet('slst'); break;
+    case 'slst': {
+      const v = +b.dataset.v; if (SLSTEPS.indexOf(v) < 0) break;
+      PREF.st = v; savePref(); renderAll(); renderSheet();
+      showToast('拖动条现在每格 ' + fp(v) + '%');
+      break;
+    }
     case 'undoT': undoTeam(+b.dataset.i); break;
     case 'undo': undoAny(); break;
     // 统计
@@ -3247,7 +3392,7 @@ if ('serviceWorker' in navigator && window.isSecureContext && location.protocol 
 }
 renderAll();
 window.__reach = { get M(){ return M; }, store: () => store, statOf: statOf, stateSplit: stateSplit, walk: walk, paLabel: paLabel, OC: OC, minsOf: minsOf,
-  get MODEL(){ return MODEL; }, mAll: mAll, get MN(){ return MN; }, render: () => renderAll() };
+  get MODEL(){ return MODEL; }, mAll: mAll, get MN(){ return MN; }, render: () => renderAll(), fmtMV: fmtMV, bucketOf: bucketOf, PREF: PREF };
 
 })();
 </script>

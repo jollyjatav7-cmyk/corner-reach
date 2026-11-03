@@ -8,6 +8,8 @@ const nowSec = () => Math.floor(Date.now() / 1000);
 const ok = v => typeof v === 'number' && isFinite(v);
 const f1 = v => ok(v) ? v.toFixed(1) : '—';
 const pc = v => ok(v) ? Math.round(v * 100) + '%' : '—';
+const r1 = v => Math.round(v * 10) / 10;   // 拖动条的值最多一位小数
+const fp = v => String(r1(v));             // 显示：62.5 → "62.5"，60 → "60"
 const APPVER = '__APPVER__';
 const APPNAME = '角球到达与选择';
 const LS = {
@@ -56,11 +58,13 @@ const paLabel = (pa, sep) => walk(pa).map(n => n.s || n.n).join(sep || ' › ');
 const CHN = { x: '传中', l: '远射', m: '中路渗透', b: '回传', g: '丢球' };
 
 /* ================= 第一部分（主观，随时可以改）和两个问题 =================
-   球权、难度、意愿和两个问题都是拖动条：存百分比（0–100，每格 5%）。场面还是三个选项：存第几个（0 开始）。
+   球权、难度、意愿和两个问题都是拖动条：存百分比（0–100，最多一位小数；每格多少在功能 → 拖动条，默认 1%）。
+   场面还是三个选项：存第几个（0 开始）。
    球权只有一条：主队＋客队＝100%，两队各存一笔，用同一个 g 配对。
-   bk 是统计用的区间 [下限, 上限)，跟画面上显示的字。 */
-const BK3 = w => [[0, 40, '0–35%', w[0]], [40, 61, '40–60%', w[1]], [61, 101, '65–100%', w[2]]];
-const BK5 = w => [[0, 20, '0–15%', w[0]], [20, 40, '20–35%', w[1]], [40, 60, '40–55%', w[2]], [60, 80, '60–75%', w[3]], [80, 101, '80–100%', w[4]]];
+   bk 是统计用的区间 [下限, 上限)，跟画面上显示的字。值最多一位小数，所以 60.05 当上限＝60% 还算中间那一档；
+   三档的中间一档两头都算（40% 和 60% 都是“中”，球权主 40%／客 60% 两队才对称）。 */
+const BK3 = w => [[0, 40, '0–39.9%', w[0]], [40, 60.05, '40–60%', w[1]], [60.05, 101, '60.1–100%', w[2]]];
+const BK5 = w => [[0, 20, '0–19.9%', w[0]], [20, 40, '20–39.9%', w[1]], [40, 60, '40–59.9%', w[2]], [60, 80, '60–79.9%', w[3]], [80, 101, '80–100%', w[4]]];
 const P1 = [
   { f: 'bq', pct: 1, n: '球权', s: '球权', lo: '少', hi: '多', bk: BK3(['少', '中', '多']) },
   { f: 'nd', pct: 1, n: '到禁区附近的难度', s: '难度', lo: '没难度', hi: '难且进不去', bk: BK5(['没难度', '有难度但小', '有难度但进得去', '有很大难度但勉强进得去', '难且进不去']) },
@@ -74,7 +78,7 @@ const QS = [
 const SVF = {}; P1.concat(QS).forEach(x => { SVF[x.f] = x; });
 const bucketOf = (f, v) => { const b = SVF[f].bk; for (let j = 0; j < b.length; j++) if (v >= b[j][0] && v < b[j][1]) return j; return b.length - 1; };
 const wordOf = (f, v) => v == null ? '' : SVF[f].bk[bucketOf(f, v)][3];
-const svText = (f, v) => { const x = SVF[f]; if (v == null) return '清除'; return x.pct ? v + '%' : x.o[v]; };
+const svText = (f, v) => { const x = SVF[f]; if (v == null) return '清除'; return x.pct ? fp(v) + '%' : x.o[v]; };
 /* 旧版（v1）存的是第几个选项：换成那一档中间的百分比（原来的选项留在 o） */
 const OLDPCT = { bq: [65, 50, 35], nd: [10, 30, 50, 70, 90], yy: [80, 50, 20], q1: [10, 30, 50, 70, 90], q2: [10, 30, 50, 70, 90] };
 const SIMPLE = { ar: '到达', ck: '其他角球', gl: '进球', rc: '红牌' };
@@ -101,12 +105,12 @@ function fixEv(e){
 function fixSv(s, old){
   if (!s || !SVF[s.f] || !PER[s.p] || (s.i !== 0 && s.i !== 1)) return null;
   const x = SVF[s.f];
-  let v = s.v == null || s.v === '' ? null : Math.round(+s.v), o = null;
+  let v = s.v == null || s.v === '' ? null : +s.v, o = null;
   if (v != null && !isFinite(v)) return null;
   if (x.pct && v != null){
-    if (old){ const mp = OLDPCT[s.f]; if (!(v >= 0 && v < mp.length)) return null; o = v; v = mp[v]; }
-    else { v = clamp(v, 0, 100); if (s.o != null && isFinite(+s.o)) o = +s.o; }
-  } else if (v != null && !(v >= 0 && v < x.o.length)) return null;
+    if (old){ v = Math.round(v); const mp = OLDPCT[s.f]; if (!(v >= 0 && v < mp.length)) return null; o = v; v = mp[v]; }
+    else { v = clamp(r1(v), 0, 100); if (s.o != null && isFinite(+s.o)) o = +s.o; }   // 百分比留一位小数
+  } else if (v != null){ v = Math.round(v); if (!(v >= 0 && v < x.o.length)) return null; }
   const r = { t: Math.max(0, Math.round(numOr(+s.t, 0))), p: +s.p, i: s.i, f: s.f, v: v, k: ++seq };
   if (o != null) r.o = o;
   if (s.g != null && isFinite(+s.g)) r.g = +s.g;
@@ -151,8 +155,11 @@ window.addEventListener('pagehide', () => { if (saveT) saveNow(); });
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden' && saveT) saveNow(); });
 for (const id in store){ if (store[id] && typeof store[id] === 'object') fixMatch(store[id]); else delete store[id]; }
 M = store[LS.get(CURK, '')] || newMatch();
-const PREF = Object.assign({ scope: 'auto', mode: 'rec' }, LS.get('corner-reach-pref', {}) || {});
+const PREF = Object.assign({ scope: 'auto', mode: 'rec', st: 1 }, LS.get('corner-reach-pref', {}) || {});
 const savePref = () => LS.set('corner-reach-pref', PREF);
+/* 拖动条每格多少（百分比的项目：第一部分、两个问题、模型的标准）：功能 → 拖动条 */
+const SLSTEPS = [1, 0.5, 0.1];
+const pctStep = () => SLSTEPS.indexOf(+PREF.st) >= 0 ? +PREF.st : 1;
 
 /* ================= 计时（跟“角球数据记录”一样） ================= */
 const clockOf = m => m.tm.r ? m.tm.b + (Date.now() - m.tm.at) / 1000 : m.tm.b;
@@ -254,7 +261,7 @@ function setSv(i, f, v, g){
 /* 球权：v＝主队的百分比（null＝清除），客队自动是 100−v */
 let bqG = 0;
 function setBq(v){
-  const h = svCur(M, 0, 'bq'), a = svCur(M, 1, 'bq'), av = v == null ? null : 100 - v;
+  const h = svCur(M, 0, 'bq'), a = svCur(M, 1, 'bq'), av = v == null ? null : r1(100 - v);
   if (h && a && h.v === v && a.v === av) return;
   const g = Math.max(Date.now(), bqG + 1); bqG = g;
   setSv(0, 'bq', v, g); setSv(1, 'bq', av, g);
@@ -265,7 +272,9 @@ function svPair(s){
   for (const x of M.sv) if (x !== s && x.f === 'bq' && x.g === s.g && x.i !== s.i) return x;
   return null;
 }
-let SL = null, rdPend = 0;   // 正在拖的拖动条；拖的时候先不重画画面
+let SL = null, SB = null, rdPend = 0;   // 正在拖的拖动条、正在按的 −／＋；这时候先不重画画面
+const slBusy = () => !!((SL && SL.s === 'd') || SB);
+const slBusyEl = () => SL && SL.s === 'd' ? SL.el : SB ? SB.el : null;
 const lastSvK = (i, f) => { let k = 0; for (const s of M.sv) if (s.i === i && s.f === f && s.k > k) k = s.k; return k; };
 /* 现在的选择：最后记的那一笔；某个时间点的选择：那个时间以前最后一笔 */
 function svCur(m, i, f){ let best = null; for (const s of m.sv) if (s.i === i && s.f === f && (!best || s.k > best.k)) best = s; return best; }

@@ -27,10 +27,11 @@ async function pick(p, i, v){ await p.click('.pad[data-i="' + i + '"] [data-a="p
 async function chain(p, i, path, wait){ await tapAr(p, i); await p.clock.runFor(wait || 1500); for (const c of path) await pick(p, i, c); await p.clock.runFor(600); }
 // 拖动条：滑鼠点在某个百分比的位置；手指点一下；手指拖（CDP 触控）
 async function slRect(p, sel){ return p.$eval(sel + ' .sl-t', el => { el.scrollIntoView({ block: 'center' }); const b = el.getBoundingClientRect(); return { x: b.left, y: b.top + b.height / 2, w: b.width }; }); }
-async function slide(p, sel, v, lo, hi){ lo = lo == null ? 0 : lo; hi = hi == null ? 100 : hi; const r = await slRect(p, sel); await p.mouse.click(r.x + r.w * (v - lo) / (hi - lo), r.y); await p.clock.runFor(300); }
-async function tapSlide(p, sel, v){ const r = await slRect(p, sel); await p.touchscreen.tap(r.x + r.w * v / 100, r.y); await p.clock.runFor(1000); }
+// 点在最接近的整数像素上（误差最多半个像素，每格 1% 时一定落在对的格子）
+async function slide(p, sel, v, lo, hi){ lo = lo == null ? 0 : lo; hi = hi == null ? 100 : hi; const r = await slRect(p, sel); await p.mouse.click(Math.round(r.x + r.w * (v - lo) / (hi - lo)), r.y); await p.clock.runFor(300); }
+async function tapSlide(p, sel, v){ const r = await slRect(p, sel); await p.touchscreen.tap(Math.round(r.x + r.w * v / 100), r.y); await p.clock.runFor(1000); }
 async function dragSlide(p, sel, v0, v1, mid, dy){
-  const r = await slRect(p, sel), X = v => r.x + r.w * v / 100;
+  const r = await slRect(p, sel), X = v => Math.round(r.x + r.w * v / 100);
   const cdp = await p.context().newCDPSession(p);
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: X(v0), y: r.y }] });
   for (let k = 1; k <= 8; k++) await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: X(v0 + (v1 - v0) * k / 8), y: r.y + (dy || 0.3) * k }] });
@@ -39,6 +40,17 @@ async function dragSlide(p, sel, v0, v1, mid, dy){
   await cdp.detach(); await p.clock.runFor(1000);
 }
 const svOf = (m, i, f) => m.sv.filter(s => s.i === i && s.f === f);
+// 拖动条两边的按钮：sel 是那一条（.sl），d＝-1 或 1；hold＝按住几毫秒（0＝点一下）。手指用 CDP 触控
+async function sbBtn(p, sel, d){ return p.$eval(sel, (el, d) => { const b = el.parentNode.querySelector('.slb[data-sb="' + d + '"]'); b.scrollIntoView({ block: 'center' }); const r = b.getBoundingClientRect(); return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2), w: r.width, h: r.height }; }, d); }
+async function sbTouch(p, sel, d, hold, moveY){
+  const r = await sbBtn(p, sel, d), cdp = await p.context().newCDPSession(p);
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: r.x, y: r.y }] });
+  if (moveY){ for (let k = 1; k <= 4; k++) await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: r.x, y: r.y + moveY * k / 4 }] }); }
+  if (hold) await p.clock.runFor(hold);
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await cdp.detach(); await p.clock.runFor(300);
+}
+const slAttr = (p, sel) => p.$eval(sel, el => ({ v: el.dataset.v, st: el.dataset.st }));
 async function layout(p, tag){
   const r = await S(p, () => {
     const de = document.documentElement, bad = [];
@@ -48,6 +60,8 @@ async function layout(p, tag){
     }
     for (const el of document.querySelectorAll('.pad .qcard')) if (el.offsetParent && el.scrollHeight > el.clientHeight + 1) bad.push('qcard squeezed ' + el.scrollHeight + '>' + el.clientHeight);
     for (const el of document.querySelectorAll('.pad .qcard .sl')) if (el.offsetParent && el.getBoundingClientRect().height < 34) bad.push('slider squeezed ' + Math.round(el.getBoundingClientRect().height));
+    for (const el of document.querySelectorAll('.pad .qcard .sl-t')) if (el.offsetParent && el.getBoundingClientRect().width < 150) bad.push('track narrow ' + Math.round(el.getBoundingClientRect().width));
+    for (const el of document.querySelectorAll('.pad .slb')){ const r = el.getBoundingClientRect(); if (el.offsetParent && (r.width < 30 || r.left < 0 || r.right > de.clientWidth + 1)) bad.push('step button ' + Math.round(r.width) + '@' + Math.round(r.left)); }
     const strip = document.querySelector('#strip').getBoundingClientRect();
     let low = 0; for (const el of document.querySelectorAll('.pad .board, .pad .qcard, .pad .endc')){ const b = el.getBoundingClientRect(); if (b.height) low = Math.max(low, b.bottom); }
     const ks = [...document.querySelectorAll('.pad .k, .pad .sl')].filter(x => x.offsetParent).map(x => x.getBoundingClientRect().height);
@@ -160,12 +174,37 @@ async function layout(p, tag){
   await p.click('#card [data-a="p1clr"][data-f="bq"]');
   m = await MM(p); bh = svOf(m, 0, 'bq'); ba = svOf(m, 1, 'bq');
   check(bh.length === 2 && bh[1].v === null && ba.length === 2 && ba[1].v === null, '清除 later clears both with a new timestamped pair');
-  // keyboard: End then 6 x left = 70%, all within 20 s = one record
+  // keyboard: End, 3 x PageDown (10 each) = 70, left 1 = 69, right 1 = 70; all within 20 s = one record
+  check((await slAttr(p, '#card .sl[data-x="nd"]')).st === '1', 'sliders move in 1% steps by default');
   await p.focus('#card .sl[data-x="nd"]');
   await p.keyboard.press('End');
-  for (let k = 0; k < 6; k++){ await p.keyboard.press('ArrowLeft'); await p.clock.runFor(100); }
+  for (let k = 0; k < 3; k++){ await p.keyboard.press('PageDown'); await p.clock.runFor(100); }
+  await p.keyboard.press('ArrowLeft'); await p.clock.runFor(100);
+  const nd69 = svOf(await MM(p), 0, 'nd').map(s => s.v).join(',');
+  await p.keyboard.press('ArrowRight'); await p.clock.runFor(100);
   m = await MM(p);
-  check(svOf(m, 0, 'nd').length === 1 && svOf(m, 0, 'nd')[0].v === 70 && (await txt(p, '#p1w_nd')) === '有很大难度但勉强进得去', 'arrow keys move the difficulty bar in 5% steps (70%, word shown)');
+  check(nd69 === '69' && svOf(m, 0, 'nd').length === 1 && svOf(m, 0, 'nd')[0].v === 70 && (await txt(p, '#p1w_nd')) === '有很大难度但勉强进得去', 'arrow keys move the difficulty bar 1% at a time, PageUp/PageDown 10% (69 → 70%, word shown)');
+  // the − and ＋ beside the bar: a tap moves one step, holding keeps moving, one record on release
+  await sbTouch(p, '#card .sl[data-x="nd"]', 1);
+  check(svOf(await MM(p), 0, 'nd')[0].v === 71 && (await txt(p, '#p1v_nd')) === '71%', 'a tap on ＋ moves the bar one step (71%)');
+  let midSb = null;
+  { const r = await sbBtn(p, '#card .sl[data-x="nd"]', -1), cdp = await p.context().newCDPSession(p);
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: r.x, y: r.y }] });
+    await p.clock.runFor(1000);
+    midSb = { shown: await txt(p, '#p1v_nd'), rec: svOf(await MM(p), 0, 'nd')[0].v };
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] }); await cdp.detach(); await p.clock.runFor(300); }
+  m = await MM(p);
+  check(midSb.shown === '65%' && midSb.rec === 71 && svOf(m, 0, 'nd').length === 1 && svOf(m, 0, 'nd')[0].v === 65, 'holding − keeps moving (71 → 65% in 1 s), recorded once when released (' + JSON.stringify(midSb) + ')');
+  await sbTouch(p, '#card .sl[data-x="nd"]', 1, 0, 30);
+  check(svOf(await MM(p), 0, 'nd')[0].v === 65, 'a finger that slides off the button (scrolling) changes nothing');
+  await p.focus('#card .sl[data-x="nd"]'); await p.keyboard.press('End');
+  await sbTouch(p, '#card .sl[data-x="nd"]', 1);
+  check(svOf(await MM(p), 0, 'nd')[0].v === 100, '＋ stops at 100%');
+  const ndb = await sbBtn(p, '#card .sl[data-x="nd"]', 1);
+  check(ndb.w >= 34 && ndb.h >= 34, 'the buttons are big enough to tap (' + ndb.w + '×' + ndb.h + ')');
+  await p.focus('#card .sl[data-x="nd"]'); await p.keyboard.press('Home');
+  for (let k = 0; k < 7; k++){ await p.keyboard.press('PageUp'); await p.clock.runFor(100); }
+  check(svOf(await MM(p), 0, 'nd')[0].v === 70, '…back to 70%');
   // a vertical swipe on a bar scrolls instead of changing it
   const before = svOf(await MM(p), 0, 'yy').length;
   await dragSlide(p, '#card .sl[data-x="yy"]', 50, 52, null, 9);
@@ -401,6 +440,111 @@ async function layout(p, tag){
   await p.click('#card [data-a="close"]');
   console.log('model errors:', p.errs.length ? p.errs.join('\n') : 'none'); if (p.errs.length) fails++;
   await ctx.close();
+  // ================= D. finer steps: 0.5% and 0.1%, decimals everywhere =================
+  ({ ctx, p } = await open(b, 390, 763, true));
+  await p.fill('#fH', '鹿岛鹿角'); await p.fill('#fA', '横滨水手');
+  await p.click('#runBtn'); await p.clock.runFor(3 * 60000);
+  await p.click('#qbMenu');
+  check((await txt(p, '#card [data-a="slset"]')).indexOf('现在每格 1%') >= 0, 'menu → 拖动条 says the bars move 1% at a time');
+  await p.click('#card [data-a="slset"]');
+  check((await p.getAttribute('#card [data-a="slst"][data-v="1"]', 'aria-pressed')) === 'true' && (await p.$$('#card [data-a="slst"]')).length === 3, 'the 拖动条 sheet offers 1%, 0.5%, 0.1% (1% chosen)');
+  await p.click('#card [data-a="slst"][data-v="0.5"]');
+  await sbTouch(p, '#card .sl[data-sl="demo"]', 1);
+  check((await txt(p, '#sldv')) === '50.5%' && (await MM(p)).sv.length === 0, 'the try-it bar moves 0.5% and records nothing (' + (await txt(p, '#sldv')) + ')');
+  await p.click('#card [data-a="close"]');
+  await p.click('.pad[data-i="0"] [data-a="p1"][data-f="bq"]');
+  check((await slAttr(p, '#card .sl[data-x="bq"]')).st === '0.5', 'part-one bars now move 0.5% at a time');
+  await sbTouch(p, '#card .sl[data-x="bq"]', 1);
+  m = await MM(p);
+  check(svOf(m, 0, 'bq')[0].v === 50.5 && svOf(m, 1, 'bq')[0].v === 49.5 && (await txt(p, '#p1v_bqh')) === '主 50.5%' && (await txt(p, '#p1v_bqa')) === '客 49.5%', '球权 ›（往右）from unset: home 50.5%, away 49.5%');
+  await p.clock.runFor(1000);   // 手指放开后 0.8 秒内的滑鼠事件当作手指带出来的，不算
+  await slide(p, '#card .sl[data-x="bq"]', 62.5);
+  m = await MM(p);
+  check(svOf(m, 0, 'bq')[0].v === 62.5 && svOf(m, 1, 'bq')[0].v === 37.5, 'a tap at 62.5% on the possession bar: 62.5 / 37.5 (' + svOf(m, 0, 'bq')[0].v + ' / ' + svOf(m, 1, 'bq')[0].v + ')');
+  await p.click('#card [data-a="close"]');
+  await p.click('#qbMenu'); await p.click('#card [data-a="slset"]'); await p.click('#card [data-a="slst"][data-v="0.1"]');
+  check((await S(p, () => JSON.parse(localStorage.getItem('corner-reach-pref')).st)) === 0.1, 'the step is saved (0.1)');
+  await p.click('#card [data-a="close"]');
+  await p.click('.pad[data-i="0"] [data-a="p1"][data-f="nd"]');
+  await p.focus('#card .sl[data-x="nd"]'); await p.keyboard.press('End');
+  for (let k = 0; k < 3; k++) await p.keyboard.press('ArrowLeft');
+  check(svOf(await MM(p), 0, 'nd')[0].v === 99.7 && (await txt(p, '#p1v_nd')) === '99.7%', '0.1% steps: End then 3 × left = 99.7%');
+  await p.keyboard.press('Home'); for (let k = 0; k < 5; k++) await p.keyboard.press('PageUp');
+  for (let k = 0; k < 3; k++) await p.keyboard.press('ArrowRight');
+  check(svOf(await MM(p), 0, 'nd')[0].v === 50.3, '…Home, 5 × PageUp, 3 × right = 50.3%');
+  await p.focus('#card .sl[data-x="bq"]'); await p.keyboard.press('ArrowRight');
+  m = await MM(p);
+  const bqs = svOf(m, 0, 'bq').slice(-1)[0].v, bqa = svOf(m, 1, 'bq').slice(-1)[0].v;
+  check(bqs === 62.6 && bqa === 37.4 && Math.abs(bqs + bqa - 100) < 1e-9, '球权 one step right from 62.5 in 0.1 steps: 62.6 / 37.4, still 100 together');
+  await p.click('#card [data-a="close"]');
+  check((await txt(p, '.pad[data-i="0"] .p1s')).replace(/ /g, '').indexOf('球权62.6%难度50.3%') === 0 && (await txt(p, '.pad[data-i="1"] .p1s')).replace(/ /g, '').indexOf('球权37.4%') === 0, 'the summaries show the decimals');
+  await layout(p, 'phone with decimals');
+  await p.click('#mseg [data-v="q"]');
+  await sbTouch(p, '.pad[data-i="0"] .sl[data-x="0_q1"]', 1, 1000);
+  check(svOf(await MM(p), 0, 'q1')[0].v === 50.6 && (await txt(p, '#qv_0_q1')) === '50.6%', 'two questions: holding ＋ from unset for 1 s → 50.6% (one record)');
+  const qb = await S(p, () => { const t = document.querySelector('.pad[data-i="0"] .sl[data-x="0_q1"] .sl-t').getBoundingClientRect(), bs = [...document.querySelectorAll('.pad[data-i="0"] .qcard')[0].querySelectorAll('.slb')].map(x => x.getBoundingClientRect()); return { tw: Math.round(t.width), bw: bs.map(x => Math.round(x.width)), inCard: bs.every(x => x.left >= 0 && x.right <= window.innerWidth) }; });
+  check(qb.bw.length === 2 && qb.bw[0] >= 36 && qb.inCard && qb.tw >= 200, 'two-questions bars keep a wide track with the buttons on both ends (track ' + qb.tw + 'px, buttons ' + qb.bw + ')');
+  const ql = await layout(p, 'phone two questions with buttons');
+  check(ql.low <= ql.strip + 1, 'two questions with buttons still fit on one phone screen');
+  await p.screenshot({ path: `${out}/t_phone_q_fine.png` });
+  await p.click('#mseg [data-v="rec"]');
+  // model standards follow the step; values near a standard show enough digits
+  await p.click('#qbMenu'); await p.click('#card [data-a="mset"]');
+  check((await slAttr(p, '#card .sl[data-x="r.b.all.1"]')).st === '0.1' && (await slAttr(p, '#card .sl[data-x="min"]')).st === '1', 'model standards move 0.1% at a time (the minimum count stays whole)');
+  await p.focus('#card .sl[data-x="r.b.all.1"]'); await p.keyboard.press('ArrowRight');
+  check((await txt(p, '#mv_r_b_all_1')) === '50.1%' && (await S(p, () => window.__reach.MODEL.r.b.all[1].v)) === 50.1, '难度 standard 低于 50.1%');
+  let okNd = await S(p, () => window.__reach.MN.r.t[0].b.all[1].ok);
+  for (let k = 0; k < 3; k++) await p.keyboard.press('ArrowRight');
+  const okNd2 = await S(p, () => window.__reach.MN.r.t[0].b.all[1].ok);
+  check(okNd === false && okNd2 === true, 'home 难度 50.3%: not 低于 50.1%, but 低于 50.4% after 3 more steps');
+  await p.screenshot({ path: `${out}/t_model_fine.png` });
+  await p.reload(); await p.clock.runFor(1000);
+  check((await S(p, () => window.__reach.MODEL.r.b.all[1].v)) === 50.4 && (await S(p, () => window.__reach.PREF.st)) === 0.1, 'the 50.4% standard and the 0.1% step are kept after reopening');
+  const fm = await S(p, () => { const f = window.__reach.fmtMV; return [f('xl', 50.3, { m: 'xl', op: 'gt', v: 50 }), f('xl', 57.142857, { m: 'xl', op: 'gt', v: 50 }), f('xl', 42.857, { m: 'xl', op: 'ge', v: 42.9 }), f('nd', 62.5, { m: 'nd', op: 'gt', v: 60 }), f('dt', 2.96, { m: 'dt', op: 'lt', v: 3 })].join(' | '); });
+  check(fm === '50.3% | 57% | 42.86% | 62.5% | 2.96 秒', 'the current value shows as many digits as needed to see the comparison (' + fm + ')');
+  const bk = await S(p, () => { const f = window.__reach.bucketOf; return [f('bq', 39.9), f('bq', 40), f('bq', 60), f('bq', 60.1), f('nd', 19.9), f('nd', 20), f('nd', 100)].join(','); });
+  check(bk === '0,1,1,2,0,1,4', 'ranges: 球权 40% and 60% are both the middle, 60.1% is high; 难度 20% starts the second range (' + bk + ')');
+  // back to 1%: an in-between value moves to the next whole step
+  await p.click('#qbMenu'); await p.click('#card [data-a="slset"]'); await p.click('#card [data-a="slst"][data-v="1"]'); await p.click('#card [data-a="close"]');
+  await p.click('.pad[data-i="0"] [data-a="p1"][data-f="bq"]');
+  await p.clock.runFor(30000);
+  await sbTouch(p, '#card .sl[data-x="bq"]', 1);
+  m = await MM(p);
+  check(svOf(m, 0, 'bq').slice(-1)[0].v === 63 && svOf(m, 1, 'bq').slice(-1)[0].v === 37, 'with 1% steps again, › from 62.6% goes to 63% (away 37%)');
+  await p.click('#card [data-a="close"]');
+  // decimals survive export and import
+  await p.click('#qbMenu'); await p.click('#card [data-a="exp1"]');
+  const fj = await p.$eval('#expText', el => el.value), fo = JSON.parse(fj).matches[0];
+  check(fo.sv.some(s => s.f === 'bq' && s.v === 62.6) && fo.sv.some(s => s.f === 'nd' && s.v === 50.3) && fo.sv.some(s => s.f === 'q1' && s.v === 50.6), 'the JSON export keeps the decimals');
+  await p.click('#card [data-a="close"]');
+  console.log('fine-step errors:', p.errs.length ? p.errs.join('\n') : 'none'); if (p.errs.length) fails++;
+  await ctx.close();
+  ({ ctx, p } = await open(b, 390, 763, true));
+  await p.click('#qbMenu'); await p.click('#card [data-a="wback"]'); await p.click('#card [data-a="import"]');
+  await p.fill('#impText', fj); await p.click('#card [data-a="imptext"]');
+  const imd = await S(p, () => { const s = window.__reach.store(); const k = Object.keys(s).find(x => s[x].h === '鹿岛鹿角'); return k ? s[k].sv.filter(x => x.f !== 'cm').map(x => x.v).join(',') : null; });
+  check(imd && imd.indexOf('62.6') >= 0 && imd.indexOf('37.4') >= 0 && imd.indexOf('50.3') >= 0 && imd.indexOf('50.6') >= 0, 'importing keeps the decimals (' + imd + ')');
+  console.log('fine-import errors:', p.errs.length ? p.errs.join('\n') : 'none'); if (p.errs.length) fails++;
+  await ctx.close();
+  // iPad with a mouse or keyboard: hold ＋, click −, Enter on a focused button
+  ({ ctx, p } = await open(b, 1180, 820, false));
+  await p.fill('#fH', '浦和红钻'); await p.fill('#fA', '大阪钢巴');
+  await p.click('#runBtn'); await p.clock.runFor(3 * 60000);
+  await p.click('#mseg [data-v="q"]');
+  { const r = await sbBtn(p, '.pad[data-i="1"] .sl[data-x="1_q2"]', 1);
+    await p.mouse.move(r.x, r.y); await p.mouse.down(); await p.clock.runFor(1000); await p.mouse.up(); await p.clock.runFor(300); }
+  m = await MM(p);
+  check(svOf(m, 1, 'q2').length === 1 && svOf(m, 1, 'q2')[0].v === 56, 'iPad: holding ＋ with a mouse for 1 s → 56%, one record (' + svOf(m, 1, 'q2').map(s => s.v) + ')');
+  { const r = await sbBtn(p, '.pad[data-i="1"] .sl[data-x="1_q2"]', -1); await p.mouse.click(r.x, r.y); await p.clock.runFor(300); }
+  check(svOf(await MM(p), 1, 'q2')[0].v === 55, 'a click on − → 55%');
+  await p.clock.runFor(1000);
+  await p.$eval('.pad[data-i="1"] .sl[data-x="1_q2"]', el => el.parentNode.querySelector('.slb[data-sb="1"]').focus());
+  await p.keyboard.press('Enter'); await p.clock.runFor(300);
+  const kf = await S(p, () => document.activeElement && document.activeElement.classList.contains('slb') && document.activeElement.dataset.sb);
+  check(svOf(await MM(p), 1, 'q2')[0].v === 56 && kf === '1', 'Enter on a focused ＋ → 56%, and the focus stays on ＋');
+  await layout(p, 'iPad two questions with buttons');
+  console.log('fine-iPad errors:', p.errs.length ? p.errs.join('\n') : 'none'); if (p.errs.length) fails++;
+  await ctx.close();
   // old (v1) records are converted to percents
   const oldM = { id: 'rold1', c: 1, u: 2, d: '2026-11-01', lg: 'J1', h: '旧主', a: '旧客', st: 2, keep: 1, tm: { p: 2, b: 5400, r: 0, at: 0, ht: 0 }, pe: { 1: 2760 }, obs: { p: 1, t: 0 }, stop: { p: 2, t: 5400 }, note: '', api: null,
     ev: [{ t: 600, p: 1, i: 0, c: 'ar', pa: 'xisc', dt: 2.1 }, { t: 3000, p: 2, i: 1, c: 'ar', pa: 'lo' }],
@@ -411,7 +555,7 @@ async function layout(p, tag){
   check(m.pv === 1 && cv === 'bq:65/0 nd:70/3 yy:20/2 q1:90/4 cm:1', 'v1 options become percents, the old option kept in o (' + cv + ')');
   await p.click('#qbArch'); await p.click('#card [data-a="wtab"][data-v="stats"]');
   const ws2 = await txt(p, '#card');
-  check(ws2.indexOf('第一部分：球权') >= 0 && ws2.indexOf('65–100%') >= 0 && ws2.indexOf('60–75%') >= 0, 'warehouse stats group the percents into ranges');
+  check(ws2.indexOf('第一部分：球权') >= 0 && ws2.indexOf('60.1–100%') >= 0 && ws2.indexOf('60–79.9%') >= 0, 'warehouse stats group the percents into ranges (球权 65% in 60.1–100%, 难度 70% in 60–79.9%)');
   await p.click('#card [data-a="wtab"][data-v="back"]'); await p.click('#card [data-a="import"]');
   const old2 = JSON.parse(JSON.stringify(oldM)); old2.id = 'rold2'; old2.h = '旧主二';
   await p.fill('#impText', JSON.stringify({ app: '角球到达与选择', fmt: 1, matches: [old2] })); await p.click('#card [data-a="imptext"]');

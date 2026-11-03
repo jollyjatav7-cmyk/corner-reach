@@ -15,15 +15,16 @@ const MET = {
   xin: { n: '传中在范围内的比例', s: '传中内', u: '%', gp: 2, d: '传中里“内”的比例' },
   lin: { n: '远射在范围内的比例', s: '远射内', u: '%', gp: 2, d: '远射里“内”的比例' },
   bg: { n: '回传＋丢球 占五项', s: '回传＋丢球', u: '%', gp: 2, d: '到达后回传或丢球的比例' },
-  ar10: { n: '每 10 分钟到达', s: '每10分钟到达', u: '次', lo: 0, hi: 10, st: 0.5, gp: 2, d: '要看满 10 分钟才算' },
-  dt: { n: '从到达到选择的平均秒数', s: '平均用时', u: '秒', lo: 0, hi: 15, st: 0.5, gp: 2, d: '越短越果断' }
+  ar10: { n: '每 10 分钟到达', s: '每10分钟到达', u: '次', lo: 0, hi: 10, st: 0.1, gp: 2, d: '要看满 10 分钟才算' },
+  dt: { n: '从到达到选择的平均秒数', s: '平均用时', u: '秒', lo: 0, hi: 15, st: 0.1, gp: 2, d: '越短越果断' }
 };
 const MORD = ['bq', 'nd', 'yy', 'cm', 'q1', 'q2', 'xl', 'xin', 'lin', 'bg', 'ar10', 'dt'];
 const MGP = ['你的判断（第一部分）', '两个问题', '记下的到达和选择'];
 const OPS = { gt: '高于', ge: '至少', lt: '低于', le: '最多' };
 const OPK = ['gt', 'ge', 'lt', 'le'];
 const MPROG = { r: '到达与选择', q: '两个问题' };
-const mLo = k => MET[k].lo == null ? 0 : MET[k].lo, mHi = k => MET[k].hi == null ? 100 : MET[k].hi, mSt = k => MET[k].st || 5;
+// 标准的拖动条每格多少：百分比的项目跟着“功能 → 拖动条”，次数和秒数每格 0.1
+const mLo = k => MET[k].lo == null ? 0 : MET[k].lo, mHi = k => MET[k].hi == null ? 100 : MET[k].hi, mSt = k => MET[k].st || pctStep();
 const MDEF = { on: 1, sc: 'half', min: 4,
   r: { b: { all: [{ m: 'bq', op: 'ge', v: 30 }, { m: 'nd', op: 'lt', v: 50 }, { m: 'yy', op: 'gt', v: 50 }, { m: 'xl', op: 'gt', v: 50 }], any: [] },
        s: { all: [{ m: 'bq', op: 'le', v: 70 }, { m: 'nd', op: 'gt', v: 60 }, { m: 'yy', op: 'lt', v: 50 }, { m: 'xl', op: 'lt', v: 40 }], any: [{ m: 'nd', op: 'gt', v: 80 }, { m: 'xl', op: 'lt', v: 20 }] } },
@@ -36,8 +37,8 @@ function fixCond(c){
     const a = []; for (const v of Array.isArray(c.in) ? c.in : []){ const n = +v; if (n >= 0 && n < P1[3].o.length && a.indexOf(n) < 0) a.push(n); }
     return { m: c.m, in: a.sort() };
   }
-  const k = c.m, st = mSt(k);
-  return { m: k, op: OPS[c.op] ? c.op : 'gt', v: clamp(Math.round(numOr(+c.v, (mLo(k) + mHi(k)) / 2) / st) * st, mLo(k), mHi(k)) };
+  const k = c.m;   // 标准最多一位小数（不管现在每格多少，之前用小格子定的标准照样留着）
+  return { m: k, op: OPS[c.op] ? c.op : 'gt', v: clamp(r1(numOr(+c.v, (mLo(k) + mHi(k)) / 2)), mLo(k), mHi(k)) };
 }
 function fixModel(o){
   const d = clone(MDEF); if (!o || typeof o !== 'object') return d;
@@ -122,12 +123,20 @@ function newCond(k){
   if (k === 'dt') return { m: k, op: 'lt', v: 3 };
   return { m: k, op: 'gt', v: 50 };
 }
-const fmtTh = (k, v) => MET[k].u === '%' ? v + '%' : String(+(+v).toFixed(1)) + ' ' + MET[k].u;
-function fmtMV(k, v, th){
+const fmtTh = (k, v) => MET[k].u === '%' ? fp(v) + '%' : fp(v) + ' ' + MET[k].u;
+/* 现在的值：你设的（第一部分、两个问题）照原样；算出来的比例、次数、秒数用够看得出满不满足标准的位数
+   （例如标准是高于 50%、现在 50.3%，就不能显示成 50%） */
+function fmtMV(k, v, c){
   const x = MET[k];
   if (x.cat) return P1[3].o[v] || '—';
-  if (x.u === '%'){ const r = Math.round(v); return (th != null && r === th && Math.abs(v - th) > EPS ? v.toFixed(1) : r) + '%'; }
-  return (x.u === '秒' ? fmtS(v) : f1(v)) + ' ' + x.u;
+  let s;
+  if (SVF[k]) s = fp(v);
+  else {
+    let d = x.u === '%' ? 0 : 1;
+    while (d < 2 && c && condOK(c, { v: +v.toFixed(d) }) !== condOK(c, { v: v })) d++;
+    s = String(+v.toFixed(d));
+  }
+  return x.u === '%' ? s + '%' : s + ' ' + x.u;
 }
 const mName = k => MET[k].s || MET[k].n;
 function condText(c){

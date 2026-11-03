@@ -13,8 +13,9 @@ function openClock(){
 }
 const HELP = {
   rec: ['到达与选择', '上方切换“到达与选择”', '左边记主对客（主队进攻）、右边记客对主（客队进攻）。球队到了对方禁区附近点“到达”，秒数开始走；做出选择时点传中、远射、中路渗透、回传或丢球，app 记下用了几秒。传中和远射接着选内或外；传中内再选禁区射门或解围/中途拦截；中路渗透选有没有禁区射门；最后选进球、角球或无角球。同一次进攻里又做了一次选择（例如传中被解围后再传中），就再按一次“到达”。点错了按“返回”，或球队名字旁边的“撤销”。'],
-  p1: ['第一部分（主观）', '每队“到达”上方的四格', '球权、到禁区附近的难度、意愿是拖动条（百分比，每格 5%），场面是三个选项，由你主观判断，比赛中随时可以改。球权只有一条：主队拖多一点，客队就自动少一点（两队加起来 100%）。每次放开都会记下时间（20 秒内再调算改正），以后可以统计在每种状态下角球多还是少。'],
+  p1: ['第一部分（主观）', '每队“到达”上方的四格', '球权、到禁区附近的难度、意愿是拖动条（百分比），场面是三个选项，由你主观判断，比赛中随时可以改。球权只有一条：主队拖多一点，客队就自动少一点（两队加起来 100%）。每次放开都会记下时间（20 秒内再调算改正），以后可以统计在每种状态下角球多还是少。'],
   q: ['两个问题', '上方切换“两个问题”', '每队两个问题，都是拖动条（百分比）：一、他容不容易到对方禁区附近＝几次进攻里有百分之几能到对方禁区附近；二、他喜不喜欢传中和远射＝传中和远射的比例。随时可以改，每次放开都记下时间。上方的“角球 ＋1”可以顺便记角球。两个程序记在同一场比赛里，可以只用一个。'],
+  sl: ['拖动条', '第一部分、两个问题、简易模型的标准；每格多少在功能 → 拖动条', '手指左右拖，或点一下条上的位置；条两边的按钮（− ＋，球权是往左、往右）每按一下动一格，按住不放会一直动，放开才记下。每格默认 1%，可以改成 0.5% 或 0.1%（模型的标准也一样）。格子越小越难刚好停在整数上：先拖到附近，再用两边的按钮微调。改了每格多少，已经记下的数字不会变。'],
   mdl: ['简易模型', '上方“简易模型”、每队名字旁边、功能 → 简易模型', '按你定的标准提醒：某队满足“大角”的条件，名字旁边显示“大角”（这队角球会高于平均）；满足“小角”的条件显示“小角”。两队合起来：都大角提示投大角，都小角提示投小角；只有一队有提醒、或一队大角一队小角，提示投角球让球（投角球会比较多的那队）。点提示可以看每个条件现在满不满足；功能 → 简易模型可以用拖动条调标准、加项、删项、关掉提醒。这只是暂时的主观模型，不会改任何记录。'],
   stats: ['统计', 'iPad 两队中间；手机底部“统计”', '两队对比：到达次数和每 10 分钟几次、五个选择的比例（每队一条＝100%）和次数、传中＋远射占比、从到达到选择的秒数、传中和远射在范围内的比例、射门、角球和角球从哪里来。上方可以切换上半场、下半场、全场。'],
   ck: ['其他角球', '每队下面的“其他角球”', '不是从你记的那次到达直接来的角球（例如任意球、反击、忘了记的那次），点这里。到达链里选了“角球”的，不用再点。'],
@@ -24,7 +25,7 @@ const HELP = {
   arch: ['比赛仓库', '底部“仓库”', '保存结束时选“加入仓库”的比赛，以及还没结束的比赛。可以搜索、打开、导出、删除；“统计”有平均角球、你的到达和选择平均、你的逻辑检验，以及第一部分和两个问题每种选择下的角球（以后建模型用）；“备份”可以导出全部（JSON 或表格 CSV）和导入。'],
   pip: ['视频浮窗', '功能 → 视频浮窗', '用一台手机边看边记时：把视频切到画中画，拖到屏幕上方或下方，再在这里选同样的位置。app 会空出浮窗的位置，只留比分那一行，按键压缩。']
 };
-const HELP_ORDER = ['rec', 'p1', 'q', 'mdl', 'stats', 'ck', 'net', 'clock', 'fix', 'arch', 'pip'];
+const HELP_ORDER = ['rec', 'p1', 'q', 'sl', 'mdl', 'stats', 'ck', 'net', 'clock', 'fix', 'arch', 'pip'];
 const DEFS = [
   ['到达', '本队在对方禁区附近（禁区线外大约 10 米以内，或禁区两侧一直到底线的边路）把球控制住，点一次。同一次进攻在禁区附近来回传只点一次；做了一次选择以后（例如传中被解围），本队又在禁区附近拿到球、再做选择，就再点一次“到达”。角球、任意球本身不算。', null],
   ['传中', '从边路往禁区里传的球（下底传中、45 度传中、倒三角都算）。任意球、角球开出的不算。', ['内：球往有威胁的范围飞（禁区里、门前、队友能争到的地方），不管之后被挡、被解围、被门将拿到，还是有人射门', '外：传偏了：直接出界、飞过所有人、落点没有威胁', '内之后：禁区射门＝队友在禁区里射门（包括头球）；解围/中途拦截＝防守球员（包括门将）把球顶出、踢出、挡下、拿住']],
@@ -40,7 +41,7 @@ const DEFS = [
   ['简易模型', '你主观定的暂时标准，可以在功能 → 简易模型里改。默认：', ['到达与选择·大角：球权至少 30%、难度低于 50%、意愿高于 50%、传中＋远射占三项高于 50%，全部满足', '到达与选择·小角：球权最多 70%、难度高于 60%、意愿低于 50%、传中＋远射占三项低于 40%，全部满足；或者难度高于 80%、或者传中＋远射占三项低于 20%，任意一项满足', '三项＝传中、远射、中路渗透；这类比例要三项加起来满 4 次才算', '两个问题·大角：两个问题都高于 60%；小角：都低于 40%', '两队都大角→投大角；都小角→投小角；只有一队有提醒，或一队大角一队小角→投角球让球（投角球会比较多的那队）']]
 ];
 function renderSheet(){
-  if (SL && SL.s === 'd' && card.contains(SL.el)){ rdPend = 1; return; }   // 正在拖视窗里的拖动条
+  const bz = slBusyEl(); if (bz && card.contains(bz)){ rdPend = 1; return; }   // 正在拖（或按着 −／＋）视窗里的拖动条
   const d = sheetData;
   let h = '';
   card.className = 'card';
@@ -65,6 +66,7 @@ function renderSheet(){
         + t('wback', '备份与导入', ago == null ? '还没备份过：导出全部、导入' : '上次备份 ' + (ago ? ago + ' 天前' : '今天')) + '</div></div>'
         + '<div><h4>设置与说明</h4><div class="fcg">'
         + t('mset', '简易模型', MODEL.on ? '提醒开着：用拖动条调大角、小角的标准，加项、删项' : '提醒关着：点这里打开或调整标准')
+        + t('slset', '拖动条', '现在每格 ' + fp(pctStep()) + '%：可以改成 1%、0.5% 或 0.1%；两边的 − ＋ 微调')
         + t('net', '联网数据', !apiKey() ? '还没设定：API key、自动同步、画面延迟' : M.api ? '已连上 ' + esc(M.api.h) + ' vs ' + esc(M.api.a) : keyFromOther() ? '用角球数据记录的 key：查找比赛、同步' : '已设定 API key')
         + t('pip', '视频浮窗', PIP.pos === 'off' ? '一台手机边看浮窗边记录：空出浮窗的位置' : '已开启：浮窗在' + (PIP.pos === 'top' ? '上方' : '下方'))
         + t('defs', '按键定义', '到达、每个选择、内外、角球怎么算')
@@ -85,18 +87,18 @@ function renderSheet(){
       const clr = (f, on) => '<button class="p1clr" data-a="p1clr" data-f="' + f + '"' + (on ? '' : ' disabled') + '>清除</button>';
       // 球权：一条，值＝主队的百分比
       const bh = svCur(M, 0, 'bq'), ba = svCur(M, 1, 'bq');
-      const hv = bh && bh.v != null ? bh.v : ba && ba.v != null ? 100 - ba.v : null, av = ba && ba.v != null ? ba.v : hv == null ? null : 100 - hv;
+      const hv = bh && bh.v != null ? bh.v : ba && ba.v != null ? r1(100 - ba.v) : null, av = ba && ba.v != null ? ba.v : hv == null ? null : r1(100 - hv);
       h = '<div class="card-h"><h3>第一部分</h3><button class="pill dark" data-a="close">完成</button></div>'
         + '<div class="seg p1side">' + [0, 1].map(j => '<button data-a="p1side" data-v="' + j + '" aria-pressed="' + (i === j) + '">' + (j ? '客对主 ' : '主对客 ') + esc(teamName(j)) + '</button>').join('') + '</div>'
-        + '<p class="hint">对球队未来能到对面禁区附近次数与呆在对方禁区附近总时长的预测。拖动或点一下条，随时可以改；每次放开都记下时间（20 秒内再调算改正）。</p>'
+        + '<p class="hint">对球队未来能到对面禁区附近次数与呆在对方禁区附近总时长的预测。拖动或点一下条，两边的按钮一格一格微调（每格 ' + fp(pctStep()) + '%），随时可以改；每次放开都记下时间（20 秒内再调算改正）。</p>'
         + '<div class="p1g" id="p1g-bq"><h4>球权<small>' + when(svCur(M, i, 'bq')) + '</small>' + clr('bq', hv != null) + '</h4>'
-        + '<div class="bqv"><span class="h" id="p1v_bqh">主 ' + (hv == null ? '—' : hv + '%') + '</span><span class="lb">两队加起来 100%</span><span class="a" id="p1v_bqa">客 ' + (av == null ? '—' : av + '%') + '</span></div>'
-        + slHTML('p1', 'bq', hv, { cls: 'bq', lab: '球权：主队的百分比（客队自动是其余的）' })
-        + '<p class="p1n">蓝色是' + esc(teamName(0)) + '、红色是' + esc(teamName(1)) + '：往右拖主队多，往左拖客队多。</p></div>';
+        + '<div class="bqv"><span class="h" id="p1v_bqh">主 ' + (hv == null ? '—' : fp(hv) + '%') + '</span><span class="lb">两队加起来 100%</span><span class="a" id="p1v_bqa">客 ' + (av == null ? '—' : fp(av) + '%') + '</span></div>'
+        + slHTML('p1', 'bq', hv, { cls: 'bq', lab: '球权：主队的百分比（客队自动是其余的）', lr: ['往左：客队多', '往右：主队多'] })
+        + '<p class="p1n">蓝色是' + esc(teamName(0)) + '、红色是' + esc(teamName(1)) + '：往右主队多，往左客队多。</p></div>';
       for (const f of ['nd', 'yy']){
         const x = SVF[f], s = svCur(M, i, f), v = s && s.v != null ? s.v : null;
         h += '<div class="p1g" id="p1g-' + f + '"><h4>' + x.n + '<small>' + when(s) + '</small>' + clr(f, v != null) + '</h4>'
-          + '<div class="p1val"><b id="p1v_' + f + '">' + (v == null ? '未设' : v + '%') + '</b><span id="p1w_' + f + '">' + (v == null ? '拖动或点一下条' : esc(wordOf(f, v))) + '</span></div>'
+          + '<div class="p1val"><b id="p1v_' + f + '">' + (v == null ? '未设' : fp(v) + '%') + '</b><span id="p1w_' + f + '">' + (v == null ? '拖动或点一下条' : esc(wordOf(f, v))) + '</span></div>'
           + slHTML('p1', f, v, { cls: cls, lab: x.n })
           + '<div class="slends"><span>' + x.lo + '</span><span>' + x.hi + '</span></div></div>';
       }
@@ -170,7 +172,7 @@ function renderSheet(){
       const x = SVF[s.f], pr = svPair(s);
       const body = x.pct
         ? '<div class="lbl">' + x.n + (pr ? '（两队一起改，加起来 100%）' : '') + '</div><div class="p1val"><b id="svev">' + esc(svValText(s, s.v)) + '</b></div>'
-          + slHTML('sve', s.k, s.v, { cls: pr && !s.i ? 'bq' : s.i ? 'a' : 'h', lab: x.n })
+          + slHTML('sve', s.k, s.v, { cls: pr && !s.i ? 'bq' : s.i ? 'a' : 'h', lab: x.n, lr: pr ? (s.i ? ['往左：主队多', '往右：客队多'] : ['往左：客队多', '往右：主队多']) : null })
           + (pr ? '' : '<div class="slends"><span>' + x.lo + '</span><span>' + x.hi + '</span></div>')
         : '<div class="lbl">' + x.n + '</div><div class="chips">' + x.o.map((lab, j) => '<button class="chip" data-a="svval" data-v="' + j + '" aria-pressed="' + (s.v === j) + '">' + lab + '</button>').join('') + '</div>';
       h = '<div class="card-h"><h3>修改这笔选择</h3><button class="pill" data-a="list">返回</button></div>'
@@ -276,7 +278,7 @@ function renderSheet(){
       h = '<div class="card-h"><h3>简易模型：标准</h3><button class="pill" data-a="mdl">看现在的判断</button><button class="pill dark" data-a="close">完成</button></div>'
         + '<div class="mopt"><span>提醒</span>' + seg('mon', [[1, '开'], [0, '关']], MODEL.on) + '</div>'
         + '<div class="mopt"><span>比例用哪段数据</span>' + seg('msc', [['half', '本半场'], ['ft', '全场']], MODEL.sc) + '</div>'
-        + '<div class="mopt col"><span>比例最少要几次才算<b id="mminv">' + MODEL.min + ' 次</b></span>' + slHTML('mmin', 'min', MODEL.min, { lo: 1, hi: 10, st: 1, lab: '比例最少要几次才算' })
+        + '<div class="mopt col"><span>比例最少要几次才算<b id="mminv">' + MODEL.min + ' 次</b></span>' + slHTML('mmin', 'min', MODEL.min, { lo: 1, hi: 10, st: 1, u: ' 次', lab: '比例最少要几次才算' })
         + '<p class="hint">传中＋远射占三项：传中、远射、中路渗透加起来要满这么多次；传中、远射内的比例：传中（远射）要满这么多次。没满就当作还不算。</p></div>'
         + '<div class="seg" style="width:100%">' + ['r', 'q'].map(k => '<button style="flex:1" data-a="mtab" data-v="' + k + '" aria-pressed="' + (g === k) + '">' + MPROG[k] + '</button>').join('') + '</div>'
         + mRuleHTML(g, 'b') + mRuleHTML(g, 's')
@@ -285,6 +287,15 @@ function renderSheet(){
         + '<p class="hint">改了马上生效，存在这台设备上。大角和小角同时成立时（标准互相冲突）不提醒。</p>';
       break;
     }
+    case 'slst':
+      h = '<div class="card-h"><h3>拖动条</h3><button class="pill dark" data-a="close">完成</button></div>'
+        + '<div class="lbl">每格多少（第一部分、两个问题、简易模型的标准）</div>'
+        + '<div class="chips">' + SLSTEPS.map(x => '<button class="chip" data-a="slst" data-v="' + x + '" aria-pressed="' + (pctStep() === x) + '">每格 ' + fp(x) + '%</button>').join('') + '</div>'
+        + '<div class="lbl">试试看（不会记下来）</div>'
+        + '<div class="p1val"><b id="sldv">' + fp(DEMO_V) + '%</b></div>'
+        + slHTML('demo', 'd', DEMO_V, { cls: 'h', lab: '试试看' })
+        + '<p class="hint">' + HELP.sl[2] + '</p>';
+      break;
     case 'import':
       h = '<div class="card-h"><h3>导入</h3><button class="pill" data-a="close">取消</button></div>'
         + '<p class="hint">选择之前导出的 .json 文件，或把导出的文字贴在下面。同一场比赛会用导入的版本取代。</p>'
@@ -297,7 +308,7 @@ function renderSheet(){
 function mTeamHTML(T, i){
   const vb = T.v === 'b' ? '<span class="mbg big">' + ICM.up + '<span>大角</span></span>' : T.v === 's' ? '<span class="mbg small">' + ICM.dn + '<span>小角</span></span>' : '<span class="mbg off">没有提醒</span>';
   const row = x => '<li class="' + (x.ok === true ? 'y' : x.ok === false ? 'n' : 'u') + '">' + (x.ok === true ? ICM.ok : x.ok === false ? ICM.no : ICM.na)
-    + '<span class="ct">' + esc(condText(x.c)) + '</span><span class="cv">' + esc(x.mv.v == null ? x.mv.why : '现在 ' + fmtMV(x.c.m, x.mv.v, x.c.v)) + '</span></li>';
+    + '<span class="ct">' + esc(condText(x.c)) + '</span><span class="cv">' + esc(x.mv.v == null ? x.mv.why : '现在 ' + fmtMV(x.c.m, x.mv.v, x.c)) + '</span></li>';
   const grp = (L, title) => L.length ? '<h6>' + title + '</h6><ul class="mcl">' + L.map(row).join('') + '</ul>' : '';
   const side = (w, title) => { const S = T[w]; return '<div class="mside ' + (w === 'b' ? 'big' : 'small') + (S.ok ? ' on' : '') + '"><h5>' + (w === 'b' ? ICM.up : ICM.dn) + '<span>' + title + '</span>' + (S.ok ? '<em>成立</em>' : '') + '</h5>'
     + grp(S.all, '全部满足') + grp(S.any, '满足任意一项就算') + (S.all.length + S.any.length ? '' : '<p class="hint">没有条件</p>') + '</div>'; };
@@ -324,7 +335,7 @@ function mCondEd(c, x){
   return '<div class="mce"><div class="mch"><b>' + esc(MET[k].n) + '</b>' + (MET[k].d ? '<span>' + esc(MET[k].d) + '</span>' : '') + del + '</div>'
     + '<div class="mco"><div class="seg">' + OPK.map(o => '<button data-a="mop" data-p="' + x + '" data-v="' + o + '" aria-pressed="' + (c.op === o) + '">' + OPS[o] + '</button>').join('') + '</div>'
     + '<b class="mthv" id="mv_' + x.replace(/\./g, '_') + '">' + esc(fmtTh(k, c.v)) + '</b></div>'
-    + slHTML('mth', x, c.v, { lo: mLo(k), hi: mHi(k), st: mSt(k), lab: MET[k].n + '的标准' }) + '</div>';
+    + slHTML('mth', x, c.v, { lo: mLo(k), hi: mHi(k), st: mSt(k), u: MET[k].u === '%' ? '%' : ' ' + MET[k].u, lab: MET[k].n + '的标准' }) + '</div>';
 }
 function mPicker(path){
   return '<div class="mpick"><div class="mpk-h"><b>加哪一项？</b><button class="chip" data-a="mcadd" data-p="">取消</button></div>'

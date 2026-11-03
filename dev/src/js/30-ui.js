@@ -34,7 +34,7 @@ function evLabel(e){
 }
 function svLabel(s){
   const pr = svPair(s);
-  if (pr){ const h = s.i ? pr : s, a = s.i ? s : pr; return h.v == null && a.v == null ? '球权 → 清除' : '球权 → 主 ' + (h.v == null ? '—' : h.v + '%') + ' · 客 ' + (a.v == null ? '—' : a.v + '%'); }
+  if (pr){ const h = s.i ? pr : s, a = s.i ? s : pr; return h.v == null && a.v == null ? '球权 → 清除' : '球权 → 主 ' + (h.v == null ? '—' : fp(h.v) + '%') + ' · 客 ' + (a.v == null ? '—' : fp(a.v) + '%'); }
   return SVF[s.f].s + ' → ' + svText(s.f, s.v);
 }
 /* 简易模型：每队的“大角／小角”、两队合起来的提示 */
@@ -102,8 +102,8 @@ const ocSecs = i => OC[i] && OC[i].at ? (Date.now() - OC[i].at) / 1000 : null;
 function p1SumHTML(i){
   return '<div class="p1s" role="group" aria-label="第一部分：点一项修改">' + P1.map(x => {
     const s = svCur(M, i, x.f), v = s ? s.v : null;
-    const t = v == null ? '未设' : x.pct ? v + '%' : x.ab[v];
-    return '<button data-a="p1" data-i="' + i + '" data-f="' + x.f + '" aria-label="' + x.n + '：' + (v == null ? '未设' : x.pct ? v + '%' : x.o[v]) + '"><em>' + x.s + '</em><b' + (v == null ? ' class="na"' : '') + '>' + t + '</b>'
+    const t = v == null ? '未设' : x.pct ? fp(v) + '%' : x.ab[v];
+    return '<button data-a="p1" data-i="' + i + '" data-f="' + x.f + '" aria-label="' + x.n + '：' + (v == null ? '未设' : x.pct ? fp(v) + '%' : x.o[v]) + '"><em>' + x.s + '</em><b' + (v == null ? ' class="na"' : '') + '>' + t + '</b>'
       + (x.pct ? '<i class="p1bar" aria-hidden="true"><i style="width:' + (v == null ? 0 : v) + '%"></i></i>' : '') + '</button>';
   }).join('') + '</div>';
 }
@@ -147,8 +147,8 @@ function qPadHTML(i){
   for (const q of QS){
     const s = svCur(M, i, q.f), v = s ? s.v : null, x = i + '_' + q.f;
     let prev = null; for (const y of M.sv) if (y.i === i && y.f === q.f && s && y.k !== s.k && (!prev || y.k > prev.k)) prev = y;
-    const note = !s ? '还没设' : v == null ? fmtMin(s.p, s.t) + ' 清除' : fmtMin(s.p, s.t) + ' 设的' + (prev && prev.v != null ? '（之前 ' + prev.v + '%）' : '');
-    h += '<div class="qcard"><div class="qh"><h3 class="qq">' + q.n + '</h3><span class="qval' + (v == null ? ' na' : '') + '" id="qv_' + x + '">' + (v == null ? '未设' : v + '<small>%</small>') + '</span></div>'
+    const note = !s ? '还没设' : v == null ? fmtMin(s.p, s.t) + ' 清除' : fmtMin(s.p, s.t) + ' 设的' + (prev && prev.v != null ? '（之前 ' + fp(prev.v) + '%）' : '');
+    h += '<div class="qcard"><div class="qh"><h3 class="qq">' + q.n + '</h3><span class="qval' + (v == null ? ' na' : '') + '" id="qv_' + x + '">' + (v == null ? '未设' : fp(v) + '<small>%</small>') + '</span></div>'
       + '<div class="qsub"><span class="qd">' + q.d + '</span><span class="qw" id="qw_' + x + '">' + esc(wordOf(q.f, v)) + '</span></div>'
       + slHTML('q', x, v, { cls: 'big lock ' + (i ? 'a' : 'h'), lab: q.n })
       + '<div class="qends"><span>' + q.lo + '</span><span class="qnote">' + note + '</span><span>' + q.hi + '</span></div></div>';
@@ -192,7 +192,7 @@ function renderStrip(){
   $('#recent').innerHTML = rec.length ? rec.map(e => '<button data-a="list"><span class="t">' + fmtClock(e.p, e.t) + '</span>' + (e.i < 0 ? '' : '<span class="d' + e.i + '">' + esc(teamName(e.i)) + '</span>') + esc(e.l) + '</button>').join('') : '<span class="empty">开球时按时间旁边的 ▶；到了对方禁区附近点“到达”</span>';
 }
 function renderAll(){
-  if (SL && SL.s === 'd'){ rdPend = 1; return; }   // 正在拖：放开以后再重画
+  if (slBusy()){ rdPend = 1; return; }   // 正在拖或按着 −／＋：放开以后再重画
   mAll();
   renderMode(); renderHeader(); renderPads(); renderStats(); renderStrip(); renderNet(); renderBanner();
   mLog();
@@ -207,7 +207,7 @@ setInterval(() => {
     lastSlow = Date.now(); renderStats();
     // 时间在走：每 10 分钟到达这类项目会变，简易模型的判断也跟着更新
     const sg = mSig(); mAll();
-    if (mSig() !== sg){ if (SL && SL.s === 'd') rdPend = 1; else { renderPads(); renderBanner(); mLog(); } }
+    if (mSig() !== sg){ if (slBusy()) rdPend = 1; else { renderPads(); renderBanner(); mLog(); } }
     else renderBanner();
   }
   if (sheetKind === 'join' && sheetData.tp && sheetData.tp.live) tpShow(sheetData.tp);

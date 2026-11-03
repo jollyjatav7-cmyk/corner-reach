@@ -88,6 +88,14 @@ document.addEventListener('click', ev => {
       showToast('已恢复默认标准', () => { MODEL = fixModel(old); saveModel(); renderAll(); if (sheetKind === 'mset') renderSheet(); });
       break;
     }
+    // 拖动条每格多少
+    case 'slset': setMid(false); openSheet('slst'); break;
+    case 'slst': {
+      const v = +b.dataset.v; if (SLSTEPS.indexOf(v) < 0) break;
+      PREF.st = v; savePref(); renderAll(); renderSheet();
+      showToast('拖动条现在每格 ' + fp(v) + '%');
+      break;
+    }
     case 'undoT': undoTeam(+b.dataset.i); break;
     case 'undo': undoAny(); break;
     // 统计
@@ -258,4 +266,4 @@ if ('serviceWorker' in navigator && window.isSecureContext && location.protocol 
 }
 renderAll();
 window.__reach = { get M(){ return M; }, store: () => store, statOf: statOf, stateSplit: stateSplit, walk: walk, paLabel: paLabel, OC: OC, minsOf: minsOf,
-  get MODEL(){ return MODEL; }, mAll: mAll, get MN(){ return MN; }, render: () => renderAll() };
+  get MODEL(){ return MODEL; }, mAll: mAll, get MN(){ return MN; }, render: () => renderAll(), fmtMV: fmtMV, bucketOf: bucketOf, PREF: PREF };
