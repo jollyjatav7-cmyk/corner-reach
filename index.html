@@ -1,0 +1,2610 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="角球到达">
+<meta name="theme-color" content="#2F6C4B">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./icon-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
+<title>角球到达与选择</title>
+<style>
+:root{
+  --paper:#F1F3EF; --card:#FFFFFF; --raise:#F5F7F4; --ink:#14201A; --ink2:#46544C; --muted:#748178; --rule:#D3DAD4; --line2:#E3E7E2;
+  --grass:#2F6C4B; --pitch:#24573D; --pitch2:#1F4D35; --chalk:#F3F5EE; --chalk2:rgba(243,245,238,.66); --tile:rgba(255,255,255,.08); --tile2:rgba(255,255,255,.16);
+  --flag:#F2C230; --on-flag:#2A2100; --home:#2A58D3; --away:#CF4229; --warn:#B3261E; --ok:#2F8A57; --scrim:rgba(8,14,10,.45);
+  /* 图表：两队、五个选择（颜色检验过色盲与对比） */
+  --hm:#2A58D3; --am:#CF4229;
+  --cx:#eb6834; --cl:#6250d6; --cm:#1baf7a; --cb:#b4bab5; --cg:#7c847e; --tcb:#14201A; --tcg:#FFFFFF; --trk:#E9ECE9;
+  --f-ui:-apple-system,BlinkMacSystemFont,"PingFang SC","Noto Sans SC","Microsoft YaHei",sans-serif;
+  --f-num:"Avenir Next Condensed","DIN Condensed","Roboto Condensed","Arial Narrow",-apple-system,sans-serif;
+  --pipH:0px;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root{
+  --paper:#101613; --card:#18201C; --raise:#1C2520; --ink:#E4EAE5; --ink2:#AFBAB3; --muted:#7F8C85; --rule:#2B3530; --line2:#28322D;
+  --grass:#2B6445; --pitch:#1E4A33; --pitch2:#1A422D; --home:#86A9FF; --away:#FF8E72; --warn:#FF6B5E; --ok:#5CC08A; --scrim:rgba(0,0,0,.6);
+  --hm:#4a7be6; --am:#e0573e;
+  --cx:#d95926; --cl:#9085e9; --cm:#199e70; --cb:#5b645e; --cg:#8b948e; --tcb:#F3F5EE; --tcg:#0E1611; --trk:#26302B;
+  color-scheme:dark;
+}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%}
+body{background:var(--paper);color:var(--ink);font:15px/1.4 var(--f-ui);-webkit-text-size-adjust:100%;overscroll-behavior:none}
+button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
+button:focus-visible,input:focus-visible{outline:2px solid var(--flag);outline-offset:2px}
+input,textarea{font:inherit;color:inherit}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+/* ---------- 比分列 ---------- */
+.app{min-height:100%;display:flex;flex-direction:column;padding:env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left)}
+.bar{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:12px;padding:10px 20px 6px}
+.meta{display:flex;flex-direction:column;gap:2px;min-width:0}
+.meta input{border:0;background:none;padding:0;font-weight:600;font-size:15px;min-width:0;width:100%}
+.meta input::placeholder{color:var(--muted)}
+.meta .sub{font-size:12px;color:var(--muted)}
+.score{display:grid;grid-template-columns:minmax(0,9em) auto auto auto minmax(0,9em);align-items:center;gap:10px}
+.tn{display:flex;flex-direction:column;min-width:0}
+.tn.h{align-items:flex-end;text-align:right} .tn.a{align-items:flex-start}
+.tn input{border:0;background:none;padding:0;font-weight:700;font-size:17px;width:100%;text-overflow:ellipsis}
+.tn.h input{text-align:right;color:var(--home)} .tn.a input{color:var(--away)}
+.tn input::placeholder{color:inherit;opacity:.55}
+.cks{border:0;background:none;padding:3px 0;font-size:12px;color:var(--muted);text-decoration:underline dotted;text-underline-offset:3px;white-space:nowrap}
+.gl{border:0;background:none;padding:0 3px;border-radius:8px;font:600 40px/1 var(--f-num);min-width:.7em;text-align:center}
+.gl.h{color:var(--home)} .gl.a{color:var(--away)}
+.gl:active,.cks:active{background:var(--rule)}
+.clk{display:flex;align-items:center;gap:8px}
+.clkbtn{border:0;background:none;padding:0;display:flex;flex-direction:column;align-items:center}
+.clkbtn span{font-size:12px;color:var(--muted);line-height:1}
+.clkbtn b{font:600 34px/1.05 var(--f-num);font-variant-numeric:tabular-nums}
+.clk.idle .clkbtn b{color:var(--muted)}
+.run{width:40px;height:40px;border-radius:20px;border:0;background:var(--grass);color:var(--chalk);display:grid;place-items:center}
+.run.on{background:var(--card);color:var(--ink);box-shadow:inset 0 0 0 1px var(--rule)}
+.run svg{width:16px;height:16px}
+.bar .tools{justify-self:end;display:flex;gap:6px;align-items:center}
+.tbtn{height:36px;padding:0 12px;border:0;border-radius:10px;background:none;color:var(--ink2);font-weight:500;white-space:nowrap}
+.tbtn:active{background:var(--rule)}
+.tbtn.ic{width:40px;padding:0;display:grid;place-items:center}
+/* 两个程序的切换 */
+.modebar{display:flex;justify-content:center;padding:0 20px 6px;flex:none}
+.mseg{display:grid;grid-template-columns:1fr 1fr;width:100%;max-width:420px;background:var(--card);border:1px solid var(--line2);border-radius:12px;padding:3px}
+.mseg button{height:32px;border:0;border-radius:9px;background:none;font-size:14px;font-weight:600;color:var(--ink2);white-space:nowrap}
+.mseg button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+
+/* ---------- 主区：iPad 三栏（统计在中间） ---------- */
+.main{flex:1;display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,390px) minmax(0,1fr);grid-template-areas:"home mid away";gap:14px;padding:6px 20px 76px;align-items:start}
+.pad[data-i="0"]{grid-area:home} .pad[data-i="1"]{grid-area:away} .mid{grid-area:mid}
+.pad{min-width:0}
+body.qmode .main{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"home away"}
+body.qmode .mid{display:none}
+/* 比赛结束后：记录按键换成“这场已经结束”卡片 */
+.endc{background:var(--card);color:var(--ink);border:1px solid var(--rule);border-radius:18px;padding:22px 18px;display:flex;flex-direction:column;gap:10px;align-items:stretch}
+.endc h2{margin:0;font-size:20px;line-height:1.3}
+.endc .es{margin:0;font:600 17px/1.5 var(--f-ui)}
+.endc .es .h{color:var(--home)} .endc .es .a{color:var(--away)}
+.endc .hint{margin:0}
+.endc .linkb{border:0;background:none;color:var(--ink2);font:500 13.5px var(--f-ui);text-decoration:underline;padding:8px 0;align-self:center}
+body.ended .pad[data-i="1"]{display:none}
+@media (max-width:899px){body.ended .pad[data-i="0"]{grid-column:1 / -1}}
+@media (min-width:900px){body.ended .main{grid-template-areas:"home mid mid"}body.ended.qmode .main{grid-template-columns:minmax(0,1fr);grid-template-areas:"home"}}
+.pad-h{display:flex;align-items:center;gap:8px;padding:2px 2px 8px;font-size:14px;min-width:0}
+.pad-h i{width:9px;height:9px;border-radius:50%;display:inline-block;flex:none}
+.pad[data-i="0"] .pad-h i{background:var(--home)} .pad[data-i="1"] .pad-h i{background:var(--away)}
+.pad-h b{font-size:16px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pad[data-i="0"] .pad-h b{color:var(--home)} .pad[data-i="1"] .pad-h b{color:var(--away)}
+.pad-h .who{font-size:12px;color:var(--muted);white-space:nowrap;flex:none}
+.pad-h .sp{flex:1}
+.undo{height:30px;padding:0 12px;border-radius:15px;border:1px solid var(--line2);background:var(--card);font-size:13px;font-weight:600;color:var(--ink2);white-space:nowrap;flex:none}
+.undo.hot{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.undo:disabled{opacity:.35}
+/* 第一部分（主观）：四项的摘要，点开选择 */
+.p1s{width:100%;border:1px solid var(--line2);background:var(--card);border-radius:14px;padding:4px;margin:0 0 8px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:2px}
+.p1s button{border:0;background:none;border-radius:10px;padding:4px 7px;display:flex;flex-direction:column;align-items:flex-start;min-width:0;text-align:left;color:var(--ink)}
+.p1s button:active{background:var(--raise)}
+.p1s em{font-style:normal;font-size:11px;color:var(--muted);line-height:1.3}
+.p1s b{font-size:13.5px;font-weight:600;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.p1s b.na{color:var(--muted);font-weight:500}
+.board{background:var(--pitch);color:var(--chalk);border-radius:18px;padding:10px;display:flex;flex-direction:column;gap:7px}
+.k{position:relative;border:0;border-radius:12px;background:var(--tile);color:var(--chalk);display:flex;align-items:center;justify-content:center;gap:8px;min-width:0;padding:6px 8px;min-height:50px}
+.k:active{background:var(--tile2)}
+.k .l{font-size:15px;font-weight:600;line-height:1.15;text-align:center;white-space:nowrap}
+.k .c{font:600 19px/1 var(--f-num);font-variant-numeric:tabular-nums;color:var(--chalk2)}
+.k.arb{min-height:66px;background:var(--chalk);color:var(--pitch)}
+.k.arb .l{font-size:21px;font-weight:700}
+.k.arb .c{font-size:28px;color:var(--pitch);opacity:.6}
+.k.arb:active{background:#fff}
+.k.arb.on{box-shadow:0 0 0 3px var(--flag)}
+.k.ckb{background:transparent;box-shadow:inset 0 0 0 1.5px rgba(242,194,48,.7);min-height:44px}
+.k.ckb .l{font-size:14px;color:var(--flag)} .k.ckb .c{color:var(--flag);font-size:17px}
+.k.ckb svg{width:15px;height:15px;color:var(--flag)}
+.k.hit{animation:hit .45s ease-out}
+@keyframes hit{0%{background:rgba(243,245,238,.6)}100%{background:var(--tile)}}
+.k.arb.hit{animation:hita .45s ease-out}
+@keyframes hita{0%{background:var(--flag)}100%{background:var(--chalk)}}
+@media (prefers-reduced-motion:reduce){.k.hit,.k.arb.hit{animation:none}}
+/* 到达后的选择链 */
+.stage{position:relative;display:flex;flex-direction:column;gap:6px;border-radius:14px;padding:6px;background:rgba(0,0,0,.12)}
+.stage.open{background:var(--pitch2);box-shadow:inset 0 0 0 2px var(--flag)}
+.sth{display:flex;align-items:center;gap:8px;min-height:24px;padding:0 4px;font-size:13px;color:var(--chalk2);min-width:0}
+.sth .tm{font:600 20px/1 var(--f-num);font-variant-numeric:tabular-nums;color:var(--flag);flex:none}
+.sth .tm small{font:500 12px var(--f-ui);margin-left:1px}
+.sth .q{font-weight:600;color:var(--chalk);white-space:nowrap;flex:none}
+.sth .crumb{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sth .crumb b{color:var(--chalk);font-weight:600}
+.sth .last{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sth .pulse{width:8px;height:8px;border-radius:50%;background:var(--flag);flex:none;animation:pulse 1s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+@media (prefers-reduced-motion:reduce){.sth .pulse{animation:none}}
+.sto{display:grid;gap:6px;grid-template-columns:repeat(2,minmax(0,1fr))}
+.sto.n5 .k:first-child{grid-column:1 / -1}
+.sto.n3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.sto .k{min-height:54px;flex-direction:row}
+.sto .k .l{font-size:16px}
+.sto .k i{width:9px;height:9px;border-radius:50%;flex:none}
+.sto .k small{display:block;font-size:11px;font-weight:500;color:var(--chalk2);margin-top:1px}
+.sto .k .lw{display:flex;flex-direction:column;align-items:flex-start;min-width:0}
+.sto .k.res-g{box-shadow:inset 0 0 0 1.5px var(--chalk2)}
+.sto .k.res-c{background:rgba(242,194,48,.22)} .sto .k.res-c .l{color:var(--flag)}
+.stage.idle .sto .k{background:rgba(255,255,255,.05)}
+.stage.idle .sto .k .l{color:var(--chalk2);font-weight:500}
+.stage.open .sto .k{background:var(--tile2)}
+.stage.open .sto .k:active{background:rgba(255,255,255,.3)}
+.stf{display:flex;gap:6px}
+.stf button{flex:1;height:32px;border:0;border-radius:16px;background:none;box-shadow:inset 0 0 0 1px rgba(243,245,238,.3);color:var(--chalk2);font-size:12.5px;white-space:nowrap;padding:0 6px}
+.stf button:active{background:var(--tile)}
+.c-x{background:var(--cx)} .c-l{background:var(--cl)} .c-m{background:var(--cm)} .c-b{background:var(--cb)} .c-g{background:var(--cg)} .c-o{background:var(--cg)}
+
+/* ---------- 两个问题 ---------- */
+.qcard{background:var(--card);border:1px solid var(--line2);border-radius:18px;padding:14px 14px 12px;display:flex;flex-direction:column;gap:12px;margin-bottom:10px}
+.qq{margin:0;font-size:22px;line-height:1.3;font-weight:800;letter-spacing:.01em}
+.qlv{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+.qlv button{border:0;border-radius:14px;background:var(--paper);box-shadow:inset 0 0 0 1px var(--rule);min-height:76px;padding:6px 2px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:var(--ink)}
+.qlv button b{font:700 30px/1 var(--f-num)}
+.qlv button small{font-size:13px;font-weight:600;color:var(--ink2);white-space:nowrap}
+.qlv button:active{background:var(--rule)}
+.qlv button[aria-pressed="true"]{background:var(--ink);box-shadow:none;color:var(--paper)}
+.qlv button[aria-pressed="true"] small{color:var(--paper)}
+.qh{display:flex;align-items:baseline;gap:10px}
+.qh .qq{flex:1;min-width:0}
+.qnote{font-size:12.5px;color:var(--muted);white-space:nowrap;flex:none}
+.qck{height:36px;border:0;border-radius:18px;background:var(--card);box-shadow:inset 0 0 0 1.5px var(--flag);display:inline-flex;align-items:center;gap:6px;padding:0 12px 0 10px;font-size:14px;font-weight:600;color:var(--ink);flex:none;white-space:nowrap}
+.qck svg{width:15px;height:15px}
+.qck b{font:700 20px/1 var(--f-num)}
+.qck small{font-size:12px;color:var(--muted);font-weight:600}
+.qck:active{background:var(--raise)}
+@media (min-width:900px){.qq{font-size:26px}.qlv{gap:8px}.qlv button{min-height:96px}.qlv button b{font-size:38px}.qlv button small{font-size:14px}.qcard{padding:18px 18px 16px;gap:14px;margin-bottom:14px}}
+
+/* ---------- 统计（iPad 中间；手机底部抽屉） ---------- */
+.mid{min-width:0;background:var(--card);border:1px solid var(--line2);border-radius:18px;padding:12px 14px 16px;display:flex;flex-direction:column;gap:10px}
+.mid-top{display:none}
+.st{display:flex;flex-direction:column;gap:18px}
+.st-h{display:flex;flex-direction:column;gap:8px}
+.seg{display:inline-flex;background:var(--paper);border-radius:10px;padding:2px;box-shadow:inset 0 0 0 1px var(--rule)}
+.seg button{border:0;background:none;height:30px;padding:0 10px;border-radius:8px;font-size:13px;font-weight:600;color:var(--ink2);white-space:nowrap}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.st-h .seg{display:grid;grid-template-columns:repeat(3,1fr)}
+.lgd{display:flex;align-items:center;gap:6px 14px;flex-wrap:wrap;font-size:12.5px;color:var(--ink2)}
+.lgd span{display:inline-flex;align-items:center;gap:5px;min-width:0}
+.lgd i{width:10px;height:10px;border-radius:3px;flex:none}
+.lgd .tm{max-width:9em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lgd .mins{margin-left:auto;color:var(--muted);white-space:nowrap}
+.sec{display:flex;flex-direction:column;gap:9px}
+.sec h4{margin:0;font-size:12.5px;font-weight:700;color:var(--muted);letter-spacing:.02em;display:flex;align-items:baseline;gap:6px}
+.sec h4 small{font-weight:500}
+.sec .empty{font-size:12.5px;color:var(--muted);margin:0}
+/* 两队对比的一行：数字－名称－数字，下面两条从中间往外长 */
+.mr{display:flex;flex-direction:column;gap:3px}
+.mr-t{display:grid;grid-template-columns:4.4em minmax(0,1fr) 4.4em;align-items:baseline;gap:6px}
+.mr-t .v{font:600 18px/1.1 var(--f-num);font-variant-numeric:tabular-nums;white-space:nowrap}
+.mr-t .v.a{text-align:right}
+.mr-t .v small{font:500 11px var(--f-ui);color:var(--muted);margin-left:2px}
+.mr-t .v.dim{color:var(--muted)}
+.mr-t .lb{text-align:center;font-size:13px;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;justify-content:center;gap:5px}
+.mr-t .lb i{width:8px;height:8px;border-radius:50%;flex:none}
+.mr.big .mr-t{grid-template-columns:5.8em minmax(0,1fr) 5.8em}
+.mr.big .mr-t .v{font-size:30px}
+.mr.big .mr-t .lb{font-size:14px;font-weight:600;color:var(--ink)}
+.mb{display:grid;grid-template-columns:1fr 1fr;gap:2px;height:8px}
+.mb span{display:block;height:8px}
+.mb .h{justify-self:end;background:var(--hm);border-radius:4px 0 0 4px}
+.mb .a{justify-self:start;background:var(--am);border-radius:0 4px 4px 0}
+.mr.big .mb,.mr.big .mb span{height:10px}
+/* 一个整体分成几块（每队一条） */
+.sgr{display:grid;grid-template-columns:2.4em minmax(0,1fr);align-items:center;gap:8px}
+.sgr .who{display:flex;align-items:center;gap:5px;font-size:12.5px;color:var(--ink2);white-space:nowrap}
+.sgr .who i{width:8px;height:8px;border-radius:50%;flex:none}
+.sgb{display:flex;gap:2px;height:28px;min-width:0}
+.sgb i{display:flex;align-items:center;padding:0 5px;border-radius:4px;font:600 12px/1 var(--f-ui);font-style:normal;color:#fff;white-space:nowrap;min-width:0;overflow:hidden}
+.sgb i.c-b{color:var(--tcb)} .sgb i.c-g,.sgb i.c-o{color:var(--tcg)}
+.sgb.none{background:var(--trk);border-radius:4px;align-items:center;justify-content:center;font-size:12px;color:var(--muted)}
+.sgl{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;color:var(--ink2)}
+.sgl span{display:inline-flex;align-items:center;gap:5px}
+.sgl i{width:10px;height:10px;border-radius:3px;flex:none}
+/* 命中范围：内的比例（同色的浅底当作外） */
+.mtr{display:grid;grid-template-columns:2.4em minmax(0,1fr) 5.6em;align-items:center;gap:8px}
+.mtr .who{display:flex;align-items:center;gap:5px;font-size:12.5px;color:var(--ink2);white-space:nowrap}
+.mtr .who i{width:8px;height:8px;border-radius:50%;flex:none}
+.mtk{position:relative;height:12px;border-radius:6px;overflow:hidden;background:var(--trk)}
+.mtk span{position:absolute;left:0;top:0;bottom:0;border-radius:6px}
+.mtr .r{font:600 15px var(--f-num);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.mtr .r small{font:500 11px var(--f-ui);color:var(--muted);margin-left:3px}
+.mtg{display:flex;flex-direction:column;gap:6px}
+.mtg h5{margin:0;font-size:12.5px;font-weight:600;color:var(--ink2);display:flex;align-items:center;gap:6px}
+.mtg h5 i{width:8px;height:8px;border-radius:50%}
+.snote{font-size:11.5px;line-height:1.5;color:var(--muted);margin:0}
+@media (min-width:900px){
+  .main{align-items:stretch}
+  .main .mid{max-height:calc(100vh - 205px - env(safe-area-inset-bottom));overflow:auto;overscroll-behavior:contain;position:sticky;top:8px;align-self:start}
+}
+@media (min-width:600px) and (min-height:780px){
+  .k.arb{min-height:80px} .k.arb .l{font-size:23px} .k.arb .c{font-size:30px}
+  .sto .k{min-height:64px} .sto .k .l{font-size:17.5px}
+  .k.ckb{min-height:52px} .k.ckb .l{font-size:15px}
+}
+@media (min-width:900px) and (max-height:779px){
+  .bar{padding:6px 20px 4px}
+  .board{padding:8px;gap:6px}
+  .k{min-height:44px} .sto .k{min-height:46px} .k.arb{min-height:56px}
+}
+@media (max-width:899px){
+  .main{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"home away" "mid mid";gap:10px;padding:6px 12px 80px}
+  .bar{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"meta tools" "score score";padding:8px 12px 6px;row-gap:4px}
+  .bar .meta{grid-area:meta;flex-direction:row;align-items:baseline;gap:10px}
+  .bar .meta input{width:auto;flex:1}
+  .bar .tools{grid-area:tools}
+  .score{grid-area:score;justify-self:stretch;grid-template-columns:minmax(0,1fr) auto auto auto minmax(0,1fr)}
+  .modebar{padding:0 12px 6px}
+}
+
+/* ---------- 底部快捷栏 ---------- */
+.strip{position:fixed;left:0;right:0;bottom:0;z-index:5;background:var(--raise);border-top:1px solid var(--rule);
+  padding:8px max(12px,env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left));display:flex;align-items:center;gap:10px}
+.recent{flex:1;min-width:0;display:flex;gap:14px;overflow:hidden;font-size:13px;white-space:nowrap;color:var(--ink2)}
+.recent button{border:0;background:none;padding:4px 0;display:flex;gap:6px;align-items:baseline;color:var(--ink2)}
+.recent .t{font:600 14px var(--f-num);color:var(--muted)}
+.recent .d0{color:var(--home)} .recent .d1{color:var(--away)}
+.recent .empty{color:var(--muted)}
+.qb{position:relative;border:0;height:38px;padding:0 12px;border-radius:19px;background:var(--paper);box-shadow:inset 0 0 0 1px var(--rule);display:inline-flex;align-items:center;gap:6px;font-weight:600;font-size:14px;white-space:nowrap;color:var(--ink)}
+.qb:active{background:var(--rule)}
+.qb svg{width:18px;height:18px;flex:none}
+.qb small{font-size:11px;font-weight:500;color:var(--muted)}
+@media (min-width:600px){.qb small:empty{display:none}}
+.qb:disabled{opacity:.4}
+.qb.only-phone{display:none}
+.qb .dot{position:absolute;top:4px;right:6px;width:8px;height:8px;border-radius:50%;background:var(--warn);box-shadow:0 0 0 2px var(--raise)}
+.qb.alert small{color:var(--warn)}
+
+/* ---------- 弹出视窗 ---------- */
+.sheet{position:fixed;left:0;right:0;top:0;bottom:0;z-index:20;background:var(--scrim);display:flex;align-items:flex-end;justify-content:center}
+.sheet[hidden]{display:none}
+.card{width:100%;max-width:560px;max-height:88vh;overflow:auto;-webkit-overflow-scrolling:touch;background:var(--card);border-radius:18px 18px 0 0;padding:16px 18px calc(18px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:12px}
+.card.wide{max-width:740px}
+@media (min-width:700px){.sheet{align-items:center}.card{border-radius:18px}}
+.card-h{display:flex;align-items:center;gap:10px}
+.card-h h3{margin:0;font-size:17px;flex:1;min-width:0}
+.pill{height:38px;padding:0 14px;border:0;border-radius:19px;background:var(--paper);box-shadow:inset 0 0 0 1px var(--rule);font-weight:600;white-space:nowrap}
+.pill:active{background:var(--rule)}
+.pill.dark{background:var(--ink);color:var(--paper);box-shadow:none}
+.pill.green{background:var(--grass);color:var(--chalk);box-shadow:none}
+.pill.danger{background:var(--warn);color:#fff;box-shadow:none}
+.pill:disabled{opacity:.45}
+.pill.bigp{height:46px;font-size:15px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{min-height:34px;padding:0 12px;border:0;border-radius:17px;background:var(--paper);box-shadow:inset 0 0 0 1px var(--rule);font-size:13.5px;white-space:nowrap}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--paper);box-shadow:none}
+.chip:disabled{opacity:.4}
+.lbl{font-size:12.5px;color:var(--muted);margin-bottom:-6px}
+.hint{font-size:12.5px;color:var(--muted);margin:0;line-height:1.55}
+.netnote{margin:0;font-size:13px;line-height:1.5;color:var(--ink2);background:var(--paper);border-radius:10px;padding:8px 10px}
+.big-clk{font:600 54px/1 var(--f-num);font-variant-numeric:tabular-nums;text-align:center}
+.tp{display:grid;gap:8px}
+.tpv{font:600 44px/1 var(--f-num);font-variant-numeric:tabular-nums;text-align:center}
+.tpr{-webkit-appearance:none;appearance:none;width:100%;height:36px;margin:0;background:transparent;touch-action:pan-y}
+.tpr::-webkit-slider-runnable-track{height:6px;border-radius:3px;background:var(--rule)}
+.tpr::-webkit-slider-thumb{-webkit-appearance:none;width:30px;height:30px;border-radius:50%;background:var(--grass);margin-top:-12px;box-shadow:0 1px 4px rgba(0,0,0,.25)}
+.tps{position:relative;height:14px;margin:-6px 15px 0;font-size:11px;color:var(--muted)}
+.tps span{position:absolute;-webkit-transform:translateX(-50%);transform:translateX(-50%);white-space:nowrap}
+.tpb{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+@media (max-width:560px){.tpb{display:grid;grid-template-columns:repeat(3,1fr)}}
+.stp{display:grid;grid-template-columns:1fr 38px 2.6em 38px;align-items:center;gap:6px;font-size:14px}
+.stp span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stp .h{color:var(--home)} .stp .a{color:var(--away)}
+.stp button{height:38px;border:0;border-radius:19px;background:var(--paper);box-shadow:inset 0 0 0 1px var(--rule);font-size:18px;font-weight:600}
+.stp b{text-align:center;font:600 20px var(--f-num)}
+.jgrp{display:grid;gap:6px}
+.jgrp h4{margin:4px 0 0;font-size:13px;color:var(--muted);font-weight:600}
+.jgrp h4 small{font-weight:400;margin-left:8px;font-size:12px}
+.fi{width:100%;height:42px;border:1px solid var(--rule);border-radius:10px;background:var(--paper);padding:0 12px}
+textarea.fi{height:140px;padding:10px 12px;font:12px/1.4 ui-monospace,Menlo,monospace}
+.list{display:grid}
+.list button{border:0;background:none;border-bottom:1px solid var(--rule);padding:10px 2px;display:grid;grid-template-columns:4.6em minmax(0,1fr) auto;gap:10px;align-items:baseline;text-align:left;color:var(--ink)}
+.list .t{font:600 15px var(--f-num);color:var(--muted)}
+.list .who{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:7em;font-size:13px}
+.list .who.d0{color:var(--home)} .list .who.d1{color:var(--away)}
+.list .bf{color:var(--muted);font-size:12px}
+.list .sv{color:var(--muted)}
+.list h4{margin:10px 0 2px;font-size:13px;color:var(--muted);font-weight:600}
+.list .auto{font-size:10.5px;color:var(--grass);margin-left:4px;font-weight:600}
+.fc{display:grid;gap:14px}
+.fc h4{margin:0 0 6px;font-size:12.5px;color:var(--muted);font-weight:700}
+.fcg{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.fct{border:0;text-align:left;background:var(--paper);box-shadow:inset 0 0 0 1px var(--rule);border-radius:14px;padding:10px 12px;display:flex;flex-direction:column;gap:3px;min-height:64px;color:var(--ink)}
+.fct:active{background:var(--rule)}
+.fct b{font-size:14.5px}
+.fct span{font-size:12px;color:var(--muted);line-height:1.35}
+.fct.danger b{color:var(--warn)}
+.hlp{display:grid;gap:12px}
+.hlp h4{margin:0 0 2px;font-size:15px}
+.hlp p{margin:0;font-size:13.5px;line-height:1.6;color:var(--ink2)}
+.hlp p.where{font-size:12px;color:var(--muted)}
+.defs{display:grid;gap:14px}
+.defs h4{margin:0 0 3px;font-size:15px}
+.defs p{margin:0;font-size:13.5px;line-height:1.6;color:var(--ink2)}
+.defs ul{margin:4px 0 0;padding-left:18px;font-size:13px;line-height:1.6;color:var(--ink2)}
+/* 第一部分的选择视窗 */
+.p1g{display:grid;gap:8px}
+.p1g h4{margin:0;font-size:15px;display:flex;align-items:baseline;gap:8px}
+.p1g h4 small{font-size:12px;font-weight:500;color:var(--muted)}
+.p1o{display:grid;gap:6px;grid-template-columns:repeat(3,minmax(0,1fr))}
+.p1o.c1{grid-template-columns:minmax(0,1fr)}
+.p1o.c1 button{text-align:left;padding:6px 14px;min-height:44px}
+.p1o button{border:0;border-radius:12px;background:var(--paper);box-shadow:inset 0 0 0 1px var(--rule);min-height:46px;padding:6px 10px;font-size:14.5px;font-weight:600;line-height:1.3;color:var(--ink)}
+.p1o button:active{background:var(--rule)}
+.p1o button[aria-pressed="true"]{background:var(--ink);color:var(--paper);box-shadow:none}
+.p1side{display:grid;grid-template-columns:1fr 1fr}
+/* 仓库 */
+.wbar{display:flex;gap:8px;align-items:center}
+.wbar .fi{flex:1;height:38px}
+.wrow{border-bottom:1px solid var(--rule)}
+.wrow>button{border:0;background:none;width:100%;text-align:left;padding:10px 2px;display:grid;gap:3px;color:var(--ink)}
+.wrow>button:active{background:var(--paper)}
+.wrow .w1{font-weight:600;font-size:14.5px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.wrow .w2{font-size:12.5px;color:var(--muted)}
+.wtag{font-style:normal;font-size:11px;font-weight:700;border-radius:8px;padding:0 6px;line-height:18px;background:var(--paper);color:var(--ink2);box-shadow:inset 0 0 0 1px var(--rule)}
+.wtag.live{background:var(--grass);color:var(--chalk);box-shadow:none}
+.wact{padding:0 2px 12px;display:grid;gap:8px}
+.sts{width:100%;border-collapse:collapse;font-size:13px;text-align:center}
+.sts th{font-size:11.5px;font-weight:600;color:var(--muted);padding:4px 2px}
+.sts td{padding:7px 2px;border-top:1px solid var(--rule);font:600 15px var(--f-num);font-variant-numeric:tabular-nums}
+.sts td.tl{font:600 13px var(--f-ui);text-align:left;color:var(--ink2)}
+.sts td small{font:400 11px var(--f-ui);color:var(--muted);margin-left:2px}
+.sts td.dim{color:var(--muted)}
+.wst{display:grid;gap:18px}
+.wst h4{margin:0 0 6px;font-size:14px}
+.tidy{display:grid;gap:8px;background:var(--paper);border-radius:12px;padding:10px 12px}
+.tidy b{font-size:14px}
+.tidy p{margin:0;font-size:12.5px;color:var(--muted);line-height:1.5}
+.toast{position:fixed;left:0;right:0;margin:0 auto;width:-webkit-fit-content;width:fit-content;max-width:calc(100vw - 24px);bottom:calc(70px + env(safe-area-inset-bottom));z-index:30;background:var(--ink);color:var(--paper);border-radius:22px;padding:8px 8px 8px 16px;display:flex;align-items:center;gap:10px;font-size:14px;box-shadow:0 6px 24px rgba(0,0,0,.18)}
+.toast[hidden]{display:none}
+#toastMsg{min-width:0;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden;line-height:1.35}
+.toast button{border:0;background:var(--flag);color:var(--on-flag);border-radius:16px;height:32px;padding:0 12px;font-weight:700;white-space:nowrap;flex-shrink:0}
+.toast button[hidden]{display:none}
+.scrim{display:none}
+/* 联网 */
+.netpill{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 10px;border-radius:15px;background:var(--card);border:1px solid var(--line2);font-size:12px;color:var(--ink2);white-space:nowrap;max-width:16em;overflow:hidden}
+.netpill[hidden]{display:none}
+.netpill i{width:7px;height:7px;border-radius:50%;background:var(--ok);flex:none}
+.netpill.off i{background:var(--muted)}
+.netpill.bad{color:var(--warn);border-color:var(--warn)} .netpill.bad i{background:var(--warn)}
+.netpill span{overflow:hidden;text-overflow:ellipsis}
+.sugg{margin:2px 20px 10px;background:var(--card);border-radius:14px;padding:10px 12px 12px;box-shadow:0 0 0 2px var(--flag);display:grid;gap:8px;flex:none}
+.sugg[hidden]{display:none}
+.sg-h{display:flex;align-items:baseline;gap:4px 10px;flex-wrap:wrap}
+.sg-h b{font-size:15px}
+.sg-h span{flex:1;font-size:12.5px;color:var(--muted);min-width:12em}
+.sg-h button{border:0;background:none;color:var(--ink2);font-size:13px;text-decoration:underline;text-underline-offset:3px;padding:4px}
+.sg-f{display:flex;gap:8px;align-items:center}
+.sg-f .fi{flex:1;height:38px}
+.picks{display:grid;gap:6px;grid-template-columns:repeat(auto-fill,minmax(250px,1fr))}
+.picks button{border:0;text-align:left;background:var(--paper);box-shadow:inset 0 0 0 1px var(--rule);border-radius:12px;padding:10px 12px;display:grid;gap:3px;color:var(--ink)}
+.picks button:active{background:var(--rule)}
+.picks .t1{font-weight:600;font-size:15px}
+.picks .t1 b{font:600 16px var(--f-num);margin:0 6px}
+.picks .t2{font-size:12.5px;color:var(--muted)}
+.picks em{font-style:normal;color:var(--warn)}
+.mrow{border-bottom:1px solid var(--rule);padding:10px 0;display:grid;gap:6px}
+.mrow .t1{font-weight:600}
+.mrow .t2{font-size:12.5px;color:var(--muted)}
+.pipband{display:none}
+
+/* ---------- 手机：两栏按键，统计放在底部抽屉 ---------- */
+@media (max-width:599px){
+  html,body{height:100%}
+  .app{height:100vh;height:100dvh}
+  .bar{padding:6px 10px 4px}
+  .bar .tools .tbtn{height:30px}
+  .gl{font-size:30px}
+  .clkbtn b{font-size:26px}
+  .run{width:34px;height:34px}
+  .tn input{font-size:15px}
+  .score{gap:6px}
+  .modebar{padding:0 10px 4px}
+  .mseg button{height:30px;font-size:13.5px}
+  .main{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"home away";grid-template-rows:minmax(0,1fr);align-items:stretch;gap:8px;padding:4px 10px calc(60px + env(safe-area-inset-bottom))}
+  .main .pad{display:flex;flex-direction:column;min-height:0}
+  .pad-h{padding:0 2px 4px;gap:5px}
+  .pad-h b{font-size:15px;flex:0 1 auto}
+  .pad-h .who{display:none}
+  .undo{height:28px;padding:0 10px;font-size:12px}
+  .p1s{grid-template-columns:repeat(2,minmax(0,1fr));padding:2px;gap:0 2px;border-radius:12px;margin-bottom:6px;flex:none}
+  .p1s button{flex-direction:row;align-items:baseline;gap:4px;padding:3px 4px;border-radius:8px}
+  .p1s em{font-size:10.5px;flex:none}
+  .p1s b{font-size:12px}
+  .board{flex:1;min-height:0;padding:6px;gap:6px;border-radius:16px}
+  .k.arb{min-height:52px;flex:none}
+  .k.arb .l{font-size:19px} .k.arb .c{font-size:24px}
+  .k.ckb{min-height:40px;flex:none}
+  .stage{flex:1;min-height:0;padding:5px;gap:5px}
+  .sth{padding:0 2px;font-size:12px;gap:6px;min-height:22px}
+  .sth .tm{font-size:18px}
+  .sth .last,.sth.deep .crumb{white-space:normal;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-height:1.3}
+  .sth.deep .q{display:none}
+  .sto,.sto.n3{flex:1;min-height:0;grid-template-columns:minmax(0,1fr);grid-auto-rows:minmax(0,1fr);gap:5px}
+  .sto.n5 .k:first-child{grid-column:auto}
+  .sto .k{min-height:0;padding:2px 8px;gap:6px;justify-content:flex-start}
+  .sto .k .l{font-size:15px}
+  .sto .k .c{margin-left:auto;font-size:17px}
+  .sto .k small{font-size:10.5px}
+  .stf{flex:none}
+  .stf button{height:30px;font-size:12px;padding:0 4px}
+  .main .mid{position:fixed;left:0;right:0;bottom:0;z-index:16;max-height:88vh;overflow:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;border-radius:22px 22px 0 0;border:0;box-shadow:0 -10px 40px rgba(0,0,0,.2);padding:4px 14px calc(18px + env(safe-area-inset-bottom));-webkit-transform:translateY(105%);transform:translateY(105%);visibility:hidden;transition:transform .25s ease,visibility 0s .25s}
+  .main .mid.open{-webkit-transform:none;transform:none;visibility:visible;transition:transform .25s ease}
+  body.qmode .main .mid{display:flex}
+  .mid-top{display:flex;align-items:center;justify-content:center;position:relative;height:24px;flex:none}
+  .mid-top .grip{width:40px;height:5px;border-radius:3px;background:var(--rule)}
+  .mid-x{position:absolute;right:0;top:-2px;border:0;background:none;font-size:13px;color:var(--ink2);height:28px;padding:0 4px}
+  .scrim{position:fixed;left:0;right:0;top:0;bottom:0;z-index:15;background:var(--scrim);display:block}
+  .scrim[hidden]{display:none}
+  .strip{justify-content:space-around;gap:0;padding:3px 4px calc(3px + env(safe-area-inset-bottom))}
+  .strip .recent,.strip .only-pad{display:none}
+  .qb .dot{top:4px;right:calc(50% - 18px)}
+  .qb small{font-size:9.5px;line-height:1.2;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .sugg{margin:4px 10px 6px}
+  .netpill{height:26px;padding:0 8px;font-size:11px;max-width:10em}
+  .qb.only-phone{display:inline-flex}
+  .qb{flex:1 1 0;min-width:0;height:50px;padding:2px;border-radius:12px;background:none;box-shadow:none;flex-direction:column;justify-content:center;gap:1px;font-size:11.5px;line-height:1.2;color:var(--ink2)}
+  .qb svg{width:20px;height:20px}
+  .toast{top:calc(6px + env(safe-area-inset-top));bottom:auto}
+  /* 两个问题：手机上两队上下排，一整行五档 */
+  body.qmode .main{grid-template-columns:minmax(0,1fr);grid-template-areas:"home" "away";grid-template-rows:minmax(0,1fr) minmax(0,1fr);gap:4px}
+  body.qmode.ended .main{grid-template-rows:minmax(0,1fr)}
+  body.qmode .pad .qcard{flex:1 1 0;min-height:0}
+  body.qmode .qlv{flex:1;min-height:0}
+  body.qmode .qlv button{min-height:44px;max-height:110px}
+  body.qmode .pad-h{padding:2px 2px 4px}
+  body.qmode .pad-h .who{display:inline}
+  .qcard{padding:8px 10px 10px;gap:6px;border-radius:16px;margin-bottom:5px}
+  .qcard:last-child{margin-bottom:0}
+  .qq{font-size:19px}
+  .qlv{gap:5px}
+  .qlv button{min-height:58px;border-radius:12px;gap:3px}
+  .qlv button b{font-size:24px}
+  .qlv button small{font-size:11.5px;letter-spacing:-.02em}
+  .qnote{font-size:11.5px}
+  .qck{height:32px;padding:0 10px 0 8px;font-size:13px}
+  .qck b{font-size:18px}
+  @media (max-height:700px){.sto .k .l{font-size:14px}.k.arb{min-height:46px}.qlv button{min-height:52px}.qq{font-size:18px}}
+}
+@media (max-width:389px){
+  .pad-h b{max-width:52%}
+  .p1s b{font-size:11.5px}
+  .sto .k .l{font-size:14px}
+  .qlv button small{font-size:10.5px}
+}
+/* 视频浮窗：手机上空出浮窗的位置 */
+@media (max-width:599px){
+  body.pip-top .pipband{display:flex;flex:none;height:var(--pipH);margin:4px 10px 0;border:1.5px dashed var(--rule);border-radius:14px;align-items:center;justify-content:center;color:var(--muted);font-size:12px;text-align:center;padding:0 12px}
+  body.pip-bot .pipband{display:flex;position:fixed;left:10px;right:10px;bottom:calc(4px + env(safe-area-inset-bottom));height:var(--pipH);border:1.5px dashed var(--rule);border-radius:14px;align-items:center;justify-content:center;color:var(--muted);font-size:12px;z-index:1;background:var(--paper)}
+  body.pip-bot .strip{bottom:calc(var(--pipH) + 8px + env(safe-area-inset-bottom));padding-bottom:3px;border-bottom:1px solid var(--rule)}
+  body.pip-bot .main{padding-bottom:calc(66px + var(--pipH) + env(safe-area-inset-bottom))}
+  body.pip-top .toast{top:calc(var(--pipH) + 10px + env(safe-area-inset-top))}
+  body.pip-bot .sheet{padding-bottom:calc(var(--pipH) + 8px + env(safe-area-inset-bottom))}
+  body.pip-bot .card{border-radius:18px;max-height:calc(100vh - var(--pipH) - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom))}
+  body.pip-bot .main .mid{bottom:calc(var(--pipH) + 8px + env(safe-area-inset-bottom));border-radius:22px;max-height:calc(100vh - var(--pipH) - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom))}
+  body.pip-top .card{max-height:calc(100vh - var(--pipH) - 16px - env(safe-area-inset-top))}
+  body.pip-top .main .mid{max-height:calc(100vh - var(--pipH) - 16px - env(safe-area-inset-top))}
+  /* 浮窗模式：只留比分那一行，按键压缩 */
+  body.pip-on .bar{grid-template-areas:"score score";padding:4px 10px 2px}
+  body.pip-on .bar .meta,body.pip-on .bar .tools{display:none}
+  body.pip-on .gl{font-size:26px}
+  body.pip-on .clkbtn b{font-size:22px}
+  body.pip-on .run{width:30px;height:30px}
+  body.pip-on .modebar{padding-bottom:3px}
+  body.pip-on .mseg{padding:2px} body.pip-on .mseg button{height:26px;font-size:12.5px}
+  body.pip-on .p1s{display:none}
+  body.pip-on .board{padding:5px;gap:5px;border-radius:14px}
+  body.pip-on .k.arb{min-height:42px} body.pip-on .k.arb .l{font-size:17px} body.pip-on .k.arb .c{font-size:20px}
+  body.pip-on .k.ckb{min-height:34px}
+  body.pip-on .sto .k .l{font-size:14px}
+  body.pip-on .sto .k small{display:none}
+}
+@media (max-width:599px) and (max-height:700px){
+  body.pip-on .pad-h{padding-bottom:2px} body.pip-on .undo{height:24px}
+  body.pip-on .k.arb{min-height:38px} body.pip-on .k.arb .l{font-size:16px} body.pip-on .k.arb .c{font-size:18px}
+  body.pip-on .k.ckb{min-height:30px} body.pip-on .k.ckb .l{font-size:13px}
+  body.pip-on .board{padding:4px;gap:4px} body.pip-on .stage{padding:4px;gap:4px}
+  body.pip-on .sth{min-height:18px;font-size:11px} body.pip-on .sth .tm{font-size:16px}
+  body.pip-on .stf button{height:26px}
+  body.pip-on .sto{gap:4px}
+}
+
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="pipband" id="pipBand" aria-hidden="true">视频浮窗放在这里（功能 → 视频浮窗 可以调整）</div>
+  <header class="bar">
+    <div class="meta">
+      <input id="fLg" placeholder="输入联赛" maxlength="24" autocomplete="off" aria-label="联赛">
+      <span class="sub" id="mDate"></span>
+    </div>
+    <div class="score">
+      <div class="tn h"><input id="fH" placeholder="主队" maxlength="20" autocomplete="off" aria-label="主队名称"><button class="cks" id="ckH" data-a="fix">角球 0</button></div>
+      <button class="gl h" id="glH" data-a="fix" aria-label="主队进球，点一下补录或校正">0</button>
+      <div class="clk idle" id="clk">
+        <button class="clkbtn" id="clkBtn" data-a="clock" aria-label="比赛时间"><span id="perL">上半场</span><b id="clkT">00:00</b></button>
+        <button class="run" id="runBtn" aria-label="开始计时"></button>
+      </div>
+      <button class="gl a" id="glA" data-a="fix" aria-label="客队进球，点一下补录或校正">0</button>
+      <div class="tn a"><input id="fA" placeholder="客队" maxlength="20" autocomplete="off" aria-label="客队名称"><button class="cks" id="ckA" data-a="fix">角球 0</button></div>
+    </div>
+    <div class="tools">
+      <button class="netpill" id="netPill" data-a="netpill" hidden></button>
+      <button class="tbtn ic" data-a="menu" aria-label="功能"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M3 5h12M3 9h12M3 13h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+    </div>
+  </header>
+  <nav class="modebar" aria-label="切换程序"><div class="mseg" id="mseg"><button data-a="mode" data-v="rec" aria-pressed="true">到达与选择</button><button data-a="mode" data-v="q" aria-pressed="false">两个问题</button></div></nav>
+  <section class="sugg" id="sugg" hidden aria-live="polite"></section>
+  <main class="main">
+    <section class="pad" data-i="0" aria-label="主队进攻"></section>
+    <section class="mid" id="mid" aria-label="统计">
+      <div class="mid-top"><span class="grip"></span><button class="mid-x" data-a="midclose">收起</button></div>
+      <div id="stats"></div>
+    </section>
+    <section class="pad" data-i="1" aria-label="客队进攻"></section>
+  </main>
+</div>
+<div class="strip" id="strip">
+  <div class="recent" id="recent"></div>
+  <button class="qb" data-a="undo" id="qbUndo"></button>
+  <button class="qb" data-a="qsync" id="qbSync"></button>
+  <button class="qb only-pad" data-a="list" id="qbList"></button>
+  <button class="qb only-phone" data-a="stats" id="qbStats"></button>
+  <button class="qb" data-a="arch" id="qbArch"></button>
+  <button class="qb" data-a="menu" id="qbMenu"></button>
+</div>
+<div class="scrim" id="scrim" hidden></div>
+<div class="sheet" id="sheet" hidden><div class="card" id="card" role="dialog" aria-modal="true"></div></div>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden><span id="toastMsg"></span><button id="toastBtn" hidden>撤销</button></div>
+<input type="file" id="fileIn" class="vh" accept=".json,application/json,text/plain" tabindex="-1" aria-hidden="true">
+<script>
+(function(){
+'use strict';
+/* ================= 工具 ================= */
+const $ = (s, r) => (r || document).querySelector(s);
+const $$ = (s, r) => Array.prototype.slice.call((r || document).querySelectorAll(s));
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const pad2 = n => String(n).padStart(2, '0');
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const nowSec = () => Math.floor(Date.now() / 1000);
+const ok = v => typeof v === 'number' && isFinite(v);
+const f1 = v => ok(v) ? v.toFixed(1) : '—';
+const pc = v => ok(v) ? Math.round(v * 100) + '%' : '—';
+const APPVER = 'v1';
+const APPNAME = '角球到达与选择';
+const LS = {
+  get(k, d){ try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e){ return d; } },
+  set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e){ return false; } }
+};
+const phoneMQ = window.matchMedia('(max-width: 599px)');
+const isPhone = () => phoneMQ.matches;
+
+/* ================= 到达之后的选择链 =================
+   第一步（选择）：x 传中、l 远射、m 中路渗透、b 回传、g 丢球。后面按你的思维导图：
+   传中 → i 内／o 外；传中·内 → s 禁区射门（g 进球／c 角球／n 无角球）或 c 解围、中途拦截（c 角球／n 无角球）
+   远射 → i 内（g 进球／c 角球／n 无角球）／o 外
+   中路渗透 → s 禁区射门（g 进球／c 角球／n 无角球）／n 没有禁区射门
+   一次到达存成一串字母，例如 "xisc" ＝ 传中 → 内 → 禁区射门 → 角球；没选完就是比较短的一串。 */
+const R3 = { g: { n: '进球', r: 'g' }, c: { n: '角球', r: 'c' }, n: { n: '无角球', r: 'n' } };
+const R2 = { c: { n: '角球', r: 'c' }, n: { n: '无角球', r: 'n' } };
+const TREE = {
+  x: { n: '传中', q: '落点？', o: ['i', 'o'], k: {
+    i: { n: '内', d: '传到威胁范围', q: '接下来？', o: ['s', 'c'], k: {
+      s: { n: '禁区射门', bs: 1, q: '结果？', o: ['g', 'c', 'n'], k: R3 },
+      c: { n: '解围/中途拦截', s: '解围拦截', q: '结果？', o: ['c', 'n'], k: R2 } } },
+    o: { n: '外', d: '传偏了' } } },
+  l: { n: '远射', q: '落点？', o: ['i', 'o'], k: {
+    i: { n: '内', d: '射正、被挡、碰到人', q: '结果？', o: ['g', 'c', 'n'], k: R3 },
+    o: { n: '外', d: '射偏、打高' } } },
+  m: { n: '中路渗透', q: '接下来？', o: ['s', 'n'], k: {
+    s: { n: '禁区射门', bs: 1, q: '结果？', o: ['g', 'c', 'n'], k: R3 },
+    n: { n: '无禁区射门' } } },
+  b: { n: '回传' },
+  g: { n: '丢球' }
+};
+const CH = ['x', 'l', 'm', 'b', 'g'];
+const ROOT = { n: '', q: '选哪一个？', o: CH, k: TREE };
+function walk(pa){
+  const out = []; let nd = ROOT; pa = String(pa || '');
+  for (let j = 0; j < pa.length; j++){ const c = pa[j]; if (!nd.k || !nd.k[c]) break; nd = nd.k[c]; out.push(nd); }
+  return out;
+}
+const cleanPa = pa => String(pa || '').slice(0, walk(pa).length);
+const tipOf = pa => { const w = walk(pa); return w.length ? w[w.length - 1] : ROOT; };
+const isDone = pa => { const w = walk(pa); return w.length > 0 && !w[w.length - 1].o; };
+const resOf = pa => { const w = walk(pa), t = w[w.length - 1]; return t && t.r ? t.r : null; };
+const hasBox = pa => walk(pa).some(n => n.bs);
+const paLabel = (pa, sep) => walk(pa).map(n => n.s || n.n).join(sep || ' › ');
+const CHN = { x: '传中', l: '远射', m: '中路渗透', b: '回传', g: '丢球' };
+
+/* ================= 第一部分（主观，随时可以改）和两个问题 =================
+   数值存成第几个选项（0 开始，跟画面上从左到右的顺序一样）。两个问题显示成 1–5。 */
+const P1 = [
+  { f: 'bq', col: 3, n: '球权', s: '球权', o: ['多', '中', '少'], ab: ['多', '中', '少'] },
+  { f: 'nd', col: 1, n: '到禁区附近的难度', s: '难度', o: ['没难度', '有难度但小', '有难度但进得去', '有很大难度但勉强进得去', '难且进不去'], ab: ['没难度', '难度小', '进得去', '勉强进', '进不去'] },
+  { f: 'yy', col: 3, n: '到禁区附近的意愿', s: '意愿', o: ['强', '中', '弱'], ab: ['强', '中', '弱'] },
+  { f: 'cm', col: 1, n: '到禁区附近的场面', s: '场面', o: ['包饺子', '包一会饺子然后转换球权', '快速转换球权'], ab: ['包饺子', '包一会', '快转换'] }
+];
+const QS = [
+  { f: 'q1', n: '他容不容易到对方禁区附近？', s: '容不容易到禁区附近', o: ['很难', '难', '一般', '容易', '很容易'] },
+  { f: 'q2', n: '他喜不喜欢传中和远射？', s: '喜不喜欢传中和远射', o: ['很不喜欢', '不喜欢', '一般', '喜欢', '很喜欢'] }
+];
+const SVF = {}; P1.concat(QS).forEach(x => { SVF[x.f] = x; });
+const svText = (f, v) => { const x = SVF[f]; if (v == null) return '没选'; return f[0] === 'q' ? (v + 1) + ' ' + x.o[v] : x.o[v]; };
+const SIMPLE = { ar: '到达', ck: '其他角球', gl: '进球', rc: '红牌' };
+
+/* ================= 保存 ================= */
+const KEY = 'corner-reach-matches', CURK = 'corner-reach-current';
+let store = LS.get(KEY, {}) || {};
+let M = null, seq = 0;
+const PER = { 1: [0, 2700, '上半场'], 2: [2700, 5400, '下半场'] };
+function newMatch(prev){
+  const d = new Date();
+  return { id: 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), c: nowSec(), u: nowSec(),
+    d: d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()), lg: prev ? prev.lg : '', h: '', a: '', st: 1,
+    tm: { p: 1, b: 0, r: 0, at: 0, ht: 0 }, pe: {}, obs: null, stop: null, note: '', keep: 0, api: null, apiNo: null, kw: null, ev: [], sv: [] };
+}
+const numOr = (v, d) => ok(v) ? v : d;
+function fixEv(e){
+  if (!e || !SIMPLE[e.c] || !PER[e.p] || (e.i !== 0 && e.i !== 1)) return null;
+  const x = { t: Math.max(0, Math.round(numOr(+e.t, 0))), p: +e.p, i: e.i, c: e.c, k: ++seq };
+  if (e.c === 'ar'){ x.pa = cleanPa(e.pa); if (ok(+e.dt) && e.dt !== null && e.dt !== '') x.dt = Math.max(0, Math.round(+e.dt * 10) / 10); }
+  else { if (e.b) x.b = 1; if (e.a) x.a = 1; }
+  return x;
+}
+function fixSv(s){
+  if (!s || !SVF[s.f] || !PER[s.p] || (s.i !== 0 && s.i !== 1)) return null;
+  const n = SVF[s.f].o.length, v = s.v == null ? null : Math.round(+s.v);
+  if (v != null && !(v >= 0 && v < n)) return null;
+  return { t: Math.max(0, Math.round(numOr(+s.t, 0))), p: +s.p, i: s.i, f: s.f, v: v, k: ++seq };
+}
+function fixMatch(m){
+  m.lg = String(m.lg || ''); m.h = String(m.h || ''); m.a = String(m.a || ''); m.d = String(m.d || '');
+  m.st = m.st === 2 ? 2 : 1;
+  const tm = m.tm && PER[m.tm.p] ? m.tm : { p: 1, b: 0, r: 0, at: 0, ht: 0 };
+  m.tm = { p: +tm.p, b: Math.max(0, numOr(tm.b, 0)), r: tm.r ? 1 : 0, at: numOr(tm.at, 0), ht: tm.ht ? 1 : 0 };
+  const pe = m.pe && typeof m.pe === 'object' ? m.pe : {};
+  m.pe = {}; for (const p of [1, 2]) if (ok(pe[p])) m.pe[p] = pe[p];
+  m.obs = m.obs && PER[m.obs.p] ? { p: +m.obs.p, t: Math.max(0, numOr(m.obs.t, 0)) } : null;
+  m.stop = m.stop && PER[m.stop.p] ? { p: +m.stop.p, t: Math.max(0, numOr(m.stop.t, 0)) } : null;
+  m.note = String(m.note || ''); m.keep = m.keep ? 1 : 0;
+  m.api = m.api && typeof m.api === 'object' && isFinite(+m.api.id) ? Object.assign({}, m.api, { id: +m.api.id, sw: m.api.sw ? 1 : 0 }) : null;
+  m.apiNo = typeof m.apiNo === 'string' ? m.apiNo : null; m.apiErr = null;
+  m.kw = m.kw && typeof m.kw === 'object' ? m.kw : null;
+  m.ev = (Array.isArray(m.ev) ? m.ev : []).map(fixEv).filter(Boolean);
+  m.sv = (Array.isArray(m.sv) ? m.sv : []).map(fixSv).filter(Boolean);
+  sortEv(m);
+  return m;
+}
+const byTime = (x, y) => x.p - y.p || x.t - y.t || x.k - y.k;
+const sortEv = m => { m.ev.sort(byTime); m.sv.sort(byTime); };
+let saveT = 0;
+function saveNow(){
+  clearTimeout(saveT); saveT = 0;
+  M.u = nowSec();
+  const empty = !M.ev.length && !M.sv.length && !M.h && !M.a && !M.tm.b && !M.tm.r;
+  if (!empty || store[M.id]) store[M.id] = M;
+  if (!LS.set(KEY, store)) showToast('保存失败：空间可能不足，请先导出备份');
+  LS.set(CURK, M.id);
+}
+const save = () => { clearTimeout(saveT); saveT = setTimeout(saveNow, 300); };
+window.addEventListener('pagehide', () => { if (saveT) saveNow(); });
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden' && saveT) saveNow(); });
+for (const id in store){ if (store[id] && typeof store[id] === 'object') fixMatch(store[id]); else delete store[id]; }
+M = store[LS.get(CURK, '')] || newMatch();
+const PREF = Object.assign({ scope: 'auto', mode: 'rec' }, LS.get('corner-reach-pref', {}) || {});
+const savePref = () => LS.set('corner-reach-pref', PREF);
+
+/* ================= 计时（跟“角球数据记录”一样） ================= */
+const clockOf = m => m.tm.r ? m.tm.b + (Date.now() - m.tm.at) / 1000 : m.tm.b;
+function fmtClock(p, t){
+  t = Math.max(0, Math.floor(t)); const end = PER[p][1];
+  if (t > end){ const x = t - end; return (end / 60) + '+' + Math.floor(x / 60) + ':' + pad2(x % 60); }
+  return pad2(Math.floor(t / 60)) + ':' + pad2(t % 60);
+}
+function fmtMin(p, t){ const end = PER[p][1]; t = Math.max(0, Math.floor(t)); return t > end ? (end / 60) + '+' + (Math.floor((t - end) / 60) + 1) + "'" : (Math.floor(t / 60) + 1) + "'"; }
+const maxT = (m, p) => { let a = 0; for (const e of m.ev) if (e.p === p && !e.b) a = Math.max(a, e.t); for (const s of m.sv) if (s.p === p) a = Math.max(a, s.t); return a; };
+const curP = () => M.tm.ht ? 1 : M.tm.p;
+function startClock(){
+  if (!M.tm.r){ M.tm.r = 1; M.tm.at = Date.now(); }
+  M.tm.ht = 0;
+  if (!M.obs) M.obs = { p: M.tm.p, t: Math.round(M.tm.b) };
+}
+function pauseClock(){ if (M.tm.r){ M.tm.b = Math.round(clockOf(M)); M.tm.r = 0; } }
+function setClock(sec){ M.tm.b = Math.max(PER[M.tm.p][0], Math.round(sec)); if (M.tm.r) M.tm.at = Date.now(); }
+function kick(p){
+  if (p === 1){ M.obs = { p: 1, t: 0 }; }
+  if (p === 2){
+    if (!M.pe[1]){ const c = clockOf(M); M.pe[1] = M.tm.p === 1 && c >= 2700 && c <= 3900 ? Math.round(c) : Math.max(2700, maxT(M, 1)); }
+    if (!M.obs) M.obs = { p: 2, t: 2700 };
+  }
+  M.tm = { p: p, b: PER[p][0], r: 1, at: Date.now(), ht: 0 };
+  if (M.st === 2){ M.st = 1; M.stop = null; }
+  M.kw = Object.assign({}, M.kw); M.kw[p] = nowSec();
+  return M.api ? delayFromKick() : null;
+}
+function endFirstHalf(){
+  pauseClock();
+  M.pe[1] = Math.max(Math.round(clockOf(M)), maxT(M, 1), 2700);
+  M.tm.ht = 1;
+}
+function finishMatch(){
+  const ht = M.tm.ht;
+  pauseClock();
+  const p = ht ? 1 : M.tm.p;
+  const t = Math.max(ht && M.pe[1] ? M.pe[1] : Math.round(clockOf(M)), maxT(M, p));
+  M.stop = { p: p, t: t };
+  if (p === 2 && t >= PER[2][1] && t <= PER[2][1] + 1200) M.pe[2] = t;
+  M.st = 2; M.tm.ht = 0;
+}
+/* 选时间：半场按钮＋拖动条＋加减按钮。tp = { p, v, live, at } */
+const TPR = { 1: [0, 3600], 2: [2700, 6300] };
+const TPL = { 1: ["0'", "15'", "30'", "45'", '+15'], 2: ["45'", "60'", "75'", "90'", '+15'] };
+const tpNow = tp => tp.live && tp.at ? clamp(tp.v + Math.floor((Date.now() - tp.at) / 1000), TPR[tp.p][0], TPR[tp.p][1]) : tp.v;
+function tpSet(tp, v){ tp.v = clamp(Math.round(v), TPR[tp.p][0], TPR[tp.p][1]); if (tp.live) tp.at = Date.now(); }
+function tpHTML(tp){
+  const a = TPR[tp.p][0], b = TPR[tp.p][1], v = tpNow(tp);
+  return '<div class="tp"><div class="chips">' + [1, 2].map(q => '<button class="chip" data-a="tpp" data-p="' + q + '" aria-pressed="' + (tp.p === q) + '">' + PER[q][2] + '</button>').join('') + '</div>'
+    + '<div class="tpv" id="tpV">' + fmtClock(tp.p, v) + '</div>'
+    + '<input type="range" class="tpr" id="tpR" min="' + a + '" max="' + b + '" step="60" value="' + Math.floor(v / 60) * 60 + '" aria-label="比赛时间">'
+    + '<div class="tps" aria-hidden="true">' + TPL[tp.p].map((x, j) => '<span style="left:' + (j * 25) + '%">' + x + '</span>').join('') + '</div>'
+    + '<div class="tpb">' + [[-60, '−1 分'], [-30, '−30 秒'], [-10, '−10 秒'], [10, '＋10 秒'], [30, '＋30 秒'], [60, '＋1 分']].map(x => '<button class="chip" data-a="tpn" data-d="' + x[0] + '">' + x[1] + '</button>').join('') + '</div></div>';
+}
+function tpShow(tp){
+  const v = $('#tpV'), r = $('#tpR'), g = $('#jgoT'), x = tpNow(tp);
+  if (v) v.textContent = fmtClock(tp.p, x);
+  if (r && document.activeElement !== r && +r.value !== Math.floor(x / 60) * 60) r.value = Math.floor(x / 60) * 60;
+  if (g) g.textContent = fmtClock(tp.p, x);
+}
+function tpHalf(tp, q){
+  if (q === tp.p) return;
+  const v = tpNow(tp);
+  tp.p = q; tpSet(tp, q === 2 ? v + PER[2][0] : v - PER[2][0]);
+}
+
+/* ================= 事件 ================= */
+function nowStamp(){
+  const p = curP();
+  const t = M.tm.ht ? (M.pe[1] || clockOf(M)) : clockOf(M);
+  return { p: p, t: Math.round(t) };
+}
+function addEv(i, c, extra){
+  const s = nowStamp();
+  if (!M.obs) M.obs = { p: s.p, t: Math.min(s.t, PER[s.p][0]) };
+  const e = Object.assign({ t: s.t, p: s.p, i: i, c: c, k: ++seq }, extra || {});
+  M.ev.push(e); M.ev.sort(byTime);
+  save();
+  return e;
+}
+const evByK = k => { for (const e of M.ev) if (e.k === k) return e; return null; };
+const svByK = k => { for (const s of M.sv) if (s.k === k) return s; return null; };
+function removeEv(e){ const j = M.ev.indexOf(e); if (j >= 0) M.ev.splice(j, 1); save(); }
+function lastOf(i){ let best = null; for (const e of M.ev) if ((i == null || e.i === i) && !e.b && (!best || e.k > best.k)) best = e; return best; }
+/* 主观选择：同一项 20 秒内又改，当作改正（取代上一笔），不另记一笔 */
+function setSv(i, f, v){
+  const s = nowStamp(), cur = svCur(M, i, f);
+  if (cur && cur.p === s.p && Math.abs(s.t - cur.t) <= 20 && cur.k === lastSvK(i, f) && Date.now() - (cur.at || 0) < 20000){
+    cur.v = v; cur.t = s.t; cur.at = Date.now(); M.sv.sort(byTime); save(); return cur;
+  }
+  if (!M.obs) M.obs = { p: s.p, t: Math.min(s.t, PER[s.p][0]) };
+  const x = { t: s.t, p: s.p, i: i, f: f, v: v, k: ++seq, at: Date.now() };
+  M.sv.push(x); M.sv.sort(byTime); save();
+  return x;
+}
+const lastSvK = (i, f) => { let k = 0; for (const s of M.sv) if (s.i === i && s.f === f && s.k > k) k = s.k; return k; };
+/* 现在的选择：最后记的那一笔；某个时间点的选择：那个时间以前最后一笔 */
+function svCur(m, i, f){ let best = null; for (const s of m.sv) if (s.i === i && s.f === f && (!best || s.k > best.k)) best = s; return best; }
+function svAt(m, i, f, p, t){ let best = null; for (const s of m.sv) if (s.i === i && s.f === f && (s.p < p || (s.p === p && s.t <= t))) best = s; return best; }
+
+/* ================= 计算：看了多久、各种次数 ================= */
+function halfSpan(m, p){
+  const o = m.obs || { p: 1, t: 0 };
+  if (o.p > p) return null;
+  const S = o.p === p ? o.t : PER[p][0];
+  const cp = m.tm.ht ? 1 : m.tm.p;
+  let E;
+  if (m.st === 2 && m.stop){
+    if (p < m.stop.p) E = m.pe[p] || PER[p][1];
+    else if (p === m.stop.p) E = m.stop.t;
+    else return null;
+  } else if (p < cp) E = m.pe[p] || PER[p][1];
+  else if (p === cp) E = m.tm.ht ? (m.pe[1] || clockOf(m)) : clockOf(m);
+  else return null;
+  E = Math.max(E, maxT(m, p));
+  return E > S ? [S, E] : null;
+}
+function minsOf(m, scope){
+  let s = 0;
+  for (const p of scope === 'ft' ? [1, 2] : [+scope[1]]){ const sp = halfSpan(m, p); if (sp) s += (sp[1] - sp[0]) / 60; }
+  return s;
+}
+/* 整个半场都有看到：开始不晚于开球后 5 分钟，而且这个半场已经结束 */
+function fullHalf(m, p){
+  const sp = halfSpan(m, p); if (!sp) return false;
+  const o = m.obs || { p: 1, t: 0 };
+  const startOk = o.p < p || (o.p === p && o.t <= PER[p][0] + 300);
+  const ended = p === 1 ? (!!m.pe[1] || (m.st === 2 && m.stop && m.stop.p === 2) || m.tm.p === 2) : (m.st === 2 && m.stop && m.stop.p === 2 && m.stop.t >= PER[2][1] - 120);
+  return startOk && !!ended;
+}
+/* 一队在一个范围（h1 上半场、h2 下半场、ft 全场）的所有次数 */
+function statOf(m, i, scope){
+  const want = scope === 'ft' ? 0 : +scope[1];
+  const r = { ar: 0, ch: { x: 0, l: 0, m: 0, b: 0, g: 0 }, none: 0, chosen: 0, dt: [], dtc: { x: [], l: [], m: [], b: [], g: [] },
+    io: { x: [0, 0], l: [0, 0] }, xn: { s: 0, c: 0 }, mn: { s: 0, n: 0 }, bs: 0, ls: 0, sh: 0,
+    ck: 0, ckc: 0, cks: { x: 0, l: 0, m: 0, o: 0 }, ckb: 0, cka: 0, gl: 0, glb: 0, rc: 0 };
+  for (const e of m.ev){
+    if (e.i !== i || (want && e.p !== want)) continue;
+    if (e.c === 'ar'){
+      r.ar++;
+      const ch = e.pa ? e.pa[0] : '';
+      if (!ch){ r.none++; continue; }
+      r.ch[ch]++; r.chosen++;
+      if (ok(e.dt)){ r.dt.push(e.dt); r.dtc[ch].push(e.dt); }
+      if ((ch === 'x' || ch === 'l') && e.pa.length > 1) r.io[ch][e.pa[1] === 'i' ? 0 : 1]++;
+      if (ch === 'x' && e.pa.length > 2) r.xn[e.pa[2]]++;
+      if (ch === 'm' && e.pa.length > 1) r.mn[e.pa[1]]++;
+      if (ch === 'l') r.ls++;
+      if (hasBox(e.pa)) r.bs++;
+      const res = resOf(e.pa);
+      if (res === 'c'){ r.ck++; r.ckc++; r.cks[ch]++; }
+      else if (res === 'g') r.gl++;
+    } else if (e.c === 'ck'){ r.ck++; if (e.b) r.ckb++; else { r.cks.o++; if (e.a) r.cka++; } }
+    else if (e.c === 'gl'){ r.gl++; if (e.b) r.glb++; }
+    else if (e.c === 'rc') r.rc++;
+  }
+  r.sh = r.bs + r.ls;
+  return r;
+}
+const score = m => [statOf(m, 0, 'ft').gl, statOf(m, 1, 'ft').gl];
+const cornersOf = (m, scope) => [statOf(m, 0, scope).ck, statOf(m, 1, scope).ck];
+const avg = a => a.length ? a.reduce((s, x) => s + x, 0) / a.length : null;
+function median(a){ if (!a.length) return null; const s = a.slice().sort((x, y) => x - y), n = s.length; return n % 2 ? s[(n - 1) / 2] : (s[n / 2 - 1] + s[n / 2]) / 2; }
+/* 每个选择状态停留了几分钟、那段时间几个角球（统计和导出用） */
+function stateSplit(m, i, f, scope){
+  const out = {}; const n = SVF[f].o.length;
+  for (let v = -1; v < n; v++) out[v] = { mins: 0, ck: 0, ar: 0, xl: 0 };
+  const ps = scope === 'ft' || !scope ? [1, 2] : [+scope[1]];
+  for (const p of ps){
+    const sp = halfSpan(m, p); if (!sp) continue;
+    // 这个半场里的切换点
+    const cuts = [];
+    for (const s of m.sv) if (s.i === i && s.f === f && s.p === p && s.t > sp[0] && s.t < sp[1]) cuts.push(s.t);
+    let t0 = sp[0];
+    const pts = cuts.concat([sp[1]]);
+    for (const t1 of pts){
+      if (t1 > t0){ const s = svAt(m, i, f, p, t0), v = s && s.v != null ? s.v : -1; out[v].mins += (t1 - t0) / 60; }
+      t0 = t1;
+    }
+    for (const e of m.ev){
+      if (e.i !== i || e.p !== p || e.b) continue;
+      if (e.t < sp[0] || e.t > sp[1]) continue;
+      const s = svAt(m, i, f, p, e.t), v = s && s.v != null ? s.v : -1;
+      if (e.c === 'ck' || (e.c === 'ar' && resOf(e.pa) === 'c')) out[v].ck++;
+      if (e.c === 'ar'){ out[v].ar++; if (e.pa && (e.pa[0] === 'x' || e.pa[0] === 'l')) out[v].xl++; }
+    }
+  }
+  return out;
+}
+
+/* ================= 统计面板 =================
+   iPad 在两队中间，手机在底部“统计”。全部用两队对比：左边主队（蓝）、右边客队（红），
+   条从中间往外长，长度跟这一行比较大的那一队比。比例用一整条分成几块（像摊平的饼图）。 */
+function scopeNow(){ if (PREF.scope !== 'auto') return PREF.scope; return 'h' + curP(); }
+const SCN = { h1: '上半场', h2: '下半场', ft: '全场' };
+const CHC = { x: 'c-x', l: 'c-l', m: 'c-m', b: 'c-b', g: 'c-g' };
+const DT_MAX = 60;   // 超过 60 秒才选，多半是忘了点，不算进用时
+const fmtS = v => ok(v) ? (v < 9.95 ? v.toFixed(1) : String(Math.round(v))) : '—';
+const teamDot = i => '<i style="background:var(--' + (i ? 'am' : 'hm') + ')"></i>';
+function mrow(lab, hv, av, o){
+  o = o || {};
+  const fm = o.fmt || (v => String(v)), tx = v => v == null || (typeof v === 'number' && !isFinite(v)) ? '—' : fm(v);
+  const mx = Math.max(hv || 0, av || 0), w = v => mx > 0 && v ? Math.max(2, v / mx * 100) : 0;
+  const u = o.unit ? '<small>' + o.unit + '</small>' : '';
+  return '<div class="mr' + (o.big ? ' big' : '') + '"><div class="mr-t"><span class="v h' + (hv == null ? ' dim' : '') + '">' + tx(hv) + (hv != null ? u : '') + '</span>'
+    + '<span class="lb">' + (o.dot ? '<i class="' + o.dot + '"></i>' : '') + lab + '</span>'
+    + '<span class="v a' + (av == null ? ' dim' : '') + '">' + tx(av) + (av != null ? u : '') + '</span></div>'
+    + '<div class="mb" aria-hidden="true"><span class="h" style="width:' + w(hv).toFixed(1) + '%"></span><span class="a" style="width:' + w(av).toFixed(1) + '%"></span></div></div>';
+}
+/* 一整条分成几块；放得下才在块里写比例（或次数） */
+function segBar(parts, o){
+  o = o || {};
+  const tot = parts.reduce((s, p) => s + p.v, 0);
+  if (!tot) return '<div class="sgb none">' + (o.empty || '还没有') + '</div>';
+  return '<div class="sgb" role="img" aria-label="' + esc(parts.filter(p => p.v).map(p => p.n + ' ' + p.v + '（' + pc(p.v / tot) + '）').join('，')) + '">'
+    + parts.filter(p => p.v > 0).map(p => { const sh = p.v / tot, lab = o.count ? (sh >= 0.09 ? String(p.v) : '') : (sh >= 0.13 ? pc(sh) : '');
+      return '<i class="' + p.c + '" style="-webkit-flex:' + p.v + ' 1 0;flex:' + p.v + ' 1 0">' + lab + '</i>'; }).join('') + '</div>';
+}
+const segLegend = list => '<div class="sgl">' + list.map(x => '<span><i class="' + x[0] + '"></i>' + x[1] + '</span>').join('') + '</div>';
+function meter(i, inn, out, cls){
+  const n = inn + out, w = n ? inn / n * 100 : 0;
+  return '<div class="mtr"><span class="who">' + teamDot(i) + (i ? '客' : '主') + '</span>'
+    + '<div class="mtk" role="img" aria-label="' + (n ? '内 ' + inn + '，外 ' + out : '还没有') + '"><span class="' + cls + '" style="width:' + w.toFixed(1) + '%"></span></div>'
+    + '<span class="r">' + (n ? inn + '/' + n + '<small>' + pc(inn / n) + '</small>' : '<small>还没有</small>') + '</span></div>';
+}
+function renderStats(){
+  const el = $('#stats'); if (!el) return;
+  const sc = scopeNow(), mins = minsOf(M, sc);
+  const S = [statOf(M, 0, sc), statOf(M, 1, sc)];
+  const per10 = r => mins >= 1 ? r.ar / mins * 10 : null;
+  let h = '<div class="st"><div class="st-h"><div class="seg" role="group" aria-label="统计范围">' + ['h1', 'h2', 'ft'].map(k => '<button data-a="scope" data-v="' + k + '" aria-pressed="' + (sc === k) + '">' + SCN[k] + '</button>').join('') + '</div>'
+    + '<div class="lgd"><span>' + teamDot(0) + '<span class="tm">' + esc(teamName(0)) + '</span></span><span>' + teamDot(1) + '<span class="tm">' + esc(teamName(1)) + '</span></span><span class="mins">看了 ' + Math.floor(mins) + ' 分钟</span></div></div>';
+  // 到达
+  h += '<div class="sec"><h4>到达禁区附近</h4>' + mrow('到达次数', S[0].ar, S[1].ar, { big: true })
+    + mrow('每 10 分钟', per10(S[0]), per10(S[1]), { fmt: fmtS }) + '</div>';
+  // 选择
+  const any = S[0].chosen + S[1].chosen > 0;
+  h += '<div class="sec"><h4>到达后的选择<small>（每队一条＝100%）</small></h4>';
+  if (any){
+    for (const i of [0, 1]) h += '<div class="sgr"><span class="who">' + teamDot(i) + (i ? '客' : '主') + '</span>' + segBar(CH.map(c => ({ c: CHC[c], v: S[i].ch[c], n: CHN[c] })), { empty: '还没有选择' }) + '</div>';
+    h += segLegend(CH.map(c => [CHC[c], CHN[c]]));
+    const xl = r => r.chosen ? (r.ch.x + r.ch.l) / r.chosen : null;
+    h += mrow('传中＋远射 占比', xl(S[0]), xl(S[1]), { fmt: pc, big: true });
+    for (const c of CH) h += mrow(CHN[c], S[0].ch[c], S[1].ch[c], { dot: CHC[c] });
+    h += mrow('禁区射门', S[0].bs, S[1].bs);
+    const nn = [0, 1].map(i => { const e = ocEv(i); return S[i].none - (e && !e.pa && (sc === 'ft' || e.p === +sc[1]) ? 1 : 0); });   // 正在选的那次不算
+    if (nn[0] + nn[1]) h += '<p class="snote">没选就结束的到达：主 ' + nn[0] + '、客 ' + nn[1] + '（不算进比例）</p>';
+  } else h += '<p class="empty">还没有选择。点“到达”，再点传中、远射、中路渗透、回传或丢球。</p>';
+  h += '</div>';
+  // 用时
+  const dts = r => r.dt.filter(x => x <= DT_MAX), dtc = (r, c) => r.dtc[c].filter(x => x <= DT_MAX);
+  if (dts(S[0]).length + dts(S[1]).length){
+    h += '<div class="sec"><h4>从到达到做出选择<small>（秒）</small></h4>'
+      + mrow('平均', avg(dts(S[0])), avg(dts(S[1])), { fmt: fmtS, unit: '秒', big: true })
+      + mrow('中位数', median(dts(S[0])), median(dts(S[1])), { fmt: fmtS, unit: '秒' });
+    for (const c of CH) if (dtc(S[0], c).length + dtc(S[1], c).length) h += mrow(CHN[c], avg(dtc(S[0], c)), avg(dtc(S[1], c)), { fmt: fmtS, unit: '秒', dot: CHC[c] });
+    h += '<p class="snote">时间越短越果断。超过 ' + DT_MAX + ' 秒的不算（多半是忘了点）；没按“到达”直接点选择的，用时不详。</p></div>';
+  }
+  // 内外
+  h += '<div class="sec"><h4>命中范围<small>（内的比例）</small></h4>';
+  for (const c of ['x', 'l']){
+    h += '<div class="mtg"><h5><i class="' + CHC[c] + '"></i>' + CHN[c] + '</h5>' + meter(0, S[0].io[c][0], S[0].io[c][1], CHC[c]) + meter(1, S[1].io[c][0], S[1].io[c][1], CHC[c]) + '</div>';
+  }
+  h += '<p class="snote">传中、远射很多但老是在范围外，也很难造成角球。</p></div>';
+  // 射门和角球
+  h += '<div class="sec"><h4>射门和角球</h4>'
+    + mrow('禁区射门', S[0].bs, S[1].bs) + mrow('远射', S[0].ls, S[1].ls) + mrow('射门合计', S[0].sh, S[1].sh)
+    + mrow('角球', S[0].ck, S[1].ck, { big: true }) + mrow('进球', S[0].gl, S[1].gl);
+  if (S[0].ck + S[1].ck){
+    h += '<h4 style="margin-top:4px">角球从哪里来</h4>';
+    for (const i of [0, 1]) h += '<div class="sgr"><span class="who">' + teamDot(i) + (i ? '客' : '主') + '</span>' + segBar([['c-x', 'x', '传中'], ['c-l', 'l', '远射'], ['c-m', 'm', '中路渗透'], ['c-o', 'o', '其他']].map(x => ({ c: x[0], v: S[i].cks[x[1]], n: x[2] })), { count: true, empty: S[i].ckb ? '都是加入前的' : '还没有' }) + '</div>';
+    h += segLegend([['c-x', '传中'], ['c-l', '远射'], ['c-m', '中路渗透'], ['c-o', '其他角球']]);
+    if (S[0].ckb + S[1].ckb) h += '<p class="snote">角球总数包括中途加入前的（主 ' + S[0].ckb + '、客 ' + S[1].ckb + '），来源里不算。</p>';
+  }
+  h += '</div></div>';
+  el.innerHTML = h;
+}
+
+/* ================= 画面 ================= */
+const FLAG = '<svg viewBox="0 0 18 18" aria-hidden="true"><path d="M4 17V1.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M4.8 2h10l-3 3.2 3 3.2h-10z" fill="currentColor"/></svg>';
+const PLAY = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9.5-5.5z" fill="currentColor"/></svg>';
+const PAUSE = '<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="3.5" y="2.5" width="3" height="11" rx="1" fill="currentColor"/><rect x="9.5" y="2.5" width="3" height="11" rx="1" fill="currentColor"/></svg>';
+const IC = {
+  undo: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7 5L3 9l4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M3.5 9H12a4.5 4.5 0 010 9H9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
+  stats: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3.5v13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><rect x="3" y="5" width="6" height="3" rx="1.2" fill="currentColor"/><rect x="11" y="5" width="4" height="3" rx="1.2" fill="currentColor" opacity=".55"/><rect x="5" y="12" width="4" height="3" rx="1.2" fill="currentColor"/><rect x="11" y="12" width="6" height="3" rx="1.2" fill="currentColor" opacity=".55"/></svg>',
+  list: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7 6h10M7 10h10M7 14h10" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="3.5" cy="6" r="1.2" fill="currentColor"/><circle cx="3.5" cy="10" r="1.2" fill="currentColor"/><circle cx="3.5" cy="14" r="1.2" fill="currentColor"/></svg>',
+  arch: '<svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2.5" y="3" width="15" height="4" rx="1.2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M4 7v9a1 1 0 001 1h10a1 1 0 001-1V7M8 10.5h4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
+  menu: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 6h12M4 10h12M4 14h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
+  sync: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M16 10a6 6 0 1 1-1.8-4.3M16 3.5v3.5h-3.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+};
+const teamName = i => (i ? M.a : M.h).trim() || (i ? '客队' : '主队');
+const isOpen = e => OC.some(o => o && o.k === e.k);
+function evLabel(e){
+  if (e.c === 'ar'){
+    const open = isOpen(e) && !isDone(e.pa);
+    if (open && !e.pa) return '到达 · 选择中';
+    return '到达' + (e.pa ? ' › ' + paLabel(e.pa) : ' · 没选') + (ok(e.dt) ? '（' + fmtS(e.dt) + ' 秒）' : '') + (open ? ' …' : '');
+  }
+  if (e.c === 'ck') return e.b ? '角球（加入前）' : '其他角球';
+  if (e.c === 'gl') return e.b ? '进球（补录）' : '进球';
+  return SIMPLE[e.c] || e.c;
+}
+const svLabel = s => SVF[s.f].s + ' → ' + svText(s.f, s.v);
+
+function renderHeader(){
+  const fh = $('#fH'), fa = $('#fA'), fl = $('#fLg');
+  for (const el of [fh, fa, fl]) el.readOnly = M.st === 2;
+  if (document.activeElement !== fh) fh.value = M.h;
+  if (document.activeElement !== fa) fa.value = M.a;
+  if (document.activeElement !== fl) fl.value = M.lg;
+  $('#mDate').textContent = M.d + (M.st === 2 ? ' · 已结束' : '');
+  const sc = score(M), ck = cornersOf(M, 'ft');
+  $('#glH').textContent = sc[0]; $('#glA').textContent = sc[1];
+  const p = curP(), ck2 = cornersOf(M, 'h2');
+  $('#ckH').textContent = '角球 ' + ck[0] + (p === 2 && ck[0] !== ck2[0] ? '（下 ' + ck2[0] + '）' : '');
+  $('#ckA').textContent = '角球 ' + ck[1] + (p === 2 && ck[1] !== ck2[1] ? '（下 ' + ck2[1] + '）' : '');
+  tickClock();
+}
+function tickClock(){
+  const p = M.tm.p, t = clockOf(M), run = !!M.tm.r;
+  $('#clkT').textContent = M.tm.ht ? '中场' : fmtClock(p, t);
+  $('#perL').textContent = M.st === 2 ? '已结束' : M.tm.ht ? '休息' : PER[p][2];
+  $('#clk').classList.toggle('idle', !run);
+  const rb = $('#runBtn'); rb.innerHTML = run ? PAUSE : PLAY; rb.classList.toggle('on', run);
+  rb.setAttribute('aria-label', run ? '暂停计时' : (M.tm.ht ? '下半场开球' : '开始计时'));
+}
+function renderMode(){
+  document.body.classList.toggle('qmode', PREF.mode === 'q');
+  $$('#mseg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === PREF.mode)));
+}
+
+/* ---------- 到达与选择：每队一栏 ---------- */
+const OC = [null, null];   // 正在选的那次到达：{ k 事件, at 按到达的时间(毫秒，0＝不详), dt 第一次选择的用时 }
+let lastAdd = null;        // 刚点的事件（撤销按钮会亮一下）
+function ocEv(i){ const o = OC[i]; if (!o) return null; const e = evByK(o.k); if (!e || e.c !== 'ar' || isDone(e.pa)){ OC[i] = null; return null; } return e; }
+function lastArr(i){ let best = null; for (const e of M.ev) if (e.i === i && e.c === 'ar' && (!best || e.k > best.k)) best = e; return best; }
+const ocSecs = i => OC[i] && OC[i].at ? (Date.now() - OC[i].at) / 1000 : null;
+function p1SumHTML(i){
+  return '<div class="p1s" role="group" aria-label="第一部分：点一项修改">' + P1.map(x => {
+    const s = svCur(M, i, x.f), v = s ? s.v : null;
+    return '<button data-a="p1" data-i="' + i + '" data-f="' + x.f + '" aria-label="' + x.n + '：' + (v == null ? '未选' : x.o[v]) + '"><em>' + x.s + '</em><b' + (v == null ? ' class="na"' : '') + '>' + (v == null ? '未选' : x.ab[v]) + '</b></button>';
+  }).join('') + '</div>';
+}
+function optBtn(i, c, name, o){
+  o = o || {};
+  return '<button class="k' + (o.r ? ' res-' + o.r : '') + '" data-a="pick" data-i="' + i + '" data-v="' + c + '">' + (o.dot ? '<i class="' + o.dot + '"></i>' : '')
+    + '<span class="lw"><span class="l">' + name + '</span>' + (o.sub ? '<small>' + o.sub + '</small>' : '') + '</span>' + (o.n != null ? '<span class="c">' + o.n + '</span>' : '') + '</button>';
+}
+function stageHTML(i, r){
+  const e = ocEv(i);
+  if (!e){
+    const last = lastArr(i);
+    const head = last ? '<span class="last">上一次：' + esc(last.pa ? paLabel(last.pa) : '没选') + (ok(last.dt) ? ' · ' + fmtS(last.dt) + ' 秒' : '') + '</span>' : '<span class="last">到了对方禁区附近点“到达”，做出选择时再点</span>';
+    return '<div class="stage idle"><div class="sth">' + head + '</div><div class="sto n5">' + CH.map(c => optBtn(i, c, CHN[c], { dot: CHC[c], n: r.ch[c] })).join('') + '</div></div>';
+  }
+  const pa = e.pa || '', nd = tipOf(pa);
+  if (!pa){
+    const s = ocSecs(i);
+    return '<div class="stage open"><div class="sth"><span class="pulse"></span><span class="tm" id="tm' + i + '">' + (s == null ? '—' : fmtS(s)) + '<small>秒</small></span><span class="q">选哪一个？</span></div>'
+      + '<div class="sto n5">' + CH.map(c => optBtn(i, c, CHN[c], { dot: CHC[c], n: r.ch[c] })).join('') + '</div>'
+      + '<div class="stf"><button data-a="stx" data-i="' + i + '">取消这次到达</button><button data-a="ste" data-i="' + i + '">没选就结束</button></div></div>';
+  }
+  return '<div class="stage open"><div class="sth deep"><span class="crumb"><b>' + esc(paLabel(pa)) + '</b>' + (ok(e.dt) ? ' · ' + fmtS(e.dt) + ' 秒' : '') + '</span><span class="q">' + nd.q + '</span></div>'
+    + '<div class="sto n' + nd.o.length + '">' + nd.o.map(c => { const x = nd.k[c]; return optBtn(i, c, x.n, { sub: x.d, r: x.r, dot: x.bs ? 'c-' + pa[0] : null }); }).join('') + '</div>'
+    + '<div class="stf"><button data-a="stb" data-i="' + i + '">返回</button><button data-a="ste" data-i="' + i + '">先这样，结束</button></div></div>';
+}
+function recPadHTML(i, sc){
+  const r = statOf(M, i, sc), last = lastOf(i);
+  const hot = last && lastAdd && lastAdd.k === last.k && Date.now() - lastAdd.at < 8000;
+  return '<div class="pad-h"><i></i><b>' + esc(teamName(i)) + '</b><span class="who">' + (i ? '客对主' : '主对客') + ' · ' + SCN[sc] + '</span><span class="sp"></span>'
+    + '<button class="undo' + (hot ? ' hot' : '') + '" data-a="undoT" data-i="' + i + '" ' + (last ? '' : 'disabled') + '>撤销</button></div>'
+    + p1SumHTML(i)
+    + '<div class="board"><button class="k arb' + (ocEv(i) ? ' on' : '') + '" data-a="ar" data-i="' + i + '"><span class="l">到达</span><span class="c">' + r.ar + '</span></button>'
+    + stageHTML(i, r)
+    + '<button class="k ckb" data-a="ck" data-i="' + i + '">' + FLAG + '<span class="l">其他角球</span><span class="c">' + r.cks.o + '</span></button></div>';
+}
+/* ---------- 两个问题：每队一栏，字大 ---------- */
+function qPadHTML(i){
+  let h = '<div class="pad-h"><i></i><b>' + esc(teamName(i)) + '</b><span class="who">' + (i ? '客对主' : '主对客') + '</span><span class="sp"></span>'
+    + '<button class="qck" data-a="ck" data-i="' + i + '" aria-label="' + esc(teamName(i)) + ' 角球加一">' + FLAG + '<span>角球</span><b>' + statOf(M, i, 'ft').ck + '</b><small>＋1</small></button></div>';
+  for (const q of QS){
+    const s = svCur(M, i, q.f), v = s ? s.v : null;
+    let prev = null; for (const x of M.sv) if (x.i === i && x.f === q.f && s && x.k !== s.k && (!prev || x.k > prev.k)) prev = x;
+    const note = v == null ? '还没选' : fmtMin(s.p, s.t) + ' 选的' + (prev && prev.v != null ? '（之前 ' + (prev.v + 1) + '）' : '');
+    h += '<div class="qcard"><div class="qh"><h3 class="qq">' + q.n + '</h3><span class="qnote">' + note + '</span></div><div class="qlv">'
+      + q.o.map((lab, j) => '<button data-a="qv" data-i="' + i + '" data-f="' + q.f + '" data-v="' + j + '" aria-pressed="' + (v === j) + '" aria-label="' + q.n + ' ' + (j + 1) + ' ' + lab + '"><b>' + (j + 1) + '</b><small>' + lab + '</small></button>').join('') + '</div></div>';
+  }
+  return h;
+}
+function renderPads(){
+  document.body.classList.toggle('ended', M.st === 2);
+  if (M.st === 2){
+    const sc = score(M), ck = cornersOf(M, 'ft');
+    $('.pad[data-i="0"]').innerHTML = '<div class="endc"><h2>这场已经结束</h2>'
+      + '<p class="es"><span class="h">' + esc(teamName(0)) + '</span> ' + sc[0] + '–' + sc[1] + ' <span class="a">' + esc(teamName(1)) + '</span><br>角球 ' + ck[0] + '–' + ck[1] + '</p>'
+      + '<p class="hint">' + (M.keep ? '已加入比赛仓库，可以在仓库里导出、看统计。' : '这场没有加入比赛仓库。') + '</p>'
+      + '<button class="pill green bigp" data-a="new">开始新比赛</button>'
+      + '<button class="pill bigp" data-a="arch">看比赛仓库</button>'
+      + '<button class="linkb" data-a="reopen">要接着记录这场：重新打开</button></div>';
+    $('.pad[data-i="1"]').innerHTML = '';
+    return;
+  }
+  const sc = 'h' + curP();
+  for (const i of [0, 1]) $('.pad[data-i="' + i + '"]').innerHTML = PREF.mode === 'q' ? qPadHTML(i) : recPadHTML(i, sc);
+}
+/* 最近的一笔（事件或主观选择） */
+function lastAny(){
+  let best = null, kind = null;
+  for (const e of M.ev) if (!e.b && (!best || e.k > best.k)){ best = e; kind = 'ev'; }
+  for (const s of M.sv) if (!best || s.k > best.k){ best = s; kind = 'sv'; }
+  return best ? { x: best, kind: kind } : null;
+}
+function renderStrip(){
+  const la = lastAny();
+  $('#qbUndo').innerHTML = IC.undo + '<span>撤销</span>';
+  $('#qbUndo').disabled = !la;
+  $('#qbList').innerHTML = IC.list + '<span>全部记录</span>';
+  $('#qbStats').innerHTML = IC.stats + '<span>统计</span>';
+  $('#qbArch').innerHTML = IC.arch + '<span>仓库</span>';
+  $('#qbMenu').innerHTML = IC.menu + '<span>功能</span>';
+  const rec = M.ev.filter(e => !e.b).map(e => ({ k: e.k, p: e.p, t: e.t, i: e.i, l: evLabel(e) })).concat(M.sv.map(s => ({ k: s.k, p: s.p, t: s.t, i: s.i, l: svLabel(s) })))
+    .sort((a, b) => b.k - a.k).slice(0, 3);
+  $('#recent').innerHTML = rec.length ? rec.map(e => '<button data-a="list"><span class="t">' + fmtClock(e.p, e.t) + '</span><span class="d' + e.i + '">' + esc(teamName(e.i)) + '</span>' + esc(e.l) + '</button>').join('') : '<span class="empty">开球时按时间旁边的 ▶；到了对方禁区附近点“到达”</span>';
+}
+function renderAll(){
+  renderMode(); renderHeader(); renderPads(); renderStats(); renderStrip(); renderNet();
+}
+/* 计时器每秒更新时间；统计每 15 秒更新（时间在走，每 10 分钟的次数会变） */
+let lastSlow = 0;
+setInterval(() => {
+  tickClock();
+  if (M.api && M.api.hold && M.api.hold.length) flushHold();
+  if (M.api && apiKey() && NET.iv > 0 && M.st === 1 && isRecording() && !netBusy && sheet.hidden && LIVE_ST.indexOf(M.api.st) >= 0 && nowSec() - (M.api.at || 0) >= NET.iv) apiSync(false);
+  if (Date.now() - lastSlow > 15000 && M.tm.r){ lastSlow = Date.now(); renderStats(); }
+  if (sheetKind === 'join' && sheetData.tp && sheetData.tp.live) tpShow(sheetData.tp);
+  if (sheetKind === 'clock'){ const b = $('#shClk'); if (b) b.textContent = M.tm.ht ? '中场' : fmtClock(M.tm.p, clockOf(M)); if (sheetData.tp && sheetData.tp.live) tpShow(sheetData.tp); }
+}, 1000);
+/* 到达后的秒数：每 0.2 秒更新那一个数字 */
+setInterval(() => {
+  for (const i of [0, 1]){
+    if (!OC[i]) continue;
+    const el = document.getElementById('tm' + i); if (!el) continue;
+    const s = ocSecs(i); if (s == null) continue;
+    el.firstChild.nodeValue = fmtS(s);
+  }
+}, 200);
+
+/* ================= 记录 ================= */
+function flash(sel){ const b = $(sel); if (!b) return; b.classList.remove('hit'); b.getBoundingClientRect(); b.classList.add('hit'); }
+/* 已结束的这场不能再记：提示开始新比赛（要接着记就用“重新打开这场”） */
+function endedToast(){ showToast('这场已经结束。要记下一场，按“开始新比赛”', startNew, '开始新比赛', 7000); }
+function clockTip(){ if (!M.tm.r && !M.tm.ht && M.st !== 2 && M.ev.filter(x => !x.b).length === 1) showToast('计时还没开始：开球时按时间旁边的 ▶，或点时间设定', () => openClock(), '设定时间'); }
+/* 防手滑：同一队 0.4 秒内又按“到达”、0.22 秒内连点选择（画面刚换，第二下会点到下一层），当作同一下；
+   一次到达刚选完，0.5 秒内再点到选择也不算新的一次 */
+const tapAt = [0, 0], doneAt = [0, 0];
+function tapArrive(i){
+  if (M.st === 2){ endedToast(); return; }
+  const o = ocEv(i);
+  if (o && !o.pa && Date.now() - tapAt[i] < 400) return;
+  tapAt[i] = Date.now();
+  const e = addEv(i, 'ar', { pa: '' });
+  OC[i] = { k: e.k, at: Date.now(), dt: null };
+  lastAdd = { k: e.k, i: i, at: Date.now() };
+  renderAll();
+  flash('.pad[data-i="' + i + '"] [data-a="ar"]');
+  clockTip();
+}
+let noArrTip = 0;
+function pick(i, c){
+  if (M.st === 2){ endedToast(); return; }
+  let e = ocEv(i);
+  const now = Date.now();
+  if (now - tapAt[i] < 220 && e && e.pa) return;
+  if (!e && now - doneAt[i] < 500) return;
+  tapAt[i] = now;
+  if (!e){
+    if (CH.indexOf(c) < 0) return;
+    // 没按“到达”就直接点选择：也算一次到达，用时不详
+    e = addEv(i, 'ar', { pa: '' });
+    OC[i] = { k: e.k, at: 0, dt: null };
+    lastAdd = { k: e.k, i: i, at: Date.now() };
+    if (!noArrTip){ noArrTip = 1; showToast('没按“到达”直接点了选择：也算一次到达，用时记成不详'); }
+  }
+  const nd = tipOf(e.pa);
+  if (!nd.o || nd.o.indexOf(c) < 0) return;
+  if (!e.pa){
+    const o = OC[i];
+    const dt = o.dt != null ? o.dt : o.at ? Math.round((Date.now() - o.at) / 100) / 10 : null;
+    if (dt != null) e.dt = dt; else delete e.dt;
+    o.dt = dt;
+  }
+  e.pa += c;
+  const res = resOf(e.pa);
+  const merged = res === 'c' ? mergeAuto(i, 'ck') : res === 'g' ? mergeAuto(i, 'gl') : false;
+  const done = isDone(e.pa);
+  if (done){ OC[i] = null; doneAt[i] = now; }
+  save(); renderAll();
+  if (done) flash('.pad[data-i="' + i + '"] [data-a="ar"]');
+  if (res === 'g') showToast(teamName(i) + ' 进球 ' + score(M).join('–') + (merged ? '（跟联网补上的那球合并）' : ''));
+  else if (res === 'c') showToast(teamName(i) + ' 角球，共 ' + cornersOf(M, 'ft')[i] + ' 个' + (merged ? '（跟联网补上的角球合并）' : ''));
+  clockTip();
+}
+function stageBack(i){
+  const e = ocEv(i); if (!e || !e.pa) return;
+  e.pa = e.pa.slice(0, -1);
+  save(); renderAll();
+}
+function stageEnd(i){ OC[i] = null; renderAll(); }
+function stageCancel(i){
+  const e = ocEv(i); OC[i] = null;
+  if (!e){ renderAll(); return; }
+  removeEv(e); renderAll();
+  showToast('已取消这次到达', () => { M.ev.push(e); M.ev.sort(byTime); save(); renderAll(); }, '恢复');
+}
+function tapCorner(i){
+  if (M.st === 2){ endedToast(); return; }
+  const s = nowStamp();
+  const dup = M.ev.some(e => e.i === i && e.c === 'ar' && resOf(e.pa) === 'c' && e.p === s.p && s.t >= e.t && s.t - e.t <= 60);
+  const merged = mergeAuto(i, 'ck');
+  const e = addEv(i, 'ck');
+  lastAdd = { k: e.k, i: i, at: Date.now() };
+  renderAll();
+  flash('.pad[data-i="' + i + '"] [data-a="ck"]');
+  if (dup) showToast('刚才那次到达已经记了角球，这个会再多算一个', () => { removeEv(e); renderAll(); }, '撤销', 7000);
+  else showToast(teamName(i) + ' 角球，共 ' + cornersOf(M, 'ft')[i] + ' 个' + (merged ? '（跟联网补上的角球合并）' : ''));
+  clockTip();
+}
+function pickQ(i, f, v){
+  if (M.st === 2){ endedToast(); return; }
+  const cur = svCur(M, i, f);
+  if (cur && cur.v === v) return;
+  setSv(i, f, v);
+  renderAll();
+}
+function undoTeam(i){
+  const e = lastOf(i); if (!e) return;
+  if (OC[i] && OC[i].k === e.k) OC[i] = null;
+  removeEv(e); renderAll();
+  showToast('已撤销 ' + teamName(e.i) + ' ' + evLabel(e), () => { M.ev.push(e); M.ev.sort(byTime); save(); renderAll(); }, '恢复');
+}
+function undoAny(){
+  const la = lastAny(); if (!la) return;
+  if (la.kind === 'ev'){ undoTeam(la.x.i); return; }
+  const s = la.x, j = M.sv.indexOf(s);
+  if (j >= 0) M.sv.splice(j, 1);
+  save(); renderAll(); if (sheetKind === 'p1') renderSheet();
+  showToast('已撤销 ' + teamName(s.i) + ' ' + svLabel(s), () => { M.sv.push(s); M.sv.sort(byTime); save(); renderAll(); if (sheetKind === 'p1') renderSheet(); }, '恢复');
+}
+
+/* ================= 弹出视窗 ================= */
+const sheet = $('#sheet'), card = $('#card');
+let sheetKind = null, sheetData = {};
+function openSheet(kind, data){
+  const ae = document.activeElement; if (ae && ae !== document.body && ae.blur && !card.contains(ae)) ae.blur();
+  if (sheet.hidden) hideToast();
+  sheetKind = kind; sheetData = data || {}; renderSheet(); sheet.hidden = false; card.scrollTop = 0;
+}
+function closeSheet(){ sheet.hidden = true; sheetKind = null; sheetData = {}; card.className = 'card'; }
+function openClock(){
+  const p = M.tm.ht ? 2 : M.tm.p, v = M.tm.ht ? PER[2][0] : Math.floor(clockOf(M));
+  openSheet('clock', { tp: { p: p, v: clamp(v, TPR[p][0], TPR[p][1]), live: !!M.tm.r && !M.tm.ht, at: Date.now() } });
+}
+const HELP = {
+  rec: ['到达与选择', '上方切换“到达与选择”', '左边记主对客（主队进攻）、右边记客对主（客队进攻）。球队到了对方禁区附近点“到达”，秒数开始走；做出选择时点传中、远射、中路渗透、回传或丢球，app 记下用了几秒。传中和远射接着选内或外；传中内再选禁区射门或解围/中途拦截；中路渗透选有没有禁区射门；最后选进球、角球或无角球。同一次进攻里又做了一次选择（例如传中被解围后再传中），就再按一次“到达”。点错了按“返回”，或球队名字旁边的“撤销”。'],
+  p1: ['第一部分（主观）', '每队“到达”上方的四格', '球权、到禁区附近的难度、意愿、场面，由你主观选择，比赛中随时可以改。每次改都会记下时间，以后可以统计在每种状态下角球多还是少。'],
+  q: ['两个问题', '上方切换“两个问题”', '每队两个问题：他容不容易到对方禁区附近、他喜不喜欢传中和远射，各分 1–5 档（从低到高），随时可以改，每次改都记下时间。下面的“角球 ＋1”可以顺便记角球。两个程序记在同一场比赛里，可以只用一个。'],
+  stats: ['统计', 'iPad 两队中间；手机底部“统计”', '两队对比：到达次数和每 10 分钟几次、五个选择的比例（每队一条＝100%）和次数、传中＋远射占比、从到达到选择的秒数、传中和远射在范围内的比例、射门、角球和角球从哪里来。上方可以切换上半场、下半场、全场。'],
+  ck: ['其他角球', '每队下面的“其他角球”', '不是从你记的那次到达直接来的角球（例如任意球、反击、忘了记的那次），点这里。到达链里选了“角球”的，不用再点。'],
+  net: ['联网', '底部“同步”、功能 → 联网数据', '输入球队名字后自动在网上找这场比赛（API-Football，key 默认用“角球数据记录”里的那个）。比赛已经在踢时按“加入”，时间、比分、角球、红牌一次填好；记录时按“同步”才会联网（省额度），漏点的角球、进球、红牌会等画面追上后补上，你自己再点会自动合并，不会多算。'],
+  clock: ['比赛时间', '点比分中间的时间', '开球时按“上半场开球／下半场开球”，上半场吹哨按“上半场结束”。时间跟画面对不上时，用加减按钮或拖动条对准画面上的时间。中途才开始看，就把时间调到画面上的时间再开始，每 10 分钟的次数会按你看的时间算。'],
+  fix: ['补录比分和角球', '点比分或“角球”数字', '中途加入，或数字跟实际对不上时用。补录的角球和进球算进比分和总数，但不算进到达和选择的统计。'],
+  arch: ['比赛仓库', '底部“仓库”', '保存结束时选“加入仓库”的比赛，以及还没结束的比赛。可以搜索、打开、导出、删除；“统计”有平均角球、你的到达和选择平均、你的逻辑检验，以及第一部分和两个问题每种选择下的角球（以后建模型用）；“备份”可以导出全部（JSON 或表格 CSV）和导入。'],
+  pip: ['视频浮窗', '功能 → 视频浮窗', '用一台手机边看边记时：把视频切到画中画，拖到屏幕上方或下方，再在这里选同样的位置。app 会空出浮窗的位置，只留比分那一行，按键压缩。']
+};
+const HELP_ORDER = ['rec', 'p1', 'q', 'stats', 'ck', 'net', 'clock', 'fix', 'arch', 'pip'];
+const DEFS = [
+  ['到达', '本队在对方禁区附近（禁区线外大约 10 米以内，或禁区两侧一直到底线的边路）把球控制住，点一次。同一次进攻在禁区附近来回传只点一次；做了一次选择以后（例如传中被解围），本队又在禁区附近拿到球、再做选择，就再点一次“到达”。角球、任意球本身不算。', null],
+  ['传中', '从边路往禁区里传的球（下底传中、45 度传中、倒三角都算）。任意球、角球开出的不算。', ['内：球往有威胁的范围飞（禁区里、门前、队友能争到的地方），不管之后被挡、被解围、被门将拿到，还是有人射门', '外：传偏了：直接出界、飞过所有人、落点没有威胁', '内之后：禁区射门＝队友在禁区里射门（包括头球）；解围/中途拦截＝防守球员（包括门将）把球顶出、踢出、挡下、拿住']],
+  ['远射', '禁区外射门。任意球直接射门不算。', ['内：射正、被挡、碰到人或门柱（有机会变成角球）', '外：没碰到人直接射偏、打高']],
+  ['中路渗透', '不传中，带球突破、直塞、短传配合往禁区里打（边路带球突进禁区也算）。', ['禁区射门：最后在禁区里射门', '无禁区射门：被断、被挡下，或没有射门']],
+  ['回传', '往回传、倒回中场重新组织，这次到达没有往禁区里打。', null],
+  ['丢球', '还没做出选择就丢了球：被抢断、传球被断、带球失误、出界。', null],
+  ['进球、角球、无角球', '这次进攻的最后：直接得到角球选“角球”，没有就选“无角球”，进了选“进球”。', null],
+  ['用了几秒', '从按“到达”开始算，到你点第一个选择为止。没按“到达”直接点选择的，也算一次到达，但用时不详。超过 60 秒的不算进平均（多半是忘了点）。', null],
+  ['其他角球', '不是从你记的那次到达直接来的角球（任意球、反击，或忘了记的那次）。到达链里选了“角球”的，不要再点，不然会多算。', null],
+  ['第一部分', '对球队未来能到对面禁区附近次数与呆在对方禁区附近总时长的预测，由你主观选择：球权（多／中／少）、到禁区附近的难度（没难度、有难度但小、有难度但进得去、有很大难度但勉强进得去、难且进不去）、意愿（强／中／弱）、场面（包饺子／包一会饺子然后转换球权／快速转换球权）。', null],
+  ['两个问题', '一、他容不容易到对方禁区附近（1 很难 … 5 很容易）；二、他喜不喜欢传中和远射（1 很不喜欢 … 5 很喜欢）。', null]
+];
+function renderSheet(){
+  const d = sheetData;
+  let h = '';
+  card.className = 'card';
+  switch (sheetKind){
+    case 'menu': {
+      const n = whAll().length, last = LS.get('corner-reach-exported', 0);
+      const t = (a, title, sub, cls) => '<button class="fct' + (cls ? ' ' + cls : '') + '" data-a="' + a + '"><b>' + title + '</b><span>' + sub + '</span></button>';
+      const ago = last ? Math.floor((nowSec() - last) / 86400) : null;
+      h = '<div class="card-h"><h3>功能</h3><button class="pill" data-a="help">功能说明</button><button class="pill" data-a="close">关闭</button></div><div class="fc">'
+        + '<div><h4>这场比赛　' + esc(teamName(0)) + ' vs ' + esc(teamName(1)) + '</h4><div class="fcg">'
+        + t('clock', '比赛时间', (M.tm.ht ? '中场休息' : PER[M.tm.p][2]) + ' ' + fmtClock(M.tm.p, clockOf(M)) + '：开球、中场、对准画面上的时间')
+        + t('list', '全部记录', '到达 ' + M.ev.filter(e => e.c === 'ar').length + ' 次、其他 ' + (M.ev.filter(e => e.c !== 'ar' && !e.b).length + M.sv.length) + ' 笔，可以逐笔修改或删除')
+        + t('join', '中途加入', M.api && apiKey() && !ownEvents() ? '按联网的时间、比分、角球、红牌一次填好' : '比赛已经在踢：设定时间、比分、角球再开始')
+        + t('fix', '补录比分和角球', '数字跟实际对不上时用；也可以记点球进球、红牌')
+        + t('note', '这场备注', M.note ? esc(M.note.slice(0, 24)) : '写下你自己的观察，跟着比赛一起保存')
+        + (M.st === 2 ? t('reopen', '重新打开这场', '已结束：要接着记录时用') : t('finish', '结束这场', '结束后选择要不要加入比赛仓库', 'danger'))
+        + t('new', '新比赛', '开始记录另一场') + '</div></div>'
+        + '<div><h4>比赛仓库</h4><div class="fcg">'
+        + t('arch', '比赛仓库', n + ' 场：搜索、打开、导出、删除')
+        + t('wstats', '统计', '平均角球、到达和选择的平均、每种主观选择下的角球')
+        + t('exp1', '导出这场', '存成文件，可以传给 Claude 分析')
+        + t('wback', '备份与导入', ago == null ? '还没备份过：导出全部、导入' : '上次备份 ' + (ago ? ago + ' 天前' : '今天')) + '</div></div>'
+        + '<div><h4>设置与说明</h4><div class="fcg">'
+        + t('net', '联网数据', !apiKey() ? '还没设定：API key、自动同步、画面延迟' : M.api ? '已连上 ' + esc(M.api.h) + ' vs ' + esc(M.api.a) : keyFromOther() ? '用角球数据记录的 key：查找比赛、同步' : '已设定 API key')
+        + t('pip', '视频浮窗', PIP.pos === 'off' ? '一台手机边看浮窗边记录：空出浮窗的位置' : '已开启：浮窗在' + (PIP.pos === 'top' ? '上方' : '下方'))
+        + t('defs', '按键定义', '到达、每个选择、内外、角球怎么算')
+        + t('help', '功能说明', '每个功能是做什么的、在哪里') + '</div></div></div>'
+        + '<p class="hint">' + offline + '　版本 ' + APPVER + '</p>';
+      break;
+    }
+    case 'help':
+      h = '<div class="card-h"><h3>功能说明</h3><button class="pill" data-a="close">关闭</button></div><div class="hlp">' + HELP_ORDER.map(k => { const x = HELP[k]; return '<div><h4>' + x[0] + '</h4><p>' + x[2] + '</p><p class="where">在哪里：' + x[1] + '</p></div>'; }).join('') + '</div>';
+      break;
+    case 'defs':
+      h = '<div class="card-h"><h3>按键定义</h3><button class="pill" data-a="close">关闭</button></div><div class="defs">'
+        + DEFS.map(x => '<div><h4>' + x[0] + '</h4><p>' + x[1] + '</p>' + (x[2] ? '<ul>' + x[2].map(y => '<li>' + y + '</li>').join('') + '</ul>' : '') + '</div>').join('') + '</div>';
+      break;
+    case 'p1': {
+      const i = d.i;
+      h = '<div class="card-h"><h3>第一部分</h3><button class="pill dark" data-a="close">完成</button></div>'
+        + '<div class="seg p1side">' + [0, 1].map(j => '<button data-a="p1side" data-v="' + j + '" aria-pressed="' + (i === j) + '">' + (j ? '客对主 ' : '主对客 ') + esc(teamName(j)) + '</button>').join('') + '</div>'
+        + '<p class="hint">对球队未来能到对面禁区附近次数与呆在对方禁区附近总时长的预测。随时可以改，每次改都记下时间；再点一次选中的就是取消。</p>'
+        + P1.map(x => {
+          const s = svCur(M, i, x.f), v = s ? s.v : null;
+          return '<div class="p1g" id="p1g-' + x.f + '"><h4>' + x.n + '<small>' + (s ? (v == null ? '已取消' : fmtMin(s.p, s.t) + ' 选的') : '还没选') + '</small></h4><div class="p1o c' + x.col + '">'
+            + x.o.map((lab, j) => '<button data-a="p1v" data-f="' + x.f + '" data-v="' + j + '" aria-pressed="' + (v === j) + '">' + lab + '</button>').join('') + '</div></div>';
+        }).join('');
+      break;
+    }
+    case 'clock': {
+      const p = M.tm.p;
+      h = '<div class="card-h"><h3>比赛时间</h3><button class="pill" data-a="close">完成</button></div>'
+        + '<div class="big-clk" id="shClk">' + (M.tm.ht ? '中场' : fmtClock(p, clockOf(M))) + '</div>'
+        + '<p class="hint" style="text-align:center">' + (M.st === 2 ? '已结束' : M.tm.ht ? '中场休息' : PER[p][2]) + '　' + (M.tm.r ? '计时中' : '已暂停') + '</p>'
+        + '<div class="grid2"><button class="pill green" data-a="kick" data-p="1">上半场开球</button><button class="pill green" data-a="kick" data-p="2">下半场开球</button></div>'
+        + '<div class="grid2"><button class="pill" data-a="toggle">' + (M.tm.r ? '暂停' : '继续计时') + '</button><button class="pill" data-a="endh">上半场结束</button></div>'
+        + '<div class="lbl">微调</div><div class="row"><button class="chip" data-a="nudge" data-d="-60">−1 分</button><button class="chip" data-a="nudge" data-d="-10">−10 秒</button><button class="chip" data-a="nudge" data-d="10">＋10 秒</button><button class="chip" data-a="nudge" data-d="60">＋1 分</button></div>'
+        + '<div class="lbl">对准画面上的时间（拖动或按加减，不用打字）</div>' + tpHTML(d.tp)
+        + '<button class="pill dark" data-a="tpset">设定为 <span id="jgoT">' + fmtClock(d.tp.p, d.tp.v) + '</span></button>'
+        + '<div class="grid2"><button class="pill" data-a="fix">补录比分和角球</button>' + (M.st === 2 ? '<button class="pill" data-a="reopen">重新打开</button>' : '<button class="pill danger" data-a="finish">结束这场</button>') + '</div>'
+        + '<p class="hint">开球时按“上半场开球”或“下半场开球”，计时会从 0:00 或 45:00 开始。中途才开始看：把时间调到画面上的时间，按“设定为”，再按 ▶。</p>';
+      break;
+    }
+    case 'fix': {
+      const p = curP();
+      const stp = (f, i) => '<div class="stp"><span class="' + (i ? 'a' : 'h') + '">' + esc(teamName(i)) + '</span><button data-a="fs" data-f="' + f + '" data-i="' + i + '" data-d="-1" aria-label="减少">−</button><b>' + d[f][i] + '</b><button data-a="fs" data-f="' + f + '" data-i="' + i + '" data-d="1" aria-label="增加">＋</button></div>';
+      h = '<div class="card-h"><h3>补录比分和角球</h3><button class="pill" data-a="close">取消</button></div>'
+        + '<div class="jgrp"><h4>比分<small>包括点球、乌龙</small></h4>' + stp('sc', 0) + stp('sc', 1) + '</div>'
+        + '<div class="jgrp"><h4>上半场角球</h4>' + stp('c1', 0) + stp('c1', 1) + '</div>'
+        + (p === 2 || M.pe[1] || M.st === 2 ? '<div class="jgrp"><h4>下半场角球</h4>' + stp('c2', 0) + stp('c2', 1) + '</div>' : '')
+        + '<div class="jgrp"><h4>红牌</h4>' + stp('rc', 0) + stp('rc', 1) + '</div>'
+        + '<button class="pill green" data-a="fsave">保存</button>'
+        + '<p class="hint">数字是总数（包括你点过的）。增加的算补录；减少时先减补录的，再减最后点的“其他角球”，最后才把到达链里的角球、进球改成“无角球”。补录的不算进到达和选择的统计。</p>';
+      break;
+    }
+    case 'list': {
+      const rows0 = M.ev.map(e => ({ x: e, kind: 'ev' })).concat(M.sv.map(s => ({ x: s, kind: 'sv' }))).sort((a, b) => byTime(a.x, b.x));
+      let cur = 0, rows = '';
+      for (const r of rows0){
+        const e = r.x;
+        if (e.p !== cur){ cur = e.p; rows += '<h4>' + PER[cur][2] + '</h4>'; }
+        const lab = r.kind === 'ev' ? evLabel(e) : svLabel(e);
+        rows += '<button data-a="' + (r.kind === 'ev' ? 'evedit' : 'svedit') + '" data-k="' + e.k + '"><span class="t">' + (e.b ? '加入前' : fmtClock(e.p, e.t)) + '</span><span' + (r.kind === 'sv' ? ' class="sv"' : '') + '><span class="who d' + e.i + '">' + esc(teamName(e.i)) + '</span>　' + esc(lab) + (e.a ? '<small class="auto">联网补上</small>' : '') + '</span><span class="bf">修改</span></button>';
+      }
+      h = '<div class="card-h"><h3>全部记录</h3><button class="pill" data-a="close">关闭</button></div>'
+        + (rows0.length ? '<div class="list">' + rows + '</div>' : '<p class="hint">还没有记录。</p>');
+      break;
+    }
+    case 'evedit': {
+      const e = evByK(d.k);
+      if (!e){ closeSheet(); return; }
+      let body = '';
+      if (e.c === 'ar'){
+        const w = walk(e.pa);
+        body += '<div class="lbl">选择</div><div class="chips">' + ['' ].concat(CH).map(c => '<button class="chip" data-a="eppick" data-l="0" data-v="' + c + '" aria-pressed="' + ((e.pa[0] || '') === c) + '">' + (c ? CHN[c] : '没选') + '</button>').join('') + '</div>';
+        for (let L = 1; L <= w.length; L++){
+          const nd = w[L - 1]; if (!nd.o) break;
+          body += '<div class="lbl">' + esc(paLabel(e.pa.slice(0, L))) + ' → ' + nd.q + '</div><div class="chips">' + nd.o.map(c => '<button class="chip" data-a="eppick" data-l="' + L + '" data-v="' + c + '" aria-pressed="' + (e.pa[L] === c) + '">' + nd.k[c].n + '</button>').join('') + '</div>';
+        }
+      }
+      h = '<div class="card-h"><h3>修改' + (e.c === 'ar' ? '这次到达' : '这一笔') + '</h3><button class="pill" data-a="list">返回</button></div>'
+        + '<p class="netnote">' + (e.b ? '加入前' : fmtClock(e.p, e.t)) + '　' + esc(teamName(e.i)) + '　' + esc(evLabel(e)) + '</p>' + body
+        + '<div class="lbl">球队</div><div class="chips">' + [0, 1].map(i => '<button class="chip" data-a="evteam" data-v="' + i + '" aria-pressed="' + (e.i === i) + '">' + esc(teamName(i)) + '</button>').join('') + '</div>'
+        + (e.b ? '' : '<div class="lbl">时间</div><div class="chips">' + [[-60, '−1 分'], [-10, '−10 秒'], [10, '＋10 秒'], [60, '＋1 分']].map(x => '<button class="chip" data-a="evtime" data-v="' + x[0] + '">' + x[1] + '</button>').join('') + '</div>')
+        + '<button class="pill danger" data-a="evdel">删除这笔</button>';
+      break;
+    }
+    case 'svedit': {
+      const s = svByK(d.k);
+      if (!s){ closeSheet(); return; }
+      const x = SVF[s.f];
+      h = '<div class="card-h"><h3>修改这笔选择</h3><button class="pill" data-a="list">返回</button></div>'
+        + '<p class="netnote">' + fmtClock(s.p, s.t) + '　' + esc(teamName(s.i)) + ' 进攻　' + esc(svLabel(s)) + '</p>'
+        + '<div class="lbl">' + x.n + '</div><div class="chips">' + x.o.map((lab, j) => '<button class="chip" data-a="svval" data-v="' + j + '" aria-pressed="' + (s.v === j) + '">' + (s.f[0] === 'q' ? (j + 1) + ' ' : '') + lab + '</button>').join('') + '</div>'
+        + '<div class="lbl">时间</div><div class="chips">' + [[-60, '−1 分'], [-10, '−10 秒'], [10, '＋10 秒'], [60, '＋1 分']].map(y => '<button class="chip" data-a="svtime" data-v="' + y[0] + '">' + y[1] + '</button>').join('') + '</div>'
+        + '<button class="pill danger" data-a="svdel">删除这笔</button>';
+      break;
+    }
+    case 'note':
+      h = '<div class="card-h"><h3>这场备注</h3><button class="pill" data-a="close">完成</button></div>'
+        + '<textarea class="fi" id="noteIn" style="height:180px;font:15px/1.5 var(--f-ui)" placeholder="例如：主队下半场换上高中锋，传中明显变多">' + esc(M.note) + '</textarea>'
+        + '<p class="hint">备注会跟着比赛一起保存和导出。</p>';
+      break;
+    case 'finish':
+      h = '<div class="card-h"><h3>结束这场</h3><button class="pill" data-a="close">取消</button></div>'
+        + '<p class="hint">' + esc(teamName(0)) + ' vs ' + esc(teamName(1)) + '：要把这场加入比赛仓库吗？</p>'
+        + '<button class="pill green bigp" data-a="fkeep">加入仓库</button><p class="hint">保存这场记录、计入统计，以后可以导出给 Claude 分析、建模型。</p>'
+        + '<button class="pill bigp" data-a="fdrop">不加入，删除这场</button><p class="hint">删除后几秒内可以在提示里撤销。</p>';
+      break;
+    case 'newq':
+      h = '<div class="card-h"><h3>开始新比赛</h3><button class="pill" data-a="close">取消</button></div>'
+        + '<p class="hint">目前这场（' + esc(teamName(0)) + ' vs ' + esc(teamName(1)) + '）还没结束，要怎么处理？</p>'
+        + '<button class="pill green bigp" data-a="nq1">结束并加入仓库</button><button class="pill bigp" data-a="nq2">先留着（在仓库里还能打开）</button><button class="pill bigp" data-a="nq3">删除这场</button>';
+      break;
+    case 'pip':
+      h = '<div class="card-h"><h3>视频浮窗</h3><button class="pill" data-a="close">完成</button></div><p class="hint">' + HELP.pip[2] + '</p>'
+        + (isPhone() ? '' : '<p class="netnote">浮窗模式只在手机上使用；iPad 的画面够大，不需要空出位置。</p>')
+        + '<div class="lbl">浮窗放在哪里</div><div class="chips">' + [['off', '不用浮窗'], ['top', '屏幕上方'], ['bot', '屏幕下方']].map(x => '<button class="chip" data-a="pippos" data-v="' + x[0] + '" aria-pressed="' + (PIP.pos === x[0]) + '">' + x[1] + '</button>').join('') + '</div>'
+        + '<div class="lbl">空出的高度：调到跟浮窗边缘对齐（现在 ' + PIP.h + '）</div><div class="chips">' + [['小', 150], ['中', 190], ['大', 230]].map(x => '<button class="chip" data-a="piph" data-v="' + x[1] + '" aria-pressed="' + (PIP.h === x[1]) + '">' + x[0] + '</button>').join('') + '<button class="chip" data-a="pipn" data-d="-10">−10</button><button class="chip" data-a="pipn" data-d="10">＋10</button></div>'
+        + '<p class="hint">浮窗很大时按键会变小；屏幕比较小的手机（例如 iPhone SE）建议用“小”或“中”。</p>';
+      break;
+    case 'arch': {
+      card.className = 'card wide';
+      const tab = d.tab || 'list';
+      h = '<div class="card-h"><h3>比赛仓库</h3><button class="pill" data-a="close">关闭</button></div>'
+        + '<div class="seg" style="width:100%">' + [['list', '比赛'], ['stats', '统计'], ['back', '备份']].map(x => '<button style="flex:1" data-a="wtab" data-v="' + x[0] + '" aria-pressed="' + (tab === x[0]) + '">' + x[1] + '</button>').join('') + '</div>'
+        + (tab === 'list' ? whListPage(d) : tab === 'stats' ? whStats() : whBack());
+      break;
+    }
+    case 'export':
+      h = '<div class="card-h"><h3>导出</h3><button class="pill" data-a="close">关闭</button></div>'
+        + '<p class="hint">' + esc(d.name) + '（' + d.count + ' 场）。可以存成文件，或复制文字直接贴给 Claude 分析。</p>'
+        + '<div class="row">' + (canShareFile() ? '<button class="pill dark" data-a="share">分享文件</button>' : '') + '<button class="pill' + (canShareFile() ? '' : ' dark') + '" data-a="download">下载文件</button><button class="pill" data-a="copy">复制文字</button></div>'
+        + '<textarea class="fi" id="expText" readonly>' + esc(d.text.length > 200000 ? d.text.slice(0, 200000) + '\n…（太长，请用下载或分享）' : d.text) + '</textarea>';
+      break;
+    case 'net': {
+      const used = (NET.used || {})[dayKey(new Date())] || 0, a = M.api, dl = myDelay();
+      h = '<div class="card-h"><h3>联网数据</h3><button class="pill" data-a="close">完成</button></div>'
+        + '<p class="hint">输入球队名字后（填一队也行），自动在网上找这场比赛：中途加入时帮你填好时间、比分、角球和红牌；记录时按底部的“同步”，你漏点的角球、进球、红牌会等画面追上后补上（标“联网”）。联网的数字只用在比分和角球总数，不会混进到达和选择的统计。数据来源：API-Football、Wikidata。</p>'
+        + '<div class="lbl">API key</div>'
+        + (keyFromOther() ? '<p class="netnote">现在用的是“角球数据记录”里的 API key（同一个网址共用，不用再填）。几个 app 共用每天的免费额度。要换成别的 key，贴在下面。</p>' : '')
+        + '<input class="fi" id="netKey" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="' + (keyFromOther() ? '（用角球数据记录的 key）' : '贴上 API-Football 的 API key') + '" value="' + esc(NET.key) + '">'
+        + '<div class="row"><button class="pill dark" data-a="nkey">保存并测试</button>' + (apiKey() ? '<button class="pill" data-a="nkey0">不用联网</button>' : '') + ((NET.key || NET.nosb) && otherKey() ? '<button class="pill" data-a="nsb">用角球数据记录的 key</button>' : '') + '</div>'
+        + (d.msg ? '<p class="netnote">' + esc(d.msg) + '</p>' : '')
+        + '<div class="lbl">输入球队名字后自动查找</div>'
+        + '<div class="chips"><button class="chip" data-a="nauto" data-v="1" aria-pressed="' + !!NET.auto + '">开</button><button class="chip" data-a="nauto" data-v="0" aria-pressed="' + !NET.auto + '">关（只在按“查找”时找）</button></div>'
+        + '<div class="lbl">记录时自动同步</div>'
+        + '<div class="chips">' + [[0, '关（只在按“同步”时）'], [300, '每 5 分钟'], [180, '每 3 分钟'], [120, '每 2 分钟']].map(x => '<button class="chip" data-a="niv" data-v="' + x[0] + '" aria-pressed="' + (NET.iv === x[0]) + '">' + x[1] + '</button>').join('') + '</div>'
+        + '<p class="hint">每次同步用 1 次请求，查找一场用 1–3 次。' + (NET.quota ? 'API-Football 显示今天已用 ' + NET.quota.cur + ' / ' + NET.quota.lim + ' 次（' + esc(NET.quota.t) + ' 查询，几个 app 合计）。' : '今天这个 app 大约用了 ' + used + ' 次请求。') + (NET.iv > 0 ? '现在每 ' + Math.round(NET.iv / 60) + ' 分钟自动同步一次，一场比赛约 ' + Math.round(100 * 60 / NET.iv) + ' 次。' : '现在只在你按“同步”时才联网，最省额度。') + '</p>'
+        + '<div class="lbl">画面延迟</div>'
+        + '<p class="hint" style="margin-top:0">' + (dl != null && dl < 10 ? '你看的画面跟联网的实时时间差不多（相差不到 10 秒）。' : dl != null ? '你看的画面大约比实时慢 <b>' + fmtDelay(dl) + '</b>。中途加入时会自动扣掉；同步到的角球，会等画面追上之后、你还没点的才补上。' : '还没测出来。连上比赛后，在画面上看到开球时按 ▶，或中途加入时把时间对准画面，app 会自动算出你的画面比实时慢多少。') + '</p>'
+        + (dl != null ? '<div class="row"><button class="pill" data-a="ndl0">重新测（换了看球的地方时）</button></div>' : '')
+        + (a ? '<div class="lbl">目前这场</div><div class="mrow"><div class="t1">' + esc(a.h) + ' vs ' + esc(a.a) + '</div><div class="t2">' + esc(a.lg || '') + (a.sw ? '，主客跟你输入的相反（已自动对调）' : '') + '</div>'
+          + '<div class="row"><button class="pill dark" data-a="nsync">立即同步</button><button class="pill" data-a="nre">换一场</button><button class="pill" data-a="noff">解除连接</button></div></div>'
+          : (apiKey() && (M.h.trim() || M.a.trim()) ? '<button class="pill green" data-a="nfind">查找这场比赛</button>' : ''))
+        + '<div class="defs"><div><h4>怎么拿 API key</h4><p>到 dashboard.api-football.com 免费注册，登录后在 Account → My Access 复制 API key，贴到上面。key 只存在这台设备上。</p></div></div>';
+      break;
+    }
+    case 'join': {
+      const stp = (f, i) => '<div class="stp"><span class="' + (i ? 'a' : 'h') + '">' + esc(teamName(i)) + '</span><button data-a="js" data-f="' + f + '" data-i="' + i + '" data-d="-1" aria-label="减少">−</button><b>' + d[f][i] + '</b><button data-a="js" data-f="' + f + '" data-i="' + i + '" data-d="1" aria-label="增加">＋</button></div>';
+      const p = d.ht ? 2 : d.tp.p;
+      const ck = p === 1 ? '<div class="jgrp"><h4>上半场已有的角球</h4>' + stp('ck1', 0) + stp('ck1', 1) + '</div>'
+        : '<div class="jgrp"><h4>全场已有的角球</h4>' + stp('ft', 0) + stp('ft', 1) + '</div>'
+          + '<div class="jgrp"><h4>其中上半场<small>' + (d.lk ? '不知道可以不填' : '下半场到现在 ' + (d.ft[0] - d.ck1[0]) + '–' + (d.ft[1] - d.ck1[1])) + '</small></h4>' + (d.lk ? '<button class="pill" data-a="jlk">我知道上半场各几个</button>' : stp('ck1', 0) + stp('ck1', 1)) + '</div>';
+      h = '<div class="card-h"><h3>中途加入</h3><button class="pill" data-a="close">取消</button></div>'
+        + (d.net && M.api ? '<p class="netnote">已用联网数据填好（' + esc(M.api.h) + ' vs ' + esc(M.api.a) + '）。' + (d.ht ? '现在是中场休息：开始后会停在中场，下半场开球时按 ▶。'
+          : d.dl != null && d.dl >= 10 ? '时间已按你的画面延迟（慢 ' + fmtDelay(d.dl) + '）往回调，跟画面上的时间对一下再开始。'
+          : '下面先填的是联网的实时时间。你看的画面通常慢一些：请调到画面上现在显示的时间再开始，app 会记住这个延迟。') + (d.nock ? '这场联网没有角球统计，角球请自己填。' : '') + '</p>' : '')
+        + (d.ht ? '' : '<div class="jgrp"><h4>画面上现在的比赛时间<small>' + (d.tp.live ? '时间会跟着走，对准画面就行' : '') + '</small></h4>' + tpHTML(d.tp) + '</div>')
+        + '<div class="jgrp"><h4>目前比分</h4>' + stp('sc', 0) + stp('sc', 1) + '</div>' + ck
+        + '<div class="jgrp"><h4>红牌</h4>' + stp('rc', 0) + stp('rc', 1) + '</div>'
+        + '<button class="pill green" data-a="jgo">' + (d.ht ? '从中场休息开始记录' : '从 <span id="jgoT">' + fmtClock(d.tp.p, d.tp.v) + '</span> 开始记录') + '</button>'
+        + '<p class="hint">加入前的比分、角球、红牌算进总数，但不算进到达和选择的统计。统计只算你从现在开始看到的。</p>';
+      break;
+    }
+    case 'import':
+      h = '<div class="card-h"><h3>导入</h3><button class="pill" data-a="close">取消</button></div>'
+        + '<p class="hint">选择之前导出的 .json 文件，或把导出的文字贴在下面。同一场比赛会用导入的版本取代。</p>'
+        + '<button class="pill dark" data-a="pickfile">选择文件</button><textarea class="fi" id="impText" placeholder="贴上导出的文字"></textarea><button class="pill" data-a="imptext">导入贴上的文字</button>';
+      break;
+  }
+  card.innerHTML = h;
+}
+/* 补录：按差额加减补录事件（b=1）；减少时先减补录的、联网补上的，再减最后点的，最后才把到达链里的结果改成无角球 */
+function pickLast(fn){ let best = null; for (const e of M.ev) if (fn(e) && (!best || e.k > best.k)) best = e; return best; }
+function adjKind(i, code, p, diff){
+  const inP = e => p == null || e.p === p;
+  while (diff > 0){ M.ev.push({ t: PER[p || curP()][0], p: p || curP(), i: i, c: code, b: 1, k: ++seq }); diff--; }
+  while (diff < 0){
+    const pick = pickLast(e => e.i === i && e.c === code && inP(e) && e.b) || pickLast(e => e.i === i && e.c === code && inP(e) && e.a) || pickLast(e => e.i === i && e.c === code && inP(e));
+    if (pick){ M.ev.splice(M.ev.indexOf(pick), 1); diff++; continue; }
+    const r = code === 'ck' ? 'c' : code === 'gl' ? 'g' : null;
+    const ch = r ? pickLast(e => e.i === i && e.c === 'ar' && inP(e) && resOf(e.pa) === r) : null;
+    if (!ch) break;
+    ch.pa = ch.pa.slice(0, -1) + 'n'; diff++;
+  }
+}
+function applyFix(d){
+  const o = d.orig;
+  for (const i of [0, 1]){
+    adjKind(i, 'ck', 1, d.c1[i] - o.c1[i]);
+    if (d.c2) adjKind(i, 'ck', 2, d.c2[i] - o.c2[i]);
+    adjKind(i, 'gl', null, d.sc[i] - o.sc[i]);
+    adjKind(i, 'rc', null, d.rc[i] - o.rc[i]);
+  }
+  sortEv(M); save();
+}
+
+/* ================= 比赛仓库 ================= */
+const hasContent = m => !!(m.ev.length || m.sv.length || m.tm.b || m.tm.r);
+function whAll(){ return Object.keys(store).map(k => store[k]).filter(m => hasContent(m) || m.h.trim() || m.a.trim()).sort((a, b) => (b.u || b.c) - (a.u || a.c)); }
+function whListPage(d){
+  const all = whAll(), f = d.f || 'all', nDone = all.filter(m => m.st === 2).length;
+  return '<div class="wbar"><input class="fi" id="whQ" type="search" placeholder="搜索球队、联赛或日期" value="' + esc(d.q || '') + '" autocomplete="off" autocapitalize="off" spellcheck="false"></div>'
+    + '<div class="chips">' + [['all', '全部 ' + all.length], ['done', '已结束 ' + nDone], ['open', '未结束 ' + (all.length - nDone)]].map(x => '<button class="chip" data-a="wf" data-v="' + x[0] + '" aria-pressed="' + (f === x[0]) + '">' + x[1] + '</button>').join('') + '</div>'
+    + '<div id="whList">' + whListHTML(d) + '</div>';
+}
+function whListHTML(d){
+  const f = d.f || 'all', q = (d.q || '').trim().toLowerCase();
+  const list = whAll().filter(m => (f === 'all' || (f === 'done' ? m.st === 2 : m.st !== 2)) && (!q || [m.h, m.a, m.lg, m.d].some(x => String(x || '').toLowerCase().indexOf(q) >= 0)));
+  if (!list.length) return '<p class="hint">' + (whAll().length ? '没有符合的比赛。' : '还没有比赛。结束一场比赛时选“加入仓库”，就会保存在这里。') + '</p>';
+  return list.map(m => {
+    const sc = score(m), c1 = cornersOf(m, 'h1'), c2 = cornersOf(m, 'h2');
+    const nar = m.ev.filter(e => e.c === 'ar').length, nq = m.sv.filter(s => s.f[0] === 'q').length;
+    const cur = m.id === M.id, open = d.open === m.id;
+    const act = open ? '<div class="wact"><div class="row">' + (cur ? '' : '<button class="pill dark" data-a="mopen" data-id="' + esc(m.id) + '">打开</button>') + '<button class="pill" data-a="mexp" data-id="' + esc(m.id) + '">导出</button><button class="pill' + (d.del === m.id ? ' danger' : '') + '" data-a="mdel" data-id="' + esc(m.id) + '">' + (d.del === m.id ? '确定删除' : '删除') + '</button></div></div>' : '';
+    return '<div class="wrow"><button data-a="wopen" data-id="' + esc(m.id) + '" aria-expanded="' + open + '"><span class="w1">' + esc(m.h || '主队') + ' ' + sc[0] + '–' + sc[1] + ' ' + esc(m.a || '客队') + (cur ? ' <i class="wtag live">目前这场</i>' : '') + (m.st !== 2 ? ' <i class="wtag">未结束</i>' : '') + '</span>'
+      + '<span class="w2">' + esc(m.d) + (m.lg ? ' · ' + esc(m.lg) : '') + ' · 角球 ' + (c1[0] + c2[0]) + '–' + (c1[1] + c2[1]) + '（上半场 ' + c1[0] + '–' + c1[1] + '） · 到达 ' + nar + ' 次' + (nq ? ' · 两个问题' : '') + '</span></button>' + act + '</div>';
+  }).join('');
+}
+/* 统计：以后建模型用。每队每半场一笔（看了 20 分钟以上的半场） */
+const MIN_HALF = 20;
+function halfRows(list){
+  const out = [];
+  for (const m of list) for (const p of [1, 2]){
+    const mins = minsOf(m, 'h' + p); if (mins < MIN_HALF) continue;
+    for (const i of [0, 1]){
+      const r = statOf(m, i, 'h' + p);
+      let ck = 0; for (const e of m.ev) if (e.i === i && e.p === p && !e.b && (e.c === 'ck' || (e.c === 'ar' && resOf(e.pa) === 'c'))) ck++;
+      out.push({ m: m, p: p, i: i, mins: mins, r: r, ck: ck });
+    }
+  }
+  return out;
+}
+function whStats(){
+  const done = Object.keys(store).map(k => store[k]).filter(m => m.st === 2 && hasContent(m));
+  if (!done.length) return '<p class="hint">还没有结束的比赛。结束时选“加入仓库”，这里就会有平均角球、到达和选择的统计，以及每种主观选择下的角球。</p>';
+  // 联赛平均
+  const lg = {};
+  let nAll = 0, gAll = 0, cFull = 0, nFull = 0;
+  for (const m of done){
+    const k = m.lg.trim() || '没填联赛', x = lg[k] || (lg[k] = { n: 0, g: 0, nf: 0, cf: 0, n1: 0, c1: 0 });
+    const sc = score(m), c1 = cornersOf(m, 'h1'), cf = cornersOf(m, 'ft');
+    x.n++; x.g += sc[0] + sc[1]; nAll++; gAll += sc[0] + sc[1];
+    if (fullHalf(m, 1) || c1[0] + c1[1]){ x.n1++; x.c1 += c1[0] + c1[1]; }
+    if (m.stop && m.stop.p === 2 && m.stop.t >= PER[2][1] - 120){ x.nf++; x.cf += cf[0] + cf[1]; nFull++; cFull += cf[0] + cf[1]; }
+  }
+  const lgs = Object.keys(lg).sort((a, b) => lg[b].n - lg[a].n);
+  let h = '<div class="wst"><div><h4>平均进球和角球（' + done.length + ' 场）</h4><table class="sts"><thead><tr><th>联赛</th><th>场数</th><th>进球</th><th>全场角球</th><th>上半场角球</th></tr></thead><tbody>'
+    + lgs.map(k => { const x = lg[k]; return '<tr><td class="tl">' + esc(k) + '</td><td>' + x.n + '</td><td>' + (x.g / x.n).toFixed(1) + '</td><td>' + (x.nf ? (x.cf / x.nf).toFixed(1) : '—') + '</td><td>' + (x.n1 ? (x.c1 / x.n1).toFixed(1) : '—') + '</td></tr>'; }).join('')
+    + (lgs.length > 1 ? '<tr><td class="tl">全部</td><td>' + nAll + '</td><td>' + (gAll / nAll).toFixed(1) + '</td><td>' + (nFull ? (cFull / nFull).toFixed(1) : '—') + '</td><td>—</td></tr>' : '')
+    + '</tbody></table><p class="hint">全场角球只算看到最后的比赛（包括补录的角球）。</p></div>';
+  const rows = halfRows(done);
+  if (!rows.length) return h + '<p class="hint">到达和选择的统计只用看了 ' + MIN_HALF + ' 分钟以上的半场。</p></div>';
+  // 我的平均
+  const T = { mins: 0, ar: 0, chosen: 0, ch: { x: 0, l: 0, m: 0, b: 0, g: 0 }, dt: [], io: { x: [0, 0], l: [0, 0] }, bs: 0, ck: 0 };
+  for (const x of rows){ const r = x.r; T.mins += x.mins; T.ar += r.ar; T.chosen += r.chosen; for (const c of CH) T.ch[c] += r.ch[c]; T.dt = T.dt.concat(r.dt.filter(v => v <= DT_MAX)); for (const c of ['x', 'l']){ T.io[c][0] += r.io[c][0]; T.io[c][1] += r.io[c][1]; } T.bs += r.bs; T.ck += x.ck; }
+  const sh = c => T.chosen ? T.ch[c] / T.chosen : null, ioR = c => T.io[c][0] + T.io[c][1] ? T.io[c][0] / (T.io[c][0] + T.io[c][1]) : null;
+  h += '<div><h4>我的平均（' + rows.length + ' 个队伍半场）</h4><table class="sts"><tbody>'
+    + [['到达（每 10 分钟）', f1(T.ar / T.mins * 10)], ['传中占选择', pc(sh('x'))], ['远射占选择', pc(sh('l'))], ['中路渗透占选择', pc(sh('m'))], ['回传占选择', pc(sh('b'))], ['丢球占选择', pc(sh('g'))],
+      ['传中＋远射占选择', pc(T.chosen ? (T.ch.x + T.ch.l) / T.chosen : null)], ['从到达到选择（平均秒数）', f1(avg(T.dt))], ['传中在范围内', pc(ioR('x'))], ['远射在范围内', pc(ioR('l'))],
+      ['禁区射门（每 10 分钟）', f1(T.bs / T.mins * 10)], ['角球（每 10 分钟）', f1(T.ck / T.mins * 10)]].map(x => '<tr><td class="tl">' + x[0] + '</td><td>' + x[1] + '</td></tr>').join('')
+    + '</tbody></table></div>';
+  // 你的逻辑：常到禁区附近、又偏爱传中和远射 → 角球多？
+  const bA = r => { const v = r.r.ar / r.mins * 10; return v < 2.5 ? 0 : v < 4 ? 1 : 2; };
+  const bX = r => { if (r.r.chosen < 3) return null; const v = (r.r.ch.x + r.r.ch.l) / r.r.chosen; return v < 0.4 ? 0 : v < 0.6 ? 1 : 2; };
+  const cell = {};
+  for (const x of rows){ const a = bA(x), b = bX(x); if (b == null) continue; const c = cell[a + '' + b] || (cell[a + '' + b] = { ck: 0, mins: 0, n: 0 }); c.ck += x.ck; c.mins += x.mins; c.n++; }
+  h += '<div><h4>你的逻辑：到达多不多 × 传中远射多不多</h4><table class="sts"><thead><tr><th>到达每10分＼传中＋远射</th><th>少 &lt;40%</th><th>中 40–60%</th><th>多 ≥60%</th></tr></thead><tbody>'
+    + ['少 &lt;2.5', '中 2.5–4', '多 ≥4'].map((t, a) => '<tr><td class="tl">' + t + '</td>' + [0, 1, 2].map(b => { const c = cell[a + '' + b]; return c ? '<td>' + f1(c.ck / c.mins * 10) + '<small>' + c.n + '</small></td>' : '<td class="dim">—</td>'; }).join('') + '</tr>').join('')
+    + '</tbody></table><p class="hint">格子里是每 10 分钟几个角球，小字是队伍半场数（至少 3 次选择才算）。每格少于 10 个半场时，数字还会跳得很厉害。</p></div>';
+  // 第一部分、两个问题：每种选择下的角球
+  const stTab = (x, title) => {
+    const agg = {}; const n = x.o.length;
+    for (let v = -1; v < n; v++) agg[v] = { mins: 0, ck: 0, ar: 0 };
+    for (const m of done) for (const i of [0, 1]){ const s = stateSplit(m, i, x.f, 'ft'); for (let v = -1; v < n; v++){ agg[v].mins += s[v].mins; agg[v].ck += s[v].ck; agg[v].ar += s[v].ar; } }
+    const lines = [];
+    for (let v = 0; v < n; v++) if (agg[v].mins >= 1) lines.push('<tr><td class="tl">' + (x.f[0] === 'q' ? (v + 1) + ' ' : '') + esc(x.o[v]) + '</td><td>' + Math.round(agg[v].mins) + '</td><td>' + f1(agg[v].ar / agg[v].mins * 10) + '</td><td>' + f1(agg[v].ck / agg[v].mins * 10) + '</td></tr>');
+    if (!lines.length) return '';
+    return '<div><h4>' + title + '</h4><table class="sts"><thead><tr><th>选择</th><th>分钟</th><th>到达/10分</th><th>角球/10分</th></tr></thead><tbody>' + lines.join('') + '</tbody></table></div>';
+  };
+  let st = P1.map(x => stTab(x, '第一部分：' + x.n)).join('') + QS.map(x => stTab(x, '两个问题：' + x.s)).join('');
+  h += st || '<p class="hint">还没有第一部分或两个问题的选择。比赛中选了以后，这里会有每种选择下平均几个角球。</p>';
+  if (st) h += '<p class="hint">分钟＝这一队处在这个选择的时间（所有比赛加起来），角球和到达都算这一队的。数据多了以后，可以导出给 Claude 建模型。</p>';
+  return h + '</div>';
+}
+function whBack(){
+  const last = LS.get('corner-reach-exported', 0), all = whAll();
+  return '<div class="tidy"><b>备份</b><p>数据只存在这台设备上，换手机或清除浏览器数据会不见，建议每周导出一次。' + (last ? '上次导出：' + new Date(last * 1000).toLocaleString('zh-CN', { hour12: false }) + '。' : '还没导出过。') + '导出档可以直接传给 Claude 分析、建模型。</p>'
+    + '<div class="row"><button class="pill dark" data-a="expall" ' + (all.length ? '' : 'disabled') + '>导出全部（' + all.length + ' 场）</button><button class="pill" data-a="expcsv" ' + (all.length ? '' : 'disabled') + '>每一笔（CSV）</button><button class="pill" data-a="expcsvh" ' + (all.length ? '' : 'disabled') + '>每队每半场（CSV）</button><button class="pill" data-a="import">导入</button></div></div>'
+    + '<p class="hint">JSON 有每一笔记录和时间，可以再导入；“每一笔”是每次到达、角球、进球一行，带着当时第一部分和两个问题的选择；“每队每半场”是次数加起来一行。CSV 用 Excel 或 Numbers 打开。</p>';
+}
+function dropMatch(m, msg){
+  const wasCur = m.id === M.id;
+  delete store[m.id]; LS.set(KEY, store);
+  if (wasCur){ M = newMatch(m); OC[0] = OC[1] = null; saveNow(); }
+  renderAll();
+  showToast(msg, () => {
+    store[m.id] = m; LS.set(KEY, store);
+    if (wasCur && !hasContent(M)){ if (store[M.id] && M.id !== m.id) delete store[M.id]; M = m; saveNow(); }
+    if (sheetKind === 'arch') renderSheet(); renderAll();
+  });
+}
+function startNew(){
+  saveNow();
+  if (M.st !== 2 && !hasContent(M) && store[M.id]){ delete store[M.id]; LS.set(KEY, store); }
+  pauseClock();
+  M = newMatch(M); OC[0] = OC[1] = null; saveNow(); closeSugg(); renderAll(); showToast('已开始新比赛');
+}
+function askNew(){ if (M.st === 2 || !hasContent(M)){ startNew(); return; } openSheet('newq'); }
+
+/* ================= 导出与导入 ================= */
+const README = APPNAME + '导出档（fmt=1）。matches 是比赛阵列，每场：id、d 日期、lg 联赛、h 主队、a 客队、st 状态(1进行中/2已结束)、keep(1=结束时选了加入仓库)、pe 各半场结束时的比赛时钟秒数、obs 开始记录的位置{p 半场, t 比赛时钟秒数}、stop 结束记录的位置、note 备注、ev 事件、sv 主观选择。只有 obs 到 stop 之间是实际看到的。'
+  + 'ev 每笔 = {t 比赛时钟秒数（下半场从2700起算）, p 半场(1/2), i 进攻的队伍(0主队/1客队), c 类型}。c：ar 到达（本队在对方禁区附近控制住球）、ck 其他角球（不是从记下的那次到达直接来的）、gl 进球（补录、点球等）、rc 红牌；b=1 加入前补录、时间不详；a=1 联网同步补上的，时间是估计。'
+  + 'ar 另有 pa 选择路径（一串字母，见 tree）和 dt 从按到达到第一个选择的秒数（没有＝不详）。路径第一个字母：x 传中、l 远射、m 中路渗透、b 回传、g 丢球；传中 x 后 i 内/o 外，xi 后 s 禁区射门/c 解围或中途拦截，再后 g 进球/c 角球/n 无角球；远射 l 后 i 内/o 外，li 后 g/c/n；中路渗透 m 后 s 禁区射门/n 无禁区射门，ms 后 g/c/n；回传、丢球没有后续。路径以 c 结果结束的（例如 xisc、xicc、lic、msc）＝这次到达直接得到角球。空字串＝到达后没选。'
+  + 'sv 每笔 = {t, p, i 进攻的队伍, f 项目, v 选第几个(0开始，null=取消)}，从这个时间起一直有效到下一笔。f：bq 球权(多/中/少)、nd 到禁区附近的难度(没难度/有难度但小/有难度但进得去/有很大难度但勉强进得去/难且进不去)、yy 到禁区附近的意愿(强/中/弱)、cm 到禁区附近的场面(包饺子/包一会饺子然后转换球权/快速转换球权)、q1 他容不容易到对方禁区附近(0=1很难…4=5很容易)、q2 他喜不喜欢传中和远射(0=1很不喜欢…4=5很喜欢)。'
+  + 'api 是联网连上的比赛（API-Football fixture id、两队英文名、sw=1 主客相反，最后同步到的 st 状态、el 分钟、g 比分、ck 角球、ck1 上半场角球、sh 射门{t 全部, b 被挡, on 射正}、pos 控球%、rc 红牌、dl 你的画面比实时慢几秒）。';
+function treeObj(){ const o = {}; const go = (nd, pa) => { if (pa) o[pa] = paLabel(pa); if (nd.o) for (const c of nd.o) go(nd.k[c], pa + c); }; go(ROOT, ''); return o; }
+function openExport(list){
+  const ds = new Date().toISOString().slice(0, 10);
+  const matches = list.map(m => ({ id: m.id, d: m.d, lg: m.lg, h: m.h, a: m.a, st: m.st, keep: m.keep ? 1 : undefined, pe: m.pe, obs: m.obs, stop: m.stop, note: m.note || undefined,
+    api: m.api ? { id: m.api.id, h: m.api.h, a: m.api.a, lg: m.api.lg, sw: m.api.sw, st: m.api.st, el: m.api.el, g: m.api.g, ck: m.api.ck, ck1: m.api.ck1 || undefined, sh: m.api.sh, pos: m.api.pos, rc: m.api.rc, dl: m.api.dl } : undefined,
+    ev: m.ev.map(e => { const x = { t: e.t, p: e.p, i: e.i, c: e.c }; if (e.c === 'ar'){ x.pa = e.pa; if (ok(e.dt)) x.dt = e.dt; } if (e.b) x.b = 1; if (e.a) x.a = 1; return x; }),
+    sv: m.sv.map(s => ({ t: s.t, p: s.p, i: s.i, f: s.f, v: s.v })) }));
+  const obj = { app: APPNAME, fmt: 1, ver: APPVER, exported: new Date().toISOString().slice(0, 16), readme: README, tree: treeObj(),
+    sv: P1.concat(QS).reduce((o, x) => { o[x.f] = { n: x.n, o: x.o }; return o; }, {}), matches: matches };
+  const nm = s => (s || '').replace(/[\\/:*?"<>|\s]+/g, '');
+  const name = list.length === 1 ? '角球到达_' + list[0].d + '_' + (nm(list[0].h) || '主队') + 'vs' + (nm(list[0].a) || '客队') + '.json' : '角球到达_全部' + list.length + '场_' + ds + '.json';
+  openSheet('export', { text: JSON.stringify(obj), name: name, count: list.length, type: 'application/json' });
+}
+const csvOf = rows => '﻿' + rows.map(r => r.map(v => { const s = String(v == null ? '' : v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }).join(',')).join('\n');
+const svCols = (m, i, p, t) => P1.concat(QS).map(x => { const s = svAt(m, i, x.f, p, t); return s && s.v != null ? (x.f[0] === 'q' ? s.v + 1 : x.o[s.v]) : ''; });
+function openCsv(list){
+  const head = ['日期', '联赛', '主队', '客队', '进攻方', '进攻球队', '半场', '时间', '比赛钟秒数', '类型', '选择', '用时秒', '内外', '下一步', '结果', '路径', '完整路径', '禁区射门', '角球', '进球', '补录', '联网补上'];
+  P1.concat(QS).forEach(x => head.push(x.f[0] === 'q' ? x.s : x.n));
+  const rows = [head];
+  for (const m of list){
+    for (const e of m.ev){
+      const w = e.c === 'ar' ? walk(e.pa) : [];
+      const res = e.c === 'ar' ? resOf(e.pa) : null;
+      const io = e.c === 'ar' && (e.pa[0] === 'x' || e.pa[0] === 'l') && e.pa.length > 1 ? (e.pa[1] === 'i' ? '内' : '外') : '';
+      const nx = e.c === 'ar' && e.pa[0] === 'x' && e.pa.length > 2 ? w[2].n : e.c === 'ar' && e.pa[0] === 'm' && e.pa.length > 1 ? w[1].n : '';
+      const row = [m.d, m.lg, m.h, m.a, e.i ? '客' : '主', e.i ? m.a : m.h, e.p === 1 ? '上' : '下', e.b ? '' : fmtClock(e.p, e.t), e.b ? '' : e.t,
+        e.c === 'ar' ? '到达' : e.c === 'ck' ? '其他角球' : SIMPLE[e.c], e.c === 'ar' && e.pa ? CHN[e.pa[0]] : '', e.c === 'ar' && ok(e.dt) ? e.dt : '', io, nx,
+        res ? R3[res].n : '', e.c === 'ar' ? e.pa : '', e.c === 'ar' ? paLabel(e.pa) : '', e.c === 'ar' && hasBox(e.pa) ? 1 : 0,
+        e.c === 'ck' || res === 'c' ? 1 : 0, e.c === 'gl' || res === 'g' ? 1 : 0, e.b ? 1 : '', e.a ? 1 : ''];
+      rows.push(row.concat(svCols(m, e.i, e.p, e.t)));
+    }
+  }
+  openSheet('export', { text: csvOf(rows), name: '角球到达_每一笔_' + list.length + '场_' + new Date().toISOString().slice(0, 10) + '.csv', count: list.length, type: 'text/csv' });
+}
+function openCsvHalf(list){
+  const head = ['日期', '联赛', '主队', '客队', '进攻方', '进攻球队', '半场', '看到分钟', '完整半场', '到达', '传中', '远射', '中路渗透', '回传', '丢球', '没选', '传中内', '传中外', '远射内', '远射外', '禁区射门', '角球', '其中到达链', '其他角球', '加入前角球', '进球', '平均用时秒', '传中远射占比'];
+  P1.concat(QS).forEach(x => head.push((x.f[0] === 'q' ? x.s : x.n) + '（停留最久）'));
+  head.push('备注');
+  const rows = [head];
+  for (const m of list){
+    for (const p of [1, 2]){
+      if (!halfSpan(m, p)) continue;
+      for (const i of [0, 1]){
+        const r = statOf(m, i, 'h' + p), mins = minsOf(m, 'h' + p), d = avg(r.dt.filter(v => v <= DT_MAX));
+        const row = [m.d, m.lg, m.h, m.a, i ? '客' : '主', i ? m.a : m.h, p === 1 ? '上' : '下', mins.toFixed(1), fullHalf(m, p) ? 1 : 0,
+          r.ar, r.ch.x, r.ch.l, r.ch.m, r.ch.b, r.ch.g, r.none, r.io.x[0], r.io.x[1], r.io.l[0], r.io.l[1], r.bs, r.ck, r.ckc, r.cks.o, r.ckb, r.gl, d == null ? '' : d.toFixed(1), r.chosen ? ((r.ch.x + r.ch.l) / r.chosen).toFixed(3) : ''];
+        for (const x of P1.concat(QS)){
+          const s = stateSplit(m, i, x.f, 'h' + p); let best = -1, bm = 0;
+          for (let v = 0; v < x.o.length; v++) if (s[v].mins > bm){ bm = s[v].mins; best = v; }
+          row.push(best < 0 ? '' : x.f[0] === 'q' ? best + 1 : x.o[best]);
+        }
+        row.push(p === 1 && i === 0 ? m.note : '');
+        rows.push(row);
+      }
+    }
+  }
+  openSheet('export', { text: csvOf(rows), name: '角球到达_每队每半场_' + list.length + '场_' + new Date().toISOString().slice(0, 10) + '.csv', count: list.length, type: 'text/csv' });
+}
+const markExported = () => LS.set('corner-reach-exported', nowSec());
+function canShareFile(){
+  try { return !!(navigator.canShare && window.File && navigator.canShare({ files: [new File(['x'], 'x.json', { type: 'application/json' })] })); } catch (e){ return false; }
+}
+function shareFile(){
+  try {
+    navigator.share({ files: [new File([sheetData.text], sheetData.name, { type: sheetData.type })] }).then(() => { markExported(); showToast('已送出文件'); }, e => { if (e && e.name !== 'AbortError') showToast('分享失败，请改用“复制文字”'); });
+  } catch (e){ showToast('分享失败，请改用“复制文字”'); }
+}
+function downloadFile(){
+  const url = URL.createObjectURL(new Blob([sheetData.text], { type: sheetData.type }));
+  const a = document.createElement('a'); a.href = url; a.download = sheetData.name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000); markExported(); showToast('已开始下载；如果没有反应，请改用“复制文字”');
+}
+function copyText(){
+  const ta = $('#expText');
+  const fb = () => { ta.focus(); ta.select(); try { document.execCommand('copy'); markExported(); showToast('已复制'); } catch (e){ showToast('文字已全选，请手动复制'); } };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(sheetData.text).then(() => { markExported(); showToast('已复制到剪贴板'); }, fb); else fb();
+}
+function importText(txt){
+  let o;
+  try { o = JSON.parse(txt); } catch (e){ showToast('读不懂这段文字，请确认是完整的导出内容'); return; }
+  if (!o || o.fmt !== 1 || o.app !== APPNAME || !Array.isArray(o.matches)){ showToast('这不是' + APPNAME + '的导出档'); return; }
+  let n = 0;
+  for (const r of o.matches){
+    if (!r || !r.id || r.id === M.id) continue;
+    const m = fixMatch({ id: String(r.id), c: nowSec(), u: nowSec(), d: r.d, lg: r.lg, h: r.h, a: r.a, st: r.st, keep: r.keep, pe: r.pe, obs: r.obs, stop: r.stop, note: r.note,
+      api: r.api, tm: null, ev: r.ev || [], sv: r.sv || [] });
+    const last = m.ev[m.ev.length - 1];
+    m.tm = m.stop ? { p: m.stop.p, b: m.stop.t, r: 0, at: 0, ht: 0 } : { p: last ? last.p : 1, b: last ? last.t : 0, r: 0, at: 0, ht: 0 };
+    store[m.id] = m; n++;
+  }
+  LS.set(KEY, store); closeSheet(); renderAll();
+  showToast('已导入 ' + n + ' 场');
+}
+$('#fileIn').addEventListener('change', ev => {
+  const f = ev.target.files && ev.target.files[0]; if (!f) return;
+  const rd = new FileReader(); rd.onload = () => importText(String(rd.result || '')); rd.readAsText(f); ev.target.value = '';
+});
+
+const TEAM_ZH = ('阿森纳:Arsenal|切尔西:Chelsea|利物浦:Liverpool|曼联/曼彻斯特联:Manchester United/Man United|曼城/曼彻斯特城:Manchester City'
+  + '|热刺/托特纳姆/托特纳姆热刺:Tottenham|纽卡斯尔/纽卡/纽卡斯尔联:Newcastle|阿斯顿维拉/维拉:Aston Villa|布莱顿:Brighton|西汉姆/西汉姆联:West Ham'
+  + '|狼队/伍尔弗汉普顿:Wolves/Wolverhampton|埃弗顿:Everton|富勒姆:Fulham|布伦特福德:Brentford|水晶宫:Crystal Palace|诺丁汉森林/诺丁汉:Nottingham Forest'
+  + '|伯恩茅斯:Bournemouth|莱斯特城/莱斯特:Leicester|利兹联/利兹:Leeds|南安普顿:Southampton|伯恩利:Burnley|桑德兰:Sunderland|伊普斯维奇/伊普斯维奇城:Ipswich'
+  + '|谢菲尔德联/谢菲联:Sheffield Utd/Sheffield United|谢周三/谢菲尔德星期三:Sheffield Wednesday|卢顿/卢顿城:Luton|沃特福德:Watford|诺维奇/诺维奇城:Norwich'
+  + '|赫尔城:Hull City|米德尔斯堡/米堡:Middlesbrough|斯托克城:Stoke City|西布朗/西布罗姆维奇:West Brom|考文垂/考文垂城:Coventry|布里斯托尔城:Bristol City'
+  + '|卡迪夫城/卡迪夫:Cardiff|斯旺西:Swansea|女王公园巡游者:QPR|德比郡:Derby|普雷斯顿:Preston|米尔沃尔:Millwall|布莱克本:Blackburn|朴茨茅斯:Portsmouth'
+  + '|牛津联:Oxford United|雷克瑟姆:Wrexham|普利茅斯:Plymouth'
+  + '|皇马/皇家马德里:Real Madrid|巴萨/巴塞罗那:Barcelona|马竞/马德里竞技:Atletico Madrid|塞维利亚:Sevilla|皇家社会:Real Sociedad|比利亚雷亚尔/黄潜:Villarreal'
+  + '|贝蒂斯/皇家贝蒂斯:Real Betis/Betis|毕尔巴鄂/毕尔巴鄂竞技:Athletic Club/Athletic Bilbao|瓦伦西亚:Valencia|塞尔塔:Celta Vigo|奥萨苏纳:Osasuna|赫塔费:Getafe'
+  + '|赫罗纳:Girona|马略卡/马洛卡:Mallorca|巴列卡诺/巴列卡诺闪电:Rayo Vallecano|阿拉维斯:Alaves|拉斯帕尔马斯:Las Palmas|西班牙人:Espanyol|莱加内斯:Leganes'
+  + '|巴拉多利德/皇家巴拉多利德:Valladolid|加的斯:Cadiz|格拉纳达:Granada|阿尔梅里亚:Almeria|莱万特:Levante|埃尔切:Elche|奥维耶多/皇家奥维耶多:Oviedo'
+  + '|国米/国际米兰:Inter|AC米兰/米兰:AC Milan|尤文/尤文图斯:Juventus|那不勒斯:Napoli|罗马:AS Roma/Roma|拉齐奥:Lazio|亚特兰大:Atalanta'
+  + '|佛罗伦萨/佛罗伦蒂娜:Fiorentina|博洛尼亚:Bologna|都灵:Torino|乌迪内斯:Udinese|热那亚:Genoa|萨索洛:Sassuolo|卡利亚里:Cagliari|莱切:Lecce'
+  + '|维罗纳:Verona|恩波利:Empoli|蒙扎:Monza|帕尔马:Parma|科莫:Como|威尼斯:Venezia|克雷莫纳/克雷莫内塞:Cremonese|比萨:Pisa|桑普多利亚:Sampdoria'
+  + '|萨勒尼塔纳:Salernitana|弗罗西诺内:Frosinone'
+  + '|拜仁/拜仁慕尼黑:Bayern Munchen/Bayern Munich/Bayern|多特/多特蒙德:Borussia Dortmund/Dortmund|莱比锡/RB莱比锡:RB Leipzig/Leipzig'
+  + '|勒沃库森/药厂:Bayer Leverkusen/Leverkusen|法兰克福:Eintracht Frankfurt/Frankfurt|斯图加特:Stuttgart|沃尔夫斯堡/狼堡:Wolfsburg'
+  + '|门兴/门兴格拉德巴赫:Borussia Monchengladbach/Gladbach|弗赖堡:Freiburg|霍芬海姆:Hoffenheim|不莱梅/云达不莱梅:Werder Bremen|奥格斯堡:Augsburg'
+  + '|柏林联合:Union Berlin|美因茨:Mainz|科隆:Koln/Cologne|海登海姆:Heidenheim|圣保利:St. Pauli|基尔/荷尔斯泰因基尔:Holstein Kiel|波鸿:Bochum'
+  + '|汉堡:Hamburger SV/Hamburg|达姆施塔特:Darmstadt|沙尔克/沙尔克04:Schalke|柏林赫塔/赫塔:Hertha'
+  + '|巴黎圣日耳曼/大巴黎/巴黎:Paris Saint Germain/PSG|马赛:Marseille|里昂:Lyon|摩纳哥:Monaco|里尔:Lille|尼斯:Nice|雷恩:Rennes|朗斯:Lens|南特:Nantes'
+  + '|斯特拉斯堡:Strasbourg|蒙彼利埃:Montpellier|兰斯:Reims|图卢兹:Toulouse|布雷斯特:Brest/Stade Brestois|勒阿弗尔:Le Havre|欧塞尔:Auxerre|昂热:Angers'
+  + '|圣埃蒂安:Saint Etienne|洛里昂:Lorient|梅斯:Metz|巴黎FC:Paris FC'
+  + '|阿贾克斯:Ajax|埃因霍温/PSV:PSV Eindhoven/PSV|费耶诺德:Feyenoord|阿尔克马尔/AZ:AZ Alkmaar|特温特:Twente|乌德勒支:Utrecht'
+  + '|本菲卡:Benfica|波尔图:Porto|葡萄牙体育/里斯本竞技:Sporting CP|布拉加:Braga|凯尔特人:Celtic|流浪者/格拉斯哥流浪者:Rangers'
+  + '|加拉塔萨雷:Galatasaray|费内巴切:Fenerbahce|贝西克塔斯:Besiktas|布鲁日:Club Brugge|安德莱赫特:Anderlecht'
+  + '|博德闪耀/博德格林特/博德:Bodo/Glimt|雅典AEK/AEK雅典/AEK:AEK Athens|奥林匹亚科斯:Olympiakos Piraeus/Olympiacos|帕纳辛奈科斯:Panathinaikos|PAOK/塞萨洛尼基:PAOK'
+  + '|布拉格斯拉维亚/斯拉维亚:Slavia Praha/Slavia Prague|布拉格斯巴达/斯巴达:Sparta Praha|萨巴赫:Sabah|斯洛万/布拉迪斯拉发斯洛万:Slovan Bratislava|维京/维京人:Viking'
+  + '|林茨/LASK:LASK|萨尔茨堡/萨尔茨堡红牛:Red Bull Salzburg/Salzburg|顿涅茨克矿工/矿工:Shakhtar Donetsk|基辅迪纳摩:Dynamo Kyiv|萨格勒布迪纳摩:Dinamo Zagreb'
+  + '|贝尔格莱德红星/红星:Crvena Zvezda/Red Star Belgrade|年轻人/伯尔尼年轻人:Young Boys|哥本哈根:FC Copenhagen|中日德兰:Midtjylland|圣吉罗斯联合:Union St. Gilloise'
+  + '|奈梅亨/NEC:NEC Nijmegen|阿拉木图凯拉特:Kairat|卡拉巴赫:Qarabag|塞尔维特:Servette|布雷斯特:Stade Brestois 29'
+  + '|利雅得新月/新月:Al-Hilal|利雅得胜利/胜利:Al-Nassr|吉达联合:Al-Ittihad|吉达国民:Al-Ahli|迈阿密国际:Inter Miami|洛杉矶银河:LA Galaxy|洛杉矶FC:Los Angeles FC'
+  + '|上海海港:Shanghai Port|上海申花:Shanghai Shenhua|山东泰山/山东鲁能:Shandong Taishan/Shandong Luneng|北京国安:Beijing Guoan|成都蓉城:Chengdu Rongcheng'
+  + '|天津津门虎:Tianjin Jinmen Tiger|武汉三镇:Wuhan Three Towns|浙江/浙江队:Zhejiang|河南/河南队:Henan|长春亚泰:Changchun Yatai|青岛海牛:Qingdao Hainiu'
+  + '|梅州客家:Meizhou Hakka|沧州雄狮:Cangzhou|深圳新鹏城:Shenzhen Peng City|青岛西海岸:Qingdao West Coast|大连英博:Dalian Yingbo|云南玉昆:Yunnan Yukun'
+  + '|神户胜利船/神户:Vissel Kobe|横滨水手:Yokohama F. Marinos/Yokohama F-Marinos/Yokohama Marinos|川崎前锋/川崎:Kawasaki Frontale'
+  + '|浦和红钻/浦和:Urawa/Urawa Red Diamonds/Urawa Reds|鹿岛鹿角/鹿岛:Kashima/Kashima Antlers|广岛三箭/广岛:Sanfrecce Hiroshima'
+  + '|大阪钢巴/钢巴:Gamba Osaka|大阪樱花/樱花:Cerezo Osaka|东京FC/FC东京:FC Tokyo|名古屋鲸八/名古屋:Nagoya Grampus|柏太阳神/柏雷素尔:Kashiwa Reysol'
+  + '|町田泽维亚/町田:Machida Zelvia|新潟天鹅:Albirex Niigata|札幌冈萨多:Consadole Sapporo/Hokkaido Consadole Sapporo|湘南比马:Shonan Bellmare'
+  + '|福冈黄蜂/福冈:Avispa Fukuoka|京都不死鸟/京都:Kyoto Sanga/Kyoto Sanga FC|磐田喜悦:Jubilo Iwata|东京绿茵/绿茵:Tokyo Verdy|鸟栖砂岩:Sagan Tosu'
+  + '|清水鼓动/清水:Shimizu S-Pulse|冈山绿雉/冈山:Fagiano Okayama|横滨FC:Yokohama FC|千叶/千叶市原/市原千叶:JEF United Chiba/JEF Utd Chiba/JEF United'
+  + '|长崎航海/长崎:V-Varen Nagasaki|水户蜀葵/水户:Mito Hollyhock'
+  + '|蔚山现代/蔚山:Ulsan|全北现代/全北:Jeonbuk|浦项制铁/浦项:Pohang|首尔FC:FC Seoul'
+  + '|中国/中国队:China|日本/日本队:Japan|韩国/韩国队:South Korea|英格兰:England|法国:France|德国:Germany|西班牙:Spain|意大利:Italy|葡萄牙:Portugal'
+  + '|荷兰:Netherlands|比利时:Belgium|巴西:Brazil|阿根廷:Argentina|克罗地亚:Croatia|澳大利亚:Australia|沙特/沙特阿拉伯:Saudi Arabia|伊朗:Iran|卡塔尔:Qatar'
+  + '|美国:USA|墨西哥:Mexico|乌拉圭:Uruguay|哥伦比亚:Colombia|摩洛哥:Morocco|塞内加尔:Senegal|瑞士:Switzerland|丹麦:Denmark|奥地利:Austria|波兰:Poland|土耳其:Turkey')
+  .split('|').map(x => { const [zh, en] = x.split(':'); return [zh.split('/'), en.split('/')]; });
+
+/* ================= 联网（API-Football，跟“角球数据记录”同一套） =================
+   只做一件事：帮你填好时间、比分、角球、红牌（中途加入、漏点的补上）。联网的数字不会混进到达和选择的统计。
+   API key 默认用“角球数据记录”里的（同一个网址，读得到，不会改它的资料）。 */
+const API_BASE = 'https://v3.football.api-sports.io';
+const LIVE_ST = ['1H', 'HT', '2H', 'ET', 'BT', 'P', 'LIVE', 'INT', 'SUSP'];
+const DONE_ST = ['FT', 'AET', 'PEN', 'AWD', 'WO'];
+const ST_ZH = { TBD: '时间未定', NS: '未开赛', '1H': '上半场', HT: '中场休息', '2H': '下半场', ET: '加时', BT: '加时休息', P: '点球大战', SUSP: '暂停', INT: '中断', FT: '已完场', AET: '加时完场', PEN: '点球完场', PST: '延期', CANC: '取消', ABD: '腰斩', AWD: '判定胜负', WO: '弃权', LIVE: '进行中' };
+const dayKey = d => d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+const TZ = (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'; } catch (e){ return 'UTC'; } })();
+const NET = Object.assign({ key: '', auto: true, iv: 0, used: {}, delay: null, quota: null }, LS.get('corner-reach-net', {}) || {});
+if (!NET.ivSet) NET.iv = 0;   // 默认只在按“同步”时联网（省额度）；自己在设定里选过才会自动同步
+const SBNET = LS.get('corner-sb-net', {}) || {}, SIXNET = LS.get('corner-six-net', {}) || {};   // 只读，不会改它们
+const saveNet = () => LS.set('corner-reach-net', NET);
+const otherKey = () => String(SBNET.key || '').trim() || String(SIXNET.key || '').trim();
+const apiKey = () => (NET.key || '').trim() || (NET.nosb ? '' : otherKey());
+const keyFromOther = () => !(NET.key || '').trim() && !NET.nosb && !!otherKey();
+let ALIAS = Object.assign({}, LS.get('corner-sb-alias', {}) || {}, LS.get('corner-six-alias', {}) || {}, LS.get('corner-reach-alias', {}) || {});
+const MYALIAS = LS.get('corner-reach-alias', {}) || {};
+let netBusy = false, netList = { at: 0, list: [], day: false };
+
+function apiGet(path){
+  const key = apiKey();
+  if (!key) return Promise.reject(new Error('还没有设定 API key'));
+  if (navigator.onLine === false) return Promise.reject(new Error('现在没有网络'));
+  if (path.indexOf('/status') !== 0){ const k = dayKey(new Date()); const u = {}; u[k] = ((NET.used || {})[k] || 0) + 1; NET.used = u; saveNet(); }
+  return fetch(API_BASE + path, { headers: { 'x-apisports-key': key } }).then(r => {
+    if (!r.ok) throw new Error('API-Football 回应错误 ' + r.status);
+    return r.json();
+  }, () => { throw new Error('连不上 API-Football（没有网络，或被浏览器拦截）'); }).then(j => {
+    const er = j && j.errors;
+    if (er && !Array.isArray(er) && Object.keys(er).length){
+      if (er.token) throw new Error('API key 不对，请在“联网数据”里重新贴上');
+      if (er.requests) throw new Error('今天的请求次数用完了');
+      if (er.rateLimit) throw new Error('请求太快了，等一分钟再试');
+      if (er.plan) throw new Error('免费方案查不到这些比赛（API 原文：' + er.plan + '）');
+      throw new Error(Object.keys(er).map(k => er[k]).join('；'));
+    }
+    if (Array.isArray(er) && er.length) throw new Error(er.join('；'));
+    return j.response;
+  });
+}
+
+/* ---------- 队名比对：内置中文译名 → 英文，维基数据补查，加上你确认过的队名 ---------- */
+const STOP = new Set(['fc', 'cf', 'afc', 'sc', 'ac', 'as', 'ss', 'us', 'club', 'de', 'calcio', 'cd', 'ud', 'sd', 'rc', 'sv', 'vfb', 'vfl', 'tsg', 'fk', 'sk', 'bk', 'if', 'ca', 'se', 'ec', '1', '04', '05', '1899']);
+function normName(s){
+  return String(s || '').replace(/\./g, '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ø/g, 'o').replace(/ß/g, 'ss').replace(/ı/g, 'i')
+    .replace(/[^a-z0-9一-鿿぀-ヿ가-힯]+/g, ' ').trim();
+}
+const coreW = s => s.split(' ').filter(w => w && !STOP.has(w));
+function bigr(s){ const t = s.replace(/ /g, ''); const a = []; for (let i = 0; i < t.length - 1; i++) a.push(t.slice(i, i + 2)); return a.length ? a : [t]; }
+function sim(a, b){
+  if (!a || !b) return 0;
+  if (a === b) return 1;
+  const ca = coreW(a), cb = coreW(b);
+  if (ca.length && ca.join(' ') === cb.join(' ')) return 0.95;
+  const s = ca.length <= cb.length ? ca : cb, l = ca.length <= cb.length ? cb : ca;
+  if (s.length && s.some(w => w.length >= 3) && s.every(w => l.some(x => x.indexOf(w) === 0 || (w.indexOf(x) === 0 && x.length >= 3)))) return 0.85 * (0.75 + 0.25 * s.length / l.length);
+  const ba = bigr(ca.join(' ') || a), bb = bigr(cb.join(' ') || b), m = new Map();
+  for (const x of bb) m.set(x, (m.get(x) || 0) + 1);
+  let hit = 0; for (const x of ba){ const c = m.get(x); if (c){ hit++; m.set(x, c - 1); } }
+  return 0.8 * 2 * hit / (ba.length + bb.length);
+}
+const WDC = Object.assign({}, LS.get('corner-sb-wd', {}) || {}, LS.get('corner-six-wd', {}) || {}, LS.get('corner-reach-wd', {}) || {});
+const MYWD = LS.get('corner-reach-wd', {}) || {};
+function nameKeys(u){
+  const raw = String(u || '').trim(), cn = raw.replace(/\s+/g, '').toUpperCase(), keys = new Set([normName(raw)]);
+  for (const x of TEAM_ZH) if (x[0].some(z => z.toUpperCase() === cn)) x[1].forEach(e => keys.add(normName(e)));
+  const w = WDC[normName(raw)];
+  if (w) w.en.forEach(e => keys.add(normName(e)));
+  return Array.from(keys).filter(Boolean);
+}
+const WD_API = 'https://www.wikidata.org/w/api.php';
+const hasCJK = x => /[一-鿿]/.test(x);
+const inDict = raw => { const cn = raw.replace(/\s+/g, '').toUpperCase(); return TEAM_ZH.some(x => x[0].some(z => z.toUpperCase() === cn)); };
+function wdPrep(u){
+  const raw = String(u || '').trim(), k = normName(raw);
+  if (!raw || !hasCJK(raw) || ALIAS[k] || inDict(raw)) return Promise.resolve();
+  const c = WDC[k];
+  if (c && (c.en.length || nowSec() - c.t < 7 * 86400)) return Promise.resolve();
+  const q = new URLSearchParams({ action: 'wbsearchentities', search: raw, language: 'zh', uselang: 'zh', type: 'item', limit: '12', format: 'json', origin: '*' });
+  const FOOT = /足球|球会|球會|球队|球隊|俱乐部|俱樂部|football|soccer/i;
+  return fetch(WD_API + '?' + q).then(r => r.json()).then(r => {
+    const ids = ((r && r.search) || []).filter(x => FOOT.test((x.label || '') + ' ' + (x.description || ''))).slice(0, 3).map(x => x.id);
+    if (!ids.length) return [];
+    const q2 = new URLSearchParams({ action: 'wbgetentities', ids: ids.join('|'), props: 'labels|aliases', languages: 'en', format: 'json', origin: '*' });
+    return fetch(WD_API + '?' + q2).then(x => x.json()).then(g => {
+      const en = [];
+      for (const id of ids){
+        const e = g && g.entities && g.entities[id]; if (!e) continue;
+        if (e.labels && e.labels.en) en.push(e.labels.en.value);
+        for (const x of (e.aliases && e.aliases.en) || []) en.push(x.value);
+      }
+      return en;
+    });
+  }).then(en => {
+    WDC[k] = MYWD[k] = { t: nowSec(), en: Array.from(new Set(en)).slice(0, 15) };
+    LS.set('corner-reach-wd', MYWD);
+  }).catch(() => {});
+}
+function teamSim(u, team){
+  const a = ALIAS[normName(u)];
+  if (a && a.id === team.id) return 1.2;
+  const tn = normName(team.name);
+  return Math.max.apply(null, [0].concat(nameKeys(u).map(k => sim(k, tn))));
+}
+function rankFixtures(list, h, a){
+  const out = [];
+  for (const f of list){
+    if (!f || !f.teams || !f.fixture) continue;
+    const H = f.teams.home, A = f.teams.away;
+    const n = [teamSim(h, H), teamSim(a, A)], w = [teamSim(h, A), teamSim(a, H)];
+    const sn = (n[0] + n[1]) / 2, sw = (w[0] + w[1]) / 2 * 0.95;
+    const swp = sw > sn, sc = swp ? sw : sn, pair = swp ? w : n;
+    if (Math.min(pair[0], pair[1]) >= 0.4 || Math.max(pair[0], pair[1]) >= 0.8) out.push({ f: f, score: sc, lo: Math.min(pair[0], pair[1]), sw: swp });
+  }
+  return out.sort((x, y) => y.score - x.score);
+}
+function rankOne(list, u){
+  const out = [];
+  for (const f of list){
+    if (!f || !f.teams || !f.fixture) continue;
+    const sh = teamSim(u, f.teams.home), sa = teamSim(u, f.teams.away), sc = Math.max(sh, sa);
+    if (sc >= 0.6) out.push({ f: f, score: sc, lo: sc, sw: false, side: sh >= sa ? 'h' : 'a', live: LIVE_ST.indexOf((f.fixture.status || {}).short) >= 0 ? 1 : 0 });
+  }
+  return out.sort((x, y) => y.score - x.score || y.live - x.live || (x.f.fixture.timestamp || 0) - (y.f.fixture.timestamp || 0));
+}
+function zhOf(name){
+  const k = normName(name);
+  for (const x of TEAM_ZH) if (x[1].some(e => normName(e) === k)) return x[0][0];
+  for (const x of TEAM_ZH) if (x[1].some(e => sim(normName(e), k) >= 0.9)) return x[0][0];
+  return name;
+}
+const isSure = r => r.length > 0 && ((r[0].lo >= 0.9 && (r.length === 1 || r[1].score < r[0].score - 0.15)) || (r[0].lo >= 0.72 && r.filter(c => c.lo >= 0.5).length === 1));
+const namesKey = () => M.h.trim() + '|' + M.a.trim();
+function rankQuery(list, q){
+  const k = normName(q);
+  if (!k) return [];
+  return list.map(f => { const x = Math.max(sim(k, normName(f.teams.home.name)), sim(k, normName(f.teams.away.name)), normName(f.teams.home.name + ' ' + f.teams.away.name).indexOf(k) >= 0 ? 0.9 : 0); return { f: f, score: x, lo: 0, sw: false }; })
+    .filter(c => c.score >= 0.35).sort((x, y) => y.score - x.score);
+}
+function addDay(){
+  if (netList.day) return Promise.resolve();
+  return apiGet('/fixtures?date=' + dayKey(new Date()) + '&timezone=' + encodeURIComponent(TZ)).then(day => {
+    const seen = new Set(netList.list.map(f => f.fixture.id));
+    netList.list = netList.list.concat((day || []).filter(f => f && f.fixture && !seen.has(f.fixture.id))); netList.day = true;
+  });
+}
+/* ---------- 查找这场比赛 ---------- */
+function apiFind(manual){
+  if (netBusy) return Promise.resolve();
+  if (!apiKey()){ if (manual) openSheet('net'); return Promise.resolve(); }
+  const h = M.h.trim(), a = M.a.trim();
+  if (!h && !a){ if (manual) showToast('先输入球队名字（填一队就行）'); return Promise.resolve(); }
+  netBusy = true; renderNet();
+  const id = M.id;
+  return Promise.all([wdPrep(h), wdPrep(a)]).then(() => {
+    if (Date.now() - netList.at > 120000) return apiGet('/fixtures?live=all').then(l => { netList = { at: Date.now(), list: l || [], day: false }; });
+  }).then(() => {
+    if (!h || !a) return addDay().then(() => {
+      if (M.id !== id) return;
+      const r1 = rankOne(netList.list, h || a);
+      if (r1.length) openSugg(r1.slice(0, 8), h ? 'h' : 'a');
+      else { M.apiErr = '今天的比赛里没找到“' + (h || a) + '”'; if (manual) openSugg([]); }
+    });
+    let r = rankFixtures(netList.list, h, a);
+    const go = () => {
+      if (M.id !== id) return;
+      if (isSure(r)){ netBusy = false; closeSugg(); return apiLink(r[0]); }
+      if (r.length || manual) openSugg(r.slice(0, 8));
+      else M.apiErr = '今天的比赛里没找到这两队，可以按“查找”手动选';
+    };
+    if (!isSure(r) && !netList.day) return addDay().then(() => { r = rankFixtures(netList.list, h, a); return go(); });
+    return go();
+  }).catch(e => {
+    if (manual) showToast('联网查找失败：' + e.message); else M.apiErr = '联网查找失败：' + e.message;
+  }).then(() => { netBusy = false; renderNet(); });
+}
+const sugg = $('#sugg');
+let SG = null;
+function fixWhen(f){
+  const st = f.fixture.status || {};
+  if (LIVE_ST.indexOf(st.short) >= 0) return (ST_ZH[st.short] || st.short) + (st.elapsed ? ' ' + st.elapsed + "'" : '');
+  if (st.short === 'NS' || st.short === 'TBD'){ const t = new Date(f.fixture.date); return pad2(t.getHours()) + ':' + pad2(t.getMinutes()) + ' 开球'; }
+  return ST_ZH[st.short] || st.short || '';
+}
+const suggList = () => SG.q ? rankQuery(netList.list, SG.q).slice(0, 8) : SG.cands;
+const gStr = (g, k) => g[k] == null ? '' : g[k];
+const suggItems = list => list.map((c, i) => { const f = c.f, g = f.goals || {}; return '<button data-sg="pick" data-i="' + i + '"><span class="t1">' + esc(f.teams.home.name) + ' <b>' + gStr(g, 'home') + (g.home != null ? '–' : 'vs') + gStr(g, 'away') + '</b> ' + esc(f.teams.away.name) + '</span>'
+  + '<span class="t2">' + esc(f.league ? f.league.name : '') + '　' + fixWhen(f) + (c.sw ? '　<em>主客跟你输入的相反</em>' : '') + '</span></button>'; }).join('');
+function openSugg(cands, one){ SG = { cands: cands, q: '', one: one || null }; renderSugg(); }
+function closeSugg(){ SG = null; sugg.hidden = true; sugg.innerHTML = ''; }
+function suggHint(list){
+  if (!list.length) return '今天的比赛里没找到名字相近的，可以输入英文队名筛选。';
+  if (SG && SG.one) return '“' + esc(M.h.trim() || M.a.trim()) + '”今天的比赛，点正确的那一场，另一队会自动填上。';
+  return '点正确的那一场。确认后会记住这两个队名，下次自动对上。';
+}
+function renderSugg(){
+  if (!SG){ closeSugg(); return; }
+  const list = suggList();
+  sugg.innerHTML = '<div class="sg-h"><b>是哪一场？</b><span id="sgHint">' + suggHint(list) + '</span><button data-sg="x">关闭</button></div>'
+    + '<div class="picks" id="sgList">' + suggItems(list) + '</div>'
+    + '<div class="sg-f"><input class="fi" id="sgQ" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="都不对？输入英文队名筛选，例如 Kashima" value="' + esc(SG.q) + '"><button class="pill" data-sg="none">都不是</button></div>';
+  sugg.hidden = false;
+}
+sugg.addEventListener('input', ev => {
+  if (ev.target.id !== 'sgQ' || !SG) return;
+  SG.q = ev.target.value.trim();
+  const list = suggList(); $('#sgList').innerHTML = suggItems(list); $('#sgHint').innerHTML = suggHint(list);
+});
+sugg.addEventListener('click', ev => {
+  const b = ev.target.closest('[data-sg]'); if (!b || !SG) return;
+  ev.stopPropagation();
+  switch (b.dataset.sg){
+    case 'x': closeSugg(); break;
+    case 'none': M.apiNo = namesKey(); saveNow(); closeSugg(); renderNet(); showToast('这场先不连。之后要连，按底部的“查找”'); break;
+    case 'pick': {
+      const c = suggList()[+b.dataset.i]; if (!c) break;
+      const H = c.f.teams.home, A = c.f.teams.away, one = M.h.trim() && M.a.trim() ? null : (M.h.trim() || M.a.trim());
+      if (one){
+        const side = c.side || (teamSim(one, H) >= teamSim(one, A) ? 'h' : 'a');
+        M.h = side === 'h' ? one : zhOf(H.name); M.a = side === 'a' ? one : zhOf(A.name);
+        c.sw = false; save(); renderAll();
+      } else if (SG.q) c.sw = teamSim(M.a, H) + teamSim(M.h, A) > teamSim(M.h, H) + teamSim(M.a, A);
+      closeSugg(); apiLink(c); break;
+    }
+  }
+});
+function apiLink(c){
+  const f = c.f, H = f.teams.home, A = f.teams.away;
+  M.api = { id: f.fixture.id, h: H.name, a: A.name, hid: H.id, aid: A.id, lg: f.league ? f.league.name : '', sw: c.sw ? 1 : 0, at: 0 };
+  M.apiErr = null; M.apiNo = null;
+  const mine = c.sw ? [A, H] : [H, A];
+  [M.h, M.a].forEach((u, i) => { const k = normName(u); if (k){ ALIAS[k] = MYALIAS[k] = { id: mine[i].id, n: mine[i].name }; } });
+  LS.set('corner-reach-alias', MYALIAS);
+  if (!M.lg.trim() && M.api.lg) M.lg = M.api.lg;
+  saveNow();
+  netBusy = true; renderNet();
+  return apiFetch(M).then(s => {
+    netBusy = false;
+    if (needJoin(s)) return openJoinFromApi(s);
+    applySync(s);
+    showToast('已连上：' + M.api.h + ' vs ' + M.api.a + '（' + (ST_ZH[s.st] || s.st) + '）' + (isRecording() ? '' : '，开球时按 ▶'));
+  }).catch(e => { if (M.api){ M.api.err = e.message; } showToast('已连上，但读取资料失败：' + e.message); })
+    .then(() => { netBusy = false; saveNow(); renderAll(); });
+}
+const isRecording = () => !!(M.ev.some(e => !e.b) || M.sv.length || M.tm.r || M.tm.b);
+const ownEvents = () => M.ev.some(e => !e.b);
+/* 联网的比赛在踢，但这场还没开始记录，或计时跟联网差太多又还没记任何事件（例如先按了 ▶ 才填队名）：当作中途加入 */
+function needJoin(s){
+  if (M.st !== 1 || LIVE_ST.indexOf(s.st) < 0) return false;
+  if (!isRecording()) return true;
+  if (ownEvents()) return false;
+  const c = apiClock(s); if (!c) return false;
+  // 两边放在同一条时间线上比（上半场补时算到 45:00 为止，中场休息＝45:00）；画面延迟一般不到 3 分钟
+  const pos = (p, v, ht) => ht ? PER[1][1] : p === 1 ? Math.min(v, PER[1][1]) : v;
+  const gap = pos(c.p, c.v, c.ht) - pos(M.tm.p, clockOf(M), M.tm.ht);
+  return gap > 300 || gap < -150;
+}
+function parseFix(f, m){
+  const sw = m.api.sw, ids = sw ? [f.teams.away.id, f.teams.home.id] : [f.teams.home.id, f.teams.away.id];
+  const st = (f.fixture && f.fixture.status) || {};
+  const gl = f.goals || {}, g = sw ? [gl.away, gl.home] : [gl.home, gl.away];
+  const num = v => v == null ? null : (parseInt(v, 10) || 0);
+  const raw = (arr, id, type) => { const t = (arr || []).find(x => x && x.team && x.team.id === id); if (!t) return undefined; const s = (t.statistics || []).find(x => x.type === type); return s ? s.value : null; };
+  const stat = (arr, id, type) => { const v = raw(arr, id, type); if (v === undefined) return null; const n = num(v); return n == null ? 0 : n; };
+  const has = Array.isArray(f.statistics) && f.statistics.length >= 2;
+  const ck = has ? ids.map(id => stat(f.statistics, id, 'Corner Kicks')) : null;
+  let rc = has ? ids.map(id => stat(f.statistics, id, 'Red Cards')) : null;
+  if (!rc || rc.some(x => x == null)) rc = ids.map(id => (f.events || []).filter(e => e && e.type === 'Card' && e.team && e.team.id === id && /red|second yellow/i.test(e.detail || '')).length);
+  const sv = (id, type) => stat(f.statistics, id, type) || 0;
+  const sh = has ? ids.map(id => { const on = sv(id, 'Shots on Goal'), off = sv(id, 'Shots off Goal'), b = sv(id, 'Blocked Shots'), tot = stat(f.statistics, id, 'Total Shots'); return { t: tot != null && tot > 0 ? tot : on + off + b, b: b, on: on }; }) : null;
+  const pos = has ? ids.map(id => { const v = raw(f.statistics, id, 'Ball Possession'); const n = v == null ? NaN : parseFloat(String(v)); return isFinite(n) ? n : null; }) : null;
+  const per = f.fixture && f.fixture.periods ? { first: num(f.fixture.periods.first), second: num(f.fixture.periods.second) } : null;
+  return { st: st.short || '', el: num(st.elapsed) || 0, ex: num(st.extra) || 0, g: g.map(x => num(x) || 0), ck: ck && ck.every(x => x != null) ? ck : null, rc: rc, sh: sh,
+    pos: pos && pos.every(x => x != null) ? pos : null, per: per, ko: (f.fixture && f.fixture.timestamp) || null, at: nowSec() };
+}
+function apiFetch(m){
+  return apiGet('/fixtures?id=' + m.api.id).then(res => {
+    const f = res && res[0];
+    if (!f) throw new Error('找不到这场比赛的资料');
+    const s = parseFix(f, m);
+    if ((!s.ck || !s.sh) && (LIVE_ST.indexOf(s.st) >= 0 || DONE_ST.indexOf(s.st) >= 0)){
+      return apiGet('/fixtures/statistics?fixture=' + m.api.id).then(st => {
+        const t = parseFix(Object.assign({}, f, { statistics: st }), m);
+        s.ck = s.ck || t.ck; s.sh = s.sh || t.sh; s.pos = s.pos || t.pos;
+        return s;
+      });
+    }
+    return s;
+  });
+}
+/* 上半场各几个角球（API 有分半场的统计才有） */
+function apiHalf(m){
+  return apiGet('/fixtures/statistics?fixture=' + m.api.id + '&half=true').then(res => {
+    const ids = m.api.sw ? [m.api.aid, m.api.hid] : [m.api.hid, m.api.aid];
+    const out = ids.map(id => {
+      const t = (res || []).find(x => x && x.team && x.team.id === id);
+      const arr = t && (t.statistics_1h || t.statistics_first_half);
+      if (!Array.isArray(arr)) return null;
+      const s = arr.find(x => x.type === 'Corner Kicks');
+      return s ? (parseInt(s.value, 10) || 0) : 0;
+    });
+    return out.every(x => x != null) ? out : null;
+  });
+}
+/* 开球时间戳跟“第几分钟”对得上才用（有的比赛给的是排定时间） */
+function perFits(s, p){
+  const per = s.per || {}, ps = p === 1 ? per.first : per.second;
+  if (!ps || !s.el || s.st !== (p === 1 ? '1H' : '2H')) return null;
+  const at = s.at || nowSec(), v = (p === 1 ? 0 : PER[2][0]) + at - ps, est = (s.el + (s.ex || 0) - 1) * 60 + 30;
+  return Math.abs(v - est) <= 100 || (s.el >= (p === 1 ? 45 : 90) && v > est && v - est < 900);
+}
+/* 联网的实时比赛时间 */
+function apiClock(s, now){
+  now = now == null ? nowSec() : now;
+  const per = s.per || {}, gone = Math.max(0, now - (s.at || now));
+  if (s.st === '1H' && per.first && now - per.first > 0 && now - per.first < 4500 && perFits(s, 1) !== false) return { p: 1, v: clamp(now - per.first, 0, TPR[1][1]), exact: true };
+  if (s.st === '2H' && per.second && now - per.second > 0 && now - per.second < 4500 && perFits(s, 2) !== false) return { p: 2, v: clamp(PER[2][0] + now - per.second, PER[2][0], TPR[2][1]), exact: true };
+  const mm = s.el + (s.ex || 0);
+  if (s.st === '1H') return { p: 1, v: clamp((mm - 1) * 60 + 30 + gone, 0, TPR[1][1]) };
+  if (s.st === '2H') return { p: 2, v: clamp((mm - 1) * 60 + 30 + gone, PER[2][0], TPR[2][1]) };
+  if (s.st === 'HT') return { p: 1, v: PER[1][1], ht: true };
+  return null;
+}
+/* 画面延迟：你看的画面比实时慢几秒（开球、中途加入、对时的时候测，存在这台设备上） */
+function fmtDelay(sec){ sec = Math.round(Math.abs(sec)); return sec >= 60 ? Math.floor(sec / 60) + ' 分 ' + pad2(sec % 60) + ' 秒' : sec + ' 秒'; }
+const myDelay = () => M.api && M.api.dl != null ? M.api.dl : NET.delay != null ? NET.delay : NET.dl0 ? null : SBNET.delay != null ? SBNET.delay : SIXNET.delay != null ? SIXNET.delay : null;
+const delayNote = d => d == null ? '' : d < 10 ? '，你的画面跟联网实时差不多' : '，你的画面比联网实时慢 ' + fmtDelay(d);
+function learnDelay(appSec, why){
+  const a = M.api;
+  if (!a || !a.st || nowSec() - (a.at || 0) > 900) return null;
+  const r = apiClock(a);
+  if (!r || r.ht || r.p !== curP()) return null;
+  if (!r.exact && why === 'kick') return null;
+  let d = Math.round(r.v - appSec);
+  if (d < -45 || d > 900) return null;
+  if (!r.exact && d < 30) d = 0;
+  a.dl = Math.max(0, d); NET.delay = a.dl; saveNet();
+  return a.dl;
+}
+function delayFromKick(){
+  const a = M.api;
+  if (!a || !a.per || !M.kw) return null;
+  let got = null;
+  for (const p of [1, 2]){
+    const ps = p === 1 ? a.per.first : a.per.second, kw = M.kw[p];
+    if (!ps || !kw || a.dlk === p || !(a.pok && a.pok[p])) continue;
+    const d = kw - ps;
+    if (d >= 0 && d <= 180){ a.dl = Math.round(d); a.dlk = p; NET.delay = a.dl; saveNet(); got = a.dl; }
+  }
+  return got;
+}
+/* 你记录的数字：其他角球＋到达链里的角球、补录和到达链里的进球 */
+function curCounts(){
+  const a = statOf(M, 0, 'h1'), b = statOf(M, 1, 'h1'), c = statOf(M, 0, 'h2'), d = statOf(M, 1, 'h2');
+  return { sc: [a.gl + c.gl, b.gl + d.gl], rc: [a.rc + c.rc, b.rc + d.rc], ck1: [a.ck, b.ck], ck2: [c.ck, d.ck], ft: [a.ck + c.ck, b.ck + d.ck] };
+}
+const NETL = { ck: '角球', gl: '进球', rc: '红牌' };
+/* 中途加入：按联网的时间（扣掉你上次测出的画面延迟）、比分、角球、红牌填好 */
+function openJoinFromApi(s){
+  const c = apiClock(s);
+  const need1h = s.ck && c && c.p === 2;
+  return (need1h ? apiHalf(M).catch(() => null) : Promise.resolve(null)).then(ck1 => {
+    if (ck1) M.api.ck1 = ck1.slice();
+    const dl = myDelay() || 0;
+    const tp = c ? { p: c.p, v: c.ht ? c.v : clamp(Math.round((c.v - dl) / 5) * 5, TPR[c.p][0], TPR[c.p][1]), live: !c.ht, at: Date.now() } : { p: 1, v: 20 * 60, live: true, at: Date.now() };
+    const d = { tp: tp, sc: s.g.slice(), rc: s.rc.slice(), net: true, ht: !!(c && c.ht), real: !!(c && !c.ht), dl: myDelay() };
+    if (s.ck){ d.ft = s.ck.slice(); d.ck1 = c && c.p === 2 ? (ck1 || s.ck.slice()) : s.ck.slice(); d.lk = !!(c && c.p === 2 && !ck1); }
+    else { d.ft = [0, 0]; d.ck1 = [0, 0]; d.lk = true; d.nock = true; }
+    applySnap(s);
+    openSheet('join', d);
+  });
+}
+/* 功能 → 中途加入（已连上、还没记任何事件）：直接用联网的资料填 */
+function joinFromNet(){
+  if (netBusy) return;
+  netBusy = true; renderNet();
+  apiFetch(M).then(s => {
+    netBusy = false;
+    if (LIVE_ST.indexOf(s.st) >= 0) return openJoinFromApi(s);
+    applySnap(s); saveNow(); renderAll(); openJoin();
+  }).catch(e => { netBusy = false; showToast('联网读取失败，请手动填：' + e.message); openJoin(); })
+    .then(() => { netBusy = false; renderNet(); });
+}
+function openJoin(){
+  const c = curCounts();
+  openSheet('join', { tp: { p: 1, v: 20 * 60, live: true, at: Date.now() }, sc: c.sc.slice(), rc: c.rc.slice(), ck1: c.ck1.slice(), ft: c.ft.slice(), lk: true });
+}
+function applyJoin(d){
+  const p = d.ht ? 1 : d.tp.p, v = d.ht ? PER[1][1] : tpNow(d.tp);
+  M.ev = M.ev.filter(e => !e.b);
+  const base = curCounts();
+  const addB = (n, c, ep, i) => { for (let k = 0; k < n; k++) M.ev.push({ t: PER[ep][0], p: ep, i: i, c: c, b: 1, k: ++seq }); };
+  for (const i of [0, 1]){
+    let h1 = d.ck1[i], h2 = base.ck2[i];
+    if (d.tp.p === 2 || d.ht){ h1 = d.lk ? Math.max(base.ck1[i], d.ft[i] - base.ck2[i]) : d.ck1[i]; h2 = d.ft[i] - h1; }
+    addB(Math.max(0, d.sc[i] - base.sc[i]), 'gl', 1, i);
+    addB(Math.max(0, d.rc[i] - base.rc[i]), 'rc', 1, i);
+    addB(Math.max(0, h1 - base.ck1[i]), 'ck', 1, i);
+    addB(Math.max(0, h2 - base.ck2[i]), 'ck', 2, i);
+  }
+  M.obs = { p: p, t: v };
+  M.tm = { p: p, b: v, r: d.ht ? 0 : 1, at: Date.now(), ht: 0 };
+  M.st = 1; M.stop = null;
+  M.kw = null;   // 之前按 ▶ 的时间不是这场的开球，不能拿来测画面延迟
+  if (d.ht){ M.pe[1] = PER[1][1]; M.tm.ht = 1; }
+  sortEv(M); saveNow();
+}
+function applySnap(s){
+  const a = M.api; a.at = s.at || nowSec(); a.st = s.st; a.el = s.el; a.ex = s.ex; a.g = s.g; a.rc = s.rc; a.err = null; if (s.ko) a.ko = s.ko;
+  let dl = null;
+  if (s.per){
+    a.per = s.per;
+    for (const p of [1, 2]){ const f = perFits(s, p); if (f != null){ a.pok = a.pok || {}; a.pok[p] = f; } }
+    dl = delayFromKick();
+  }
+  if (s.ck) a.ck = s.ck;
+  if (s.sh) a.sh = s.sh;
+  if (s.pos) a.pos = s.pos;
+  if (s.st === 'HT' && s.ck && !a.ck1) a.ck1 = s.ck.slice();
+  if (!M.h.trim() || !M.a.trim()){ const nm = a.sw ? [a.a, a.h] : [a.h, a.a]; if (!M.h.trim()) M.h = zhOf(nm[0]); if (!M.a.trim()) M.a = zhOf(nm[1]); }
+  if (DONE_ST.indexOf(s.st) >= 0) a.fin = 1;
+  return dl;
+}
+/* 同步：联网的角球、进球、红牌比你记录的多，就等画面追上（画面延迟＋30 秒）后补上你还没点的（标“联网”） */
+const holdWait = () => clamp((myDelay() == null ? 60 : myDelay()) + 30, 20, 600);
+function missingFrom(s){
+  const cur = curCounts(), out = [];
+  for (const i of [0, 1]){
+    if (s.ck) out.push(['ck', s.ck[i] - cur.ft[i], i]);
+    out.push(['gl', s.g[i] - cur.sc[i], i]);
+    out.push(['rc', (s.rc[i] || 0) - cur.rc[i], i]);
+  }
+  return out.filter(x => x[1] > 0);
+}
+function commitHold(s){
+  const a = M.api, added = {};
+  if (!(M.st === 1 && isRecording())) return added;
+  const miss = missingFrom(s);
+  if (!miss.length) return added;
+  const ht = !!M.tm.ht, p = curP(), clk = ht ? (M.pe[1] || PER[1][1]) : Math.floor(clockOf(M));
+  const now = ht ? clk : Math.max(PER[p][0], clk - 30);
+  const o = M.obs || { p: 1, t: 0 };
+  let from = a.cp === p && a.ct != null && a.ct <= now ? a.ct : now - 120;
+  from = Math.max(from, PER[p][0], o.p === p ? o.t : PER[p][0]);
+  for (const x of miss){
+    const c = x[0], n = x[1], i = x[2];
+    for (let k = 0; k < n; k++) M.ev.push({ t: ht ? now : Math.round(from + (now - from) * (k + 1) / (n + 1)), p: p, i: i, c: c, a: 1, k: ++seq });
+    const key = teamName(i) + ' ' + NETL[c]; added[key] = (added[key] || 0) + n;
+  }
+  sortEv(M);
+  a.ct = now; a.cp = p;
+  return added;
+}
+function addedMsg(added){ const m = Object.keys(added).map(k => k + ' ' + added[k]); if (m.length) showToast('联网同步补上：' + m.join('，')); }
+function flushHold(force){
+  const a = M.api;
+  if (!a || !a.hold || !a.hold.length) return;
+  const appP = curP();
+  const due = a.hold.filter(h => force || (nowSec() >= h.due && !(h.p === 2 && (appP === 1 || M.tm.ht))));
+  if (!due.length) return;
+  a.hold = a.hold.filter(h => due.indexOf(h) < 0);
+  const added = {};
+  for (const h of due){ const x = commitHold(h.s); for (const k in x) added[k] = (added[k] || 0) + x[k]; }
+  saveNow(); renderAll(); addedMsg(added);
+}
+/* 你自己点了角球或进球：跟最近联网补上的那笔合并，不会多算 */
+function mergeAuto(i, kind){
+  const codes = kind === 'ck' ? ['ck'] : ['gl'], win = kind === 'ck' ? 240 : 360, s = nowStamp();
+  let pick = null;
+  for (const e of M.ev) if (e.a && e.i === i && codes.indexOf(e.c) >= 0 && e.p === s.p && s.t - e.t <= win && (!pick || e.k > pick.k)) pick = e;
+  if (!pick) return false;
+  M.ev.splice(M.ev.indexOf(pick), 1); save();
+  return true;
+}
+function applySync(s, manual){
+  const dl = applySnap(s);
+  const a = M.api;
+  let shown = false;
+  const noCk = !s.ck && LIVE_ST.indexOf(s.st) >= 0 ? '。这场联网没有角球统计，角球要自己点' : '';
+  if (M.st === 1 && isRecording() && !needJoin(s)){
+    const miss = missingFrom(s);
+    if (miss.length){
+      const wait = holdWait(), c = apiClock(s), hp = c ? c.p : null;
+      const later = hp === 2 && (!!M.tm.ht || M.tm.p === 1);
+      a.hold = (a.hold || []).concat([{ due: nowSec() + wait, p: hp, s: { ck: s.ck, g: s.g, rc: s.rc } }]).slice(-4);
+      if (manual){
+        const what = miss.map(x => teamName(x[2]) + ' ' + NETL[x[0]] + ' ' + x[1]).join('，');
+        showToast(later ? '联网已经是下半场，比你多：' + what + '。你按“下半场开球”后，等画面追上，还没点的会自动补上'
+          : '联网比你多：' + what + '。等画面追上（约 ' + fmtDelay(wait) + '），还没点的会自动补上' + noCk + delayNote(dl));
+        shown = true;
+      }
+    } else if (manual){ showToast('已同步：' + (s.ck ? '角球 ' + s.ck[0] + '–' + s.ck[1] + '，跟你记录的一样' : '比分 ' + s.g[0] + '–' + s.g[1]) + noCk + delayNote(dl)); shown = true; }
+  }
+  if (dl != null && !shown) showToast('按开球时间测出' + delayNote(dl).slice(1));
+  saveNow(); renderAll();
+  if (DONE_ST.indexOf(s.st) >= 0 && M.st === 1 && !a.done){
+    a.done = 1; save();
+    showToast('联网数据显示比赛已经结束', () => openSheet('finish'), '结束这场', 15000);
+  }
+}
+function apiSync(manual){
+  if (!M.api || netBusy) return Promise.resolve();
+  netBusy = true; renderNet();
+  const id = M.id;
+  return apiFetch(M).then(s => {
+    netBusy = false;
+    if (M.id !== id) return;
+    if (needJoin(s)){
+      if (manual) return openJoinFromApi(s);
+      applySnap(s); saveNow(); renderAll(); return;
+    }
+    applySync(s, manual);
+    if (manual && M.st === 1 && !isRecording() && DONE_ST.indexOf(s.st) < 0){
+      const t = M.api && M.api.ko ? new Date(M.api.ko * 1000).toLocaleTimeString('zh-CN', { hour12: false, hour: '2-digit', minute: '2-digit' }) + ' 开球，' : '';
+      showToast('联网：' + (ST_ZH[s.st] || s.st) + '。' + t + '开球时按 ▶');
+    }
+  }).catch(e => {
+    netBusy = false;
+    if (M.api){ M.api.err = e.message; M.api.at = nowSec(); save(); }
+    if (manual) showToast('同步失败：' + e.message);
+  }).then(() => { netBusy = false; renderNet(); });
+}
+let findT = 0;
+function scheduleFind(delay){
+  clearTimeout(findT);
+  if (!apiKey() || !NET.auto || M.api || M.st !== 1 || (!M.h.trim() && !M.a.trim()) || M.apiNo === namesKey()) return;
+  findT = setTimeout(() => { if (!sheet.hidden) return; apiFind(false); }, delay == null ? 2500 : delay);
+}
+function syncState(){
+  if (!apiKey()) return { k: 'set', l: '联网', s: '未设定' };
+  const a = M.api;
+  if (!a) return { k: 'find', l: '查找', s: netBusy ? '查找中…' : M.h.trim() || M.a.trim() ? '未连上' : '先填队名' };
+  if (netBusy) return { k: 'busy', l: '同步', s: '同步中…' };
+  if (M.st === 1 && DONE_ST.indexOf(a.st) >= 0) return { k: 'fin', l: '结束', s: '已完场', alert: true };
+  if (M.st === 1 && !a.err){
+    if (a.st && needJoin(a)) return { k: 'join', l: '加入', s: a.ck ? '联网 ' + a.ck[0] + '–' + a.ck[1] : (ST_ZH[a.st] || a.st) + (a.el ? ' ' + a.el + "'" : ''), alert: true };
+    if (!isRecording() && (a.st === 'NS' || a.st === 'TBD')) return { k: 'sync', l: '同步', s: '未开赛' };
+  }
+  const rec = curCounts().ft, on = LIVE_ST.indexOf(a.st) >= 0 || DONE_ST.indexOf(a.st) >= 0;
+  const ago = a.at ? Math.max(0, Math.round((nowSec() - a.at) / 60)) : null;
+  if (a.err) return { k: 'sync', l: '同步', s: '上次失败', alert: true };
+  if (on && a.ck && (a.ck[0] !== rec[0] || a.ck[1] !== rec[1])) return { k: 'sync', l: '同步', s: '联网 ' + a.ck[0] + '–' + a.ck[1], alert: true };
+  return { k: 'sync', l: '同步', s: ago == null ? '还没同步' : ago ? ago + ' 分钟前' : '刚刚' };
+}
+function quickSync(){
+  const ss = syncState();
+  if (ss.k === 'set'){ openSheet('net'); return; }
+  if (ss.k === 'find'){ if (M.h.trim() || M.a.trim()){ M.apiNo = null; apiFind(true); } else showToast('先在上方输入球队名字，才能联网找这场比赛'); return; }
+  if (ss.k === 'fin'){ openSheet('finish'); return; }
+  if (ss.k === 'busy') return;
+  apiSync(true);
+}
+function renderNet(){
+  const ss = syncState(), sb = $('#qbSync');
+  if (sb){
+    sb.className = 'qb' + (ss.alert ? ' alert' : '');
+    sb.disabled = ss.k === 'busy';
+    sb.innerHTML = IC.sync + '<span>' + ss.l + '</span><small>' + esc(ss.s) + '</small>' + (ss.alert ? '<i class="dot"></i>' : '');
+    sb.setAttribute('aria-label', ss.l + '：' + ss.s);
+  }
+  const pill = $('#netPill');
+  if (pill){
+    if (!apiKey() && !M.api){ pill.hidden = true; }
+    else {
+      pill.hidden = false;
+      const a = M.api;
+      let txt = '联网', cls = 'off';
+      if (netBusy){ txt = M.api ? '同步中…' : '查找中…'; cls = ''; }
+      else if (a && a.err){ txt = '同步失败'; cls = 'bad'; }
+      else if (a && a.st){ txt = (ST_ZH[a.st] || a.st) + (a.el && LIVE_ST.indexOf(a.st) >= 0 ? ' ' + a.el + "'" : '') + (a.ck ? ' · 角球 ' + a.ck[0] + '–' + a.ck[1] : ''); cls = ''; }
+      else if (a) { txt = '已连上'; cls = ''; }
+      else txt = M.apiErr ? '没找到这场' : '联网 · 未连上';
+      pill.className = 'netpill ' + cls;
+      pill.innerHTML = '<i></i><span>' + esc(txt) + '</span>';
+    }
+  }
+}
+
+/* ================= 视频浮窗 ================= */
+const PIP = Object.assign({ pos: 'off', h: 190 }, LS.get('corner-reach-pip', {}) || {});
+function applyPip(){
+  const on = PIP.pos === 'top' || PIP.pos === 'bot';
+  document.body.classList.toggle('pip-on', on);
+  document.body.classList.toggle('pip-top', PIP.pos === 'top');
+  document.body.classList.toggle('pip-bot', PIP.pos === 'bot');
+  document.documentElement.style.setProperty('--pipH', (on ? PIP.h : 0) + 'px');
+}
+const savePip = () => { LS.set('corner-reach-pip', PIP); applyPip(); renderAll(); };
+applyPip();
+
+/* ================= 提示 ================= */
+let toastT = 0, toastFn = null;
+function showToast(msg, fn, lab, ms){
+  $('#toastMsg').textContent = msg; toastFn = fn || null;
+  const b = $('#toastBtn'); b.textContent = lab || '撤销'; b.hidden = !fn; $('#toast').hidden = false;
+  clearTimeout(toastT); toastT = setTimeout(() => { $('#toast').hidden = true; toastFn = null; }, ms || Math.min(9000, Math.max(fn ? 4500 : 2600, msg.length * 110)));
+}
+function hideToast(){ clearTimeout(toastT); $('#toast').hidden = true; toastFn = null; }
+$('#toastBtn').addEventListener('click', () => { if (!toastFn) return; const f = toastFn; toastFn = null; $('#toast').hidden = true; f(); });
+
+/* ================= 互动 ================= */
+function setMid(open){ $('#mid').classList.toggle('open', open); $('#scrim').hidden = !open; }
+$('#scrim').addEventListener('click', () => setMid(false));
+function closeChainOf(e){ for (const i of [0, 1]) if (OC[i] && OC[i].k === e.k) OC[i] = null; }
+document.addEventListener('click', ev => {
+  const b = ev.target.closest('[data-a]');
+  if (!b || b.disabled) return;
+  if (sugg.contains(b)) return;
+  const a = b.dataset.a, d = sheetData;
+  switch (a){
+    case 'close': closeSheet(); break;
+    // 记录
+    case 'mode': PREF.mode = b.dataset.v === 'q' ? 'q' : 'rec'; savePref(); setMid(false); renderAll(); break;
+    case 'ar': tapArrive(+b.dataset.i); break;
+    case 'pick': pick(+b.dataset.i, b.dataset.v); break;
+    case 'stb': stageBack(+b.dataset.i); break;
+    case 'ste': stageEnd(+b.dataset.i); break;
+    case 'stx': stageCancel(+b.dataset.i); break;
+    case 'ck': tapCorner(+b.dataset.i); break;
+    case 'qv': pickQ(+b.dataset.i, b.dataset.f, +b.dataset.v); break;
+    case 'p1': {
+      if (M.st === 2){ endedToast(); break; }
+      openSheet('p1', { i: +b.dataset.i });
+      const g = b.dataset.f && document.getElementById('p1g-' + b.dataset.f);   // 点的那一项看不到时，捲到刚好看得到
+      if (g){ const r = g.getBoundingClientRect(), c = card.getBoundingClientRect(); if (r.bottom > c.bottom) card.scrollTop += r.bottom - c.bottom + 16; }
+      break;
+    }
+    case 'p1side': d.i = +b.dataset.v; renderSheet(); break;
+    case 'p1v': {
+      if (M.st === 2){ endedToast(); break; }
+      const f = b.dataset.f, v = +b.dataset.v, cur = svCur(M, d.i, f);
+      setSv(d.i, f, cur && cur.v === v ? null : v);
+      renderAll(); renderSheet(); break;
+    }
+    case 'undoT': undoTeam(+b.dataset.i); break;
+    case 'undo': undoAny(); break;
+    // 统计
+    case 'stats': renderStats(); setMid(true); break;
+    case 'midclose': setMid(false); break;
+    case 'scope': { const v = b.dataset.v; PREF.scope = v === 'h' + curP() ? 'auto' : v; savePref(); renderStats(); break; }
+    // 全部记录
+    case 'list': setMid(false); openSheet('list'); break;
+    case 'evedit': openSheet('evedit', { k: +b.dataset.k }); break;
+    case 'svedit': openSheet('svedit', { k: +b.dataset.k }); break;
+    case 'eppick': {
+      const e = evByK(d.k); if (!e || e.c !== 'ar') break;
+      const L = +b.dataset.l, v = b.dataset.v;
+      e.pa = cleanPa(e.pa.slice(0, L) + v);
+      if (!e.pa) delete e.dt;
+      for (const i of [0, 1]) if (OC[i] && OC[i].k === e.k && isDone(e.pa)) OC[i] = null;
+      save(); renderAll(); renderSheet(); break;
+    }
+    case 'evteam': { const e = evByK(d.k); if (e){ closeChainOf(e); e.i = +b.dataset.v; save(); renderAll(); renderSheet(); } break; }
+    case 'evtime': { const e = evByK(d.k); if (e){ e.t = clamp(e.t + +b.dataset.v, PER[e.p][0], PER[e.p][1] + 1200); sortEv(M); save(); renderAll(); renderSheet(); } break; }
+    case 'evdel': { const e = evByK(d.k); if (e){ closeChainOf(e); removeEv(e); renderAll(); openSheet('list'); showToast('已删除 ' + evLabel(e), () => { M.ev.push(e); sortEv(M); save(); renderAll(); if (sheetKind === 'list') renderSheet(); }); } break; }
+    case 'svval': { const s = svByK(d.k); if (s){ s.v = +b.dataset.v; save(); renderAll(); renderSheet(); } break; }
+    case 'svtime': { const s = svByK(d.k); if (s){ s.t = clamp(s.t + +b.dataset.v, PER[s.p][0], PER[s.p][1] + 1200); sortEv(M); save(); renderAll(); renderSheet(); } break; }
+    case 'svdel': { const s = svByK(d.k); if (s){ M.sv.splice(M.sv.indexOf(s), 1); save(); renderAll(); openSheet('list'); showToast('已删除 ' + svLabel(s), () => { M.sv.push(s); sortEv(M); save(); renderAll(); if (sheetKind === 'list') renderSheet(); }); } break; }
+    // 联网
+    case 'qsync': setMid(false); quickSync(); break;
+    case 'netpill': if (M.api || apiKey()) quickSync(); else openSheet('net'); break;
+    case 'net': setMid(false); openSheet('net'); break;
+    case 'join': { closeSheet(); if (M.st === 2) startNew(); if (M.api && apiKey() && M.st === 1 && !ownEvents()) joinFromNet(); else openJoin(); break; }   // 已结束的那场不动：中途加入就是新的一场
+    case 'js': { const f = b.dataset.f, i = +b.dataset.i; d[f][i] = Math.max(0, d[f][i] + +b.dataset.d); if (f === 'ft' && d.lk) d.ck1 = d.ft.slice(); renderSheet(); break; }
+    case 'jlk': d.lk = false; d.ck1 = d.ft.slice(); renderSheet(); break;
+    case 'jgo': {
+      applyJoin(d); closeSheet(); renderAll();
+      let dl = null;
+      if (!d.ht && M.api) dl = learnDelay(clockOf(M), 'join');
+      saveNow();
+      showToast(d.ht ? '已从中场休息开始记录，下半场开球时按 ▶' : '已从 ' + fmtClock(M.tm.p, clockOf(M)) + ' 开始记录' + delayNote(dl));
+      break;
+    }
+    case 'nkey': {
+      NET.key = ($('#netKey').value || '').trim(); saveNet(); netList = { at: 0, list: [], day: false };
+      if (!apiKey()){ sheetData.msg = '已清除。'; renderSheet(); renderNet(); break; }
+      sheetData.msg = '测试中…'; renderSheet();
+      apiGet('/status').then(r => {
+        const x = Array.isArray(r) ? r[0] : r, sub = x && x.subscription, rq = x && x.requests;
+        if (rq){ NET.quota = { cur: rq.current, lim: rq.limit_day, t: new Date().toLocaleTimeString('zh-CN', { hour12: false, hour: '2-digit', minute: '2-digit' }) }; saveNet(); }
+        sheetData.msg = '已连上 API-Football' + (sub ? '：方案 ' + sub.plan + (sub.active === false ? '（未启用）' : '') : '') + (rq ? '，今天已用 ' + rq.current + ' / ' + rq.limit_day + ' 次' : '') + '。';
+      }).catch(e => { sheetData.msg = '测试失败：' + e.message; }).then(() => { if (sheetKind === 'net') renderSheet(); renderNet(); scheduleFind(300); });
+      break;
+    }
+    case 'nkey0': NET.key = ''; NET.nosb = 1; saveNet(); sheetData.msg = '已清除。'; renderSheet(); renderNet(); break;
+    case 'nsb': NET.key = ''; NET.nosb = 0; saveNet(); sheetData.msg = '改用“角球数据记录”里的 key。'; renderSheet(); renderNet(); break;
+    case 'nauto': NET.auto = b.dataset.v === '1'; saveNet(); renderSheet(); break;
+    case 'niv': NET.iv = +b.dataset.v; NET.ivSet = 1; saveNet(); renderSheet(); break;
+    case 'ndl0': NET.delay = null; NET.dl0 = 1; if (M.api){ M.api.dl = null; M.api.dlk = null; } saveNet(); saveNow(); renderSheet(); showToast('已清除画面延迟，下次开球或中途加入时重新测'); break;
+    case 'nsync': closeSheet(); apiSync(true); break;
+    case 'nfind': closeSheet(); M.apiNo = null; apiFind(true); break;
+    case 'nre': closeSheet(); M.api = null; M.apiNo = null; saveNow(); renderAll(); apiFind(true); break;
+    case 'noff': M.api = null; M.apiNo = namesKey(); saveNow(); closeSheet(); renderAll(); showToast('已解除联网连接'); break;
+    // 功能
+    case 'menu': setMid(false); openSheet('menu'); break;
+    case 'help': openSheet('help'); break;
+    case 'defs': setMid(false); openSheet('defs'); break;
+    case 'clock': setMid(false); if (M.st === 2){ endedToast(); break; } openClock(); break;
+    case 'arch': setMid(false); openSheet('arch', { tab: 'list' }); break;
+    case 'wstats': openSheet('arch', { tab: 'stats' }); break;
+    case 'wback': openSheet('arch', { tab: 'back' }); break;
+    case 'wtab': d.tab = b.dataset.v; renderSheet(); break;
+    case 'wf': d.f = b.dataset.v; renderSheet(); break;
+    case 'wopen': d.open = d.open === b.dataset.id ? null : b.dataset.id; d.del = null; renderSheet(); break;
+    case 'mopen': { const m = store[b.dataset.id]; if (!m) break; saveNow(); pauseClock(); if (M.st !== 2 && !hasContent(M) && store[M.id]){ delete store[M.id]; } M = m; OC[0] = OC[1] = null; saveNow(); closeSheet(); closeSugg(); renderAll(); showToast('已打开 ' + teamName(0) + ' vs ' + teamName(1)); break; }
+    case 'mexp': { const m = store[b.dataset.id]; if (m) openExport([m]); break; }
+    case 'mdel': { if (d.del !== b.dataset.id){ d.del = b.dataset.id; renderSheet(); break; } const m = store[b.dataset.id]; if (m){ dropMatch(m, '已删除 ' + (m.h || '主队') + ' vs ' + (m.a || '客队')); d.del = null; d.open = null; renderSheet(); } break; }
+    case 'expall': saveNow(); openExport(whAll()); break;
+    case 'expcsv': saveNow(); openCsv(whAll()); break;
+    case 'expcsvh': saveNow(); openCsvHalf(whAll()); break;
+    case 'exp1': saveNow(); openExport([M]); break;
+    case 'import': openSheet('import'); break;
+    case 'pickfile': $('#fileIn').click(); break;
+    case 'imptext': importText($('#impText').value); break;
+    case 'share': shareFile(); break;
+    case 'download': downloadFile(); break;
+    case 'copy': copyText(); break;
+    case 'pip': openSheet('pip'); break;
+    case 'pippos': PIP.pos = b.dataset.v; savePip(); renderSheet(); break;
+    case 'piph': PIP.h = +b.dataset.v; savePip(); renderSheet(); break;
+    case 'pipn': PIP.h = clamp(PIP.h + +b.dataset.d, 100, 320); savePip(); renderSheet(); break;
+    // 计时
+    case 'kick': { const p = +b.dataset.p; const dl = kick(p); save(); closeSheet(); renderAll(); showToast(PER[p][2] + '开球，计时开始' + delayNote(dl)); break; }
+    case 'toggle': if (M.tm.r) pauseClock(); else startClock(); save(); renderAll(); renderSheet(); break;
+    case 'endh': endFirstHalf(); OC[0] = OC[1] = null; save(); closeSheet(); renderAll(); showToast('上半场结束。下半场开球时按 ▶'); break;
+    case 'nudge': setClock(clockOf(M) + +b.dataset.d); save(); renderAll(); renderSheet(); break;
+    case 'tpp': tpHalf(d.tp, +b.dataset.p); renderSheet(); break;
+    case 'tpn': tpSet(d.tp, tpNow(d.tp) + +b.dataset.d); tpShow(d.tp); break;
+    case 'tpset': {
+      const v = tpNow(d.tp);
+      if (M.tm.ht && d.tp.p === 2){ M.tm.ht = 0; }
+      if (d.tp.p !== M.tm.p){ if (d.tp.p === 2 && !M.pe[1]) M.pe[1] = Math.max(2700, maxT(M, 1)); M.tm.p = d.tp.p; }
+      M.tm.b = v; if (M.tm.r) M.tm.at = Date.now();
+      if (!M.obs || (!M.ev.some(e => !e.b) && !M.sv.length && !M.tm.r)) M.obs = { p: d.tp.p, t: v };
+      const dl = M.api && M.tm.r ? learnDelay(clockOf(M), 'set') : null;
+      save(); closeSheet(); renderAll(); showToast('时间设定为 ' + fmtClock(d.tp.p, v) + (M.tm.r ? '' : '，按 ▶ 开始计时') + delayNote(dl)); break;
+    }
+    // 补录、结束
+    case 'fix': {
+      setMid(false);
+      if (M.st === 2){ endedToast(); break; }
+      const all = [statOf(M, 0, 'ft'), statOf(M, 1, 'ft')];
+      openSheet('fix', { sc: score(M), c1: cornersOf(M, 'h1'), c2: cornersOf(M, 'h2'), rc: [all[0].rc, all[1].rc] });
+      sheetData.orig = JSON.parse(JSON.stringify(sheetData));
+      break;
+    }
+    case 'fs': { const f = b.dataset.f, i = +b.dataset.i; d[f][i] = Math.max(0, d[f][i] + +b.dataset.d); renderSheet(); break; }
+    case 'fsave': applyFix(d); closeSheet(); renderAll(); showToast('已保存'); break;
+    case 'note': openSheet('note'); break;
+    case 'finish': setMid(false); openSheet('finish'); break;
+    case 'fkeep': finishMatch(); M.keep = 1; OC[0] = OC[1] = null; saveNow(); closeSheet(); renderAll(); showToast('已结束并加入仓库', startNew, '开始新比赛', 7000); break;
+    case 'fdrop': closeSheet(); dropMatch(M, '已删除这场'); break;
+    case 'reopen': M.st = 1; M.stop = null; save(); closeSheet(); renderAll(); showToast('已重新打开，可以接着记录'); break;
+    case 'new': closeSheet(); askNew(); break;
+    case 'nq1': finishMatch(); M.keep = 1; saveNow(); closeSheet(); startNew(); break;
+    case 'nq2': closeSheet(); startNew(); break;
+    case 'nq3': { closeSheet(); const old = M; delete store[old.id]; LS.set(KEY, store); M = newMatch(old); OC[0] = OC[1] = null; saveNow(); renderAll(); showToast('已删除，开始新比赛', () => { store[old.id] = old; LS.set(KEY, store); M = old; saveNow(); renderAll(); }); break; }
+  }
+});
+card.addEventListener('input', ev => {
+  if (ev.target.id === 'whQ' && sheetKind === 'arch'){ sheetData.q = ev.target.value; const l = $('#whList'); if (l) l.innerHTML = whListHTML(sheetData); return; }
+  if (ev.target.id === 'noteIn'){ M.note = ev.target.value.slice(0, 2000); save(); return; }
+  if (ev.target.id === 'tpR' && sheetData.tp){ tpSet(sheetData.tp, +ev.target.value); tpShow(sheetData.tp); }
+});
+sheet.addEventListener('click', ev => { if (ev.target === sheet) closeSheet(); });
+$('#runBtn').addEventListener('click', () => {
+  if (M.st === 2){ endedToast(); return; }
+  if (M.tm.ht){ const dl = kick(2); save(); renderAll(); showToast('下半场开球' + delayNote(dl)); return; }
+  if (M.tm.r) pauseClock();
+  else { if (!M.tm.b && M.tm.p === 1 && !M.ev.some(e => !e.b)) { const dl = kick(1); showToast('上半场开球，计时开始' + delayNote(dl)); } else startClock(); }
+  save(); renderAll();
+});
+for (const [id, key] of [['#fH', 'h'], ['#fA', 'a'], ['#fLg', 'lg']]){
+  const el = $(id);
+  el.addEventListener('focus', () => { if (M.st === 2){ el.blur(); endedToast(); } });
+  el.addEventListener('input', () => { if (M.st === 2){ el.value = M[key]; return; } M[key] = el.value; save(); renderPads(); renderStats(); if (key !== 'lg'){ if (M.api && !M.ev.length){ M.api = null; } scheduleFind(); renderNet(); } });
+  el.addEventListener('keydown', e => { if (e.key === 'Enter') el.blur(); });
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !sheet.hidden) closeSheet(); });
+let wasPhone = isPhone();
+window.addEventListener('resize', () => { if (isPhone() !== wasPhone){ wasPhone = isPhone(); setMid(false); renderAll(); } });
+
+/* ================= 离线 ================= */
+let offline = '离线使用：第一次联网打开后就能离线使用。';
+if ('serviceWorker' in navigator && window.isSecureContext && location.protocol !== 'file:'){
+  let hadCtrl = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!hadCtrl){ hadCtrl = true; return; }
+    showToast('新版本已经下载好，你的记录都已存好', () => location.reload(), '现在更新', 30000);
+  });
+  navigator.serviceWorker.register('./sw.js').then(reg => {
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') reg.update().catch(() => {}); });
+    return navigator.serviceWorker.ready;
+  }).then(() => { offline = '离线使用：已准备好，没有网络也能从主屏幕打开。'; }).catch(() => {});
+}
+renderAll();
+window.__reach = { get M(){ return M; }, store: () => store, statOf: statOf, stateSplit: stateSplit, walk: walk, paLabel: paLabel, OC: OC, minsOf: minsOf };
+
+})();
+</script>
+</body>
+</html>
