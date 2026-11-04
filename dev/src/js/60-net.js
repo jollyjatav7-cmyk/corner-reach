@@ -513,14 +513,14 @@ function flushHold(force){
   for (const h of due){ const x = commitHold(h.s); for (const k in x) added[k] = (added[k] || 0) + x[k]; }
   saveNow(); renderAll(); addedMsg(added);
 }
-/* 你自己点了角球或进球：跟最近联网补上的那笔合并，不会多算 */
+/* 你自己点了角球或进球：跟最近联网补上的那笔合并，不会多算（回传拿掉的那笔，撤销时可以放回去；没有＝null） */
 function mergeAuto(i, kind){
   const codes = kind === 'ck' ? ['ck'] : ['gl'], win = kind === 'ck' ? 240 : 360, s = nowStamp();
   let pick = null;
   for (const e of M.ev) if (e.a && e.i === i && codes.indexOf(e.c) >= 0 && e.p === s.p && s.t - e.t <= win && (!pick || e.k > pick.k)) pick = e;
-  if (!pick) return false;
+  if (!pick) return null;
   M.ev.splice(M.ev.indexOf(pick), 1); save();
-  return true;
+  return pick;
 }
 function applySync(s, manual){
   const dl = applySnap(s);

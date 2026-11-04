@@ -194,9 +194,9 @@ const SLK = {
       if (!cur || cur.v !== v) setSv(sheetData.i, f, v);
     }
   },
-  // 两个问题（画面上）：x＝'0_q1'
+  // 两个问题、进球预测（画面上）：x＝'0_q1'、'0_g2'（进球预测的字在两个地方：说明那一行和手机上值的旁边）
   q: {
-    input(x, v){ const p = x.split('_'); setTx('qv_' + x, qValHTML(v)); setTx('qw_' + x, wordHTML(p[1], v)); },
+    input(x, v){ const p = x.split('_'); setTx('qv_' + x, qValHTML(v)); setTx('qw_' + x, wordHTML(p[1], v)); setTx('qwh_' + x, wordHTML(p[1], v)); },
     commit(x, v){ const p = x.split('_'); pickQ(+p[0], p[1], v); }
   },
   // 全部记录里改一笔：x＝那一笔的 k

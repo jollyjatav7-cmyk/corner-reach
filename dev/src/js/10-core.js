@@ -57,8 +57,8 @@ const hasBox = pa => walk(pa).some(n => n.bs);
 const paLabel = (pa, sep) => walk(pa).map(n => n.s || n.n).join(sep || ' › ');
 const CHN = { x: '传中', l: '远射', m: '中路渗透', b: '回传', g: '丢球' };
 
-/* ================= 第一部分（主观，随时可以改）和两个问题 =================
-   球权、难度、意愿和两个问题都是拖动条：存百分比（0–100，最多一位小数；每格多少在功能 → 拖动条，默认 1%）。
+/* ================= 第一部分（主观，随时可以改）、两个问题、进球预测 =================
+   球权、难度、意愿、两个问题、进球预测都是拖动条：存百分比（0–100，最多一位小数；每格多少在功能 → 拖动条，默认 1%）。
    场面还是三个选项：存第几个（0 开始）。
    球权只有一条：主队＋客队＝100%，两队各存一笔，用同一个 g 配对。
    bk 是统计用的区间 [下限, 上限)，跟画面上显示的字。值最多一位小数，所以 60.05 当上限＝60% 还算中间那一档；
@@ -75,7 +75,17 @@ const QS = [
   { f: 'q1', pct: 1, n: '他容不容易到对方禁区附近？', s: '容不容易到禁区附近', d: '几次进攻里有百分之几能到对方禁区附近', lo: '很难', hi: '很容易', bk: BK5(['很难', '难', '一般', '容易', '很容易']) },
   { f: 'q2', pct: 1, n: '他喜不喜欢传中和远射？', s: '喜不喜欢传中和远射', d: '传中和远射的比例', lo: '很不喜欢', hi: '很喜欢', bk: BK5(['很不喜欢', '不喜欢', '一般', '喜欢', '很喜欢']) }
 ];
-const SVF = {}; P1.concat(QS).forEach(x => { SVF[x.f] = x; });
+/* 进球预测：每队三个问题，跟两个问题一样是拖动条（百分比），随时可以改。暂时没有模型。
+   第一题跟两个问题的第一题一样，但分开记（三个程序可以只用一个）。
+   pg＝程序（列表、表格的名字前面加“进球·”）；ab＝浮窗模式（手机）里的短名字 */
+const GS = [
+  { f: 'g1', pct: 1, pg: 'g', n: '容不容易到对面禁区附近？', s: '容不容易到禁区附近', ab: '到禁区', d: '几次进攻里有百分之几能到对方禁区附近', lo: '很难', hi: '很容易', bk: BK5(['很难', '难', '一般', '容易', '很容易']) },
+  { f: 'g2', pct: 1, pg: 'g', n: '对面球门前漏洞大不大？', s: '对面门前漏洞大不大', ab: '门前漏洞', d: '对方门前防守的空当和失误', lo: '很小', hi: '很大', bk: BK5(['很小', '小', '一般', '大', '很大']) },
+  { f: 'g3', pct: 1, pg: 'g', n: '自己的进攻质量高不高？', s: '自己的进攻质量高不高', ab: '进攻质量', d: '传中、射门、基本功、战术配合……', lo: '很低', hi: '很高', bk: BK5(['很低', '低', '一般', '高', '很高']) }
+];
+const SVL = P1.concat(QS, GS);   // 所有主观的项目（导出、统计都用这个顺序）
+const SVF = {}; SVL.forEach(x => { SVF[x.f] = x; });
+const svName = f => (SVF[f].pg === 'g' ? '进球·' : '') + SVF[f].s;
 const bucketOf = (f, v) => { const b = SVF[f].bk; for (let j = 0; j < b.length; j++) if (v >= b[j][0] && v < b[j][1]) return j; return b.length - 1; };
 const wordOf = (f, v) => v == null ? '' : SVF[f].bk[bucketOf(f, v)][3];
 const svText = (f, v) => { const x = SVF[f]; if (v == null) return '清除'; return x.pct ? pctText(f, v) : x.o[v]; };
@@ -108,7 +118,7 @@ function fixSv(s, old){
   let v = s.v == null || s.v === '' ? null : +s.v, o = null;
   if (v != null && !isFinite(v)) return null;
   if (x.pct && v != null){
-    if (old){ v = Math.round(v); const mp = OLDPCT[s.f]; if (!(v >= 0 && v < mp.length)) return null; o = v; v = mp[v]; }
+    if (old){ v = Math.round(v); const mp = OLDPCT[s.f]; if (!mp || !(v >= 0 && v < mp.length)) return null; o = v; v = mp[v]; }
     else { v = clamp(r1(v), 0, 100); if (s.o != null && isFinite(+s.o)) o = +s.o; }   // 百分比留一位小数
   } else if (v != null){ v = Math.round(v); if (!(v >= 0 && v < x.o.length)) return null; }
   const r = { t: Math.max(0, Math.round(numOr(+s.t, 0))), p: +s.p, i: s.i, f: s.f, v: v, k: ++seq };
@@ -350,13 +360,13 @@ const score = m => [statOf(m, 0, 'ft').gl, statOf(m, 1, 'ft').gl];
 const cornersOf = (m, scope) => [statOf(m, 0, scope).ck, statOf(m, 1, scope).ck];
 const avg = a => a.length ? a.reduce((s, x) => s + x, 0) / a.length : null;
 function median(a){ if (!a.length) return null; const s = a.slice().sort((x, y) => x - y), n = s.length; return n % 2 ? s[(n - 1) / 2] : (s[n / 2 - 1] + s[n / 2]) / 2; }
-/* 每个区间（拖动条）或选项（场面）停留了几分钟、那段时间几个角球（统计和导出用）。
+/* 每个区间（拖动条）或选项（场面）停留了几分钟、那段时间几个角球、几个进球（统计和导出用）。
    键：区间或选项第几个，-1＝没设；avg＝按时间平均的百分比（拖动条才有） */
 function stateSplit(m, i, f, scope){
   const x = SVF[f], n = x.pct ? x.bk.length : x.o.length;
   const key = v => v == null ? -1 : x.pct ? bucketOf(f, v) : v;
   const out = { avg: null }; let sw = 0, sm = 0;
-  for (let v = -1; v < n; v++) out[v] = { mins: 0, ck: 0, ar: 0, xl: 0 };
+  for (let v = -1; v < n; v++) out[v] = { mins: 0, ck: 0, ar: 0, xl: 0, gl: 0 };
   const ps = scope === 'ft' || !scope ? [1, 2] : [+scope[1]];
   for (const p of ps){
     const sp = halfSpan(m, p); if (!sp) continue;
@@ -378,6 +388,7 @@ function stateSplit(m, i, f, scope){
       if (e.t < sp[0] || e.t > sp[1]) continue;
       const s = svAt(m, i, f, p, e.t), o = out[key(s ? s.v : null)];
       if (e.c === 'ck' || (e.c === 'ar' && resOf(e.pa) === 'c')) o.ck++;
+      if (e.c === 'gl' || (e.c === 'ar' && resOf(e.pa) === 'g')) o.gl++;
       if (e.c === 'ar'){ o.ar++; if (e.pa && (e.pa[0] === 'x' || e.pa[0] === 'l')) o.xl++; }
     }
   }

@@ -195,6 +195,19 @@ const corners = p => S(p, () => { const M = window.__reach.M, R = window.__reach
   check(st.gl === 1 && st.auto === 0 && st.rc.join() === '1' && st.hold === 0, 'your chain goal is not doubled; the missed red card is added and marked as synced ' + JSON.stringify(st));
   check(/联网同步补上：横滨水手 红牌 1/.test(await p.textContent('#toastMsg')), 'toast names what was added: ' + (await p.textContent('#toastMsg')));
   check((await p.textContent('#glH')).trim() === '1' && (await p.textContent('#glA')).trim() === '1', 'score 1–1');
+  // goal prediction: 进球 ＋1 merges with a synced goal, and undo puts the synced one back
+  FX[2001].el = 56; FX[2001].g = [2, 1];
+  await sync(p); await p.clock.runFor(75000);
+  const gs = () => S(p, () => { const M = window.__reach.M; return { gl: window.__reach.statOf(M, 0, 'ft').gl, auto: M.ev.filter(e => e.c === 'gl' && e.i === 0 && e.a).length, mine: M.ev.filter(e => e.c === 'gl' && e.i === 0 && !e.a && !e.b).length }; });
+  st = await gs();
+  check(st.gl === 2 && st.auto === 1, 'a missed home goal is added after the wait ' + JSON.stringify(st));
+  await p.click('#mseg [data-v="g"]');
+  await p.click('.pad[data-i="0"] [data-a="goal"]');
+  st = await gs();
+  check(st.gl === 2 && st.auto === 0 && st.mine === 1 && (await p.textContent('#toastMsg')).indexOf('跟联网补上的那球合并') >= 0, 'goal prediction: 进球 ＋1 later merges with the synced goal ' + JSON.stringify(st));
+  await p.click('#toastBtn');
+  st = await gs();
+  check(st.gl === 2 && st.auto === 1 && st.mine === 0, '…and its undo puts the synced goal back (still 2) ' + JSON.stringify(st));
   console.log('phone C errors:', p.errs.length ? p.errs.join('\n') : 'none'); if (p.errs.length) fails++;
   await ctx.close();
 

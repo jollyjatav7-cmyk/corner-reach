@@ -1,5 +1,6 @@
 /* ================= 画面 ================= */
 const FLAG = '<svg viewBox="0 0 18 18" aria-hidden="true"><path d="M4 17V1.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M4.8 2h10l-3 3.2 3 3.2h-10z" fill="currentColor"/></svg>';
+const BALL = '<svg viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="9" r="7.3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M9 5.5l3 2.2-1.15 3.55h-3.7L6 7.7z" fill="currentColor"/><path d="M9 5.5V1.9M12 7.7l3.3-1.1M10.85 11.25l2 2.9M7.15 11.25l-2 2.9M6 7.7L2.7 6.6" stroke="currentColor" stroke-width="1.3"/></svg>';
 const PLAY = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9.5-5.5z" fill="currentColor"/></svg>';
 const PAUSE = '<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="3.5" y="2.5" width="3" height="11" rx="1" fill="currentColor"/><rect x="9.5" y="2.5" width="3" height="11" rx="1" fill="currentColor"/></svg>';
 const IC = {
@@ -51,7 +52,7 @@ function svLabel(s){
     if (hideWord()) return '球权 → 已设';
     return '球权 → 主 ' + (h.v == null ? '—' : pctText('bq', h.v)) + ' · 客 ' + (a.v == null ? '—' : pctText('bq', a.v));
   }
-  return SVF[s.f].s + ' → ' + svText(s.f, s.v);
+  return svName(s.f) + ' → ' + svText(s.f, s.v);
 }
 /* 简易模型：每队的“大角／小角”、两队合起来的提示 */
 function mBadge(g, i){
@@ -70,7 +71,7 @@ function betText(b){
 let banNew = 0;
 function renderBanner(){
   const el = $('#mBan'); if (!el) return;
-  if (!MODEL.on || M.st === 2 || !MN){ el.hidden = true; return; }
+  if (!MODEL.on || M.st === 2 || !MN || PREF.mode === 'g'){ el.hidden = true; return; }   // 进球预测暂时没有模型
   el.hidden = false;
   const g = PREF.mode === 'q' ? 'q' : 'r', b = MN[g].bet;
   const sig = g + betCls(b);
@@ -107,7 +108,9 @@ function tickClock(){
   rb.setAttribute('aria-label', run ? '暂停计时' : (M.tm.ht ? '下半场开球' : '开始计时'));
 }
 function renderMode(){
-  document.body.classList.toggle('qmode', PREF.mode === 'q');
+  // qmode＝问题式的画面（两个问题、进球预测都用）；gmode＝进球预测（每队三题）
+  document.body.classList.toggle('qmode', PREF.mode === 'q' || PREF.mode === 'g');
+  document.body.classList.toggle('gmode', PREF.mode === 'g');
   $$('#mseg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === PREF.mode)));
 }
 
@@ -158,20 +161,28 @@ function recPadHTML(i, sc){
     + stageHTML(i, r)
     + '<button class="k ckb" data-a="ck" data-i="' + i + '">' + FLAG + '<span class="l">其他角球</span><span class="c">' + r.cks.o + '</span></button></div>';
 }
-/* ---------- 两个问题：每队一栏，字大，拖动条（百分比） ---------- */
+/* ---------- 两个问题、进球预测：每队一栏，字大，拖动条（百分比） ---------- */
+// 一个问题一张卡。进球预测每队三张：手机上说明那一行不显示，分档的字改放在值的旁边（qwh）；ab 是浮窗模式的短名字
+function qCardHTML(i, q){
+  const s = svCur(M, i, q.f), v = s ? s.v : null, x = i + '_' + q.f, g = q.pg === 'g';
+  let prev = null; for (const y of M.sv) if (y.i === i && y.f === q.f && s && y.k !== s.k && (!prev || y.k > prev.k)) prev = y;
+  const note = !s ? '还没设' : v == null ? fmtMin(s.p, s.t) + ' 清除' : fmtMin(s.p, s.t) + ' 设的' + (prev && prev.v != null && !hideNum() ? '（之前 ' + fp(prev.v) + '%）' : '');
+  return '<div class="qcard' + (g ? ' gcard' : '') + '"><div class="qh"><h3 class="qq">' + q.n + '</h3>' + (q.ab ? '<span class="qab" aria-hidden="true">' + q.ab + '</span>' : '')
+    + (g ? '<span class="qw qwh" id="qwh_' + x + '" aria-hidden="true">' + wordHTML(q.f, v) + '</span>' : '')
+    + '<span class="qval' + (v == null ? ' na' : '') + '" id="qv_' + x + '">' + qValHTML(v) + '</span></div>'
+    + '<div class="qsub"><span class="qd">' + q.d + '</span><span class="qw" id="qw_' + x + '">' + wordHTML(q.f, v) + '</span></div>'
+    + slHTML('q', x, v, { cls: 'big lock ' + (i ? 'a' : 'h'), lab: q.n })
+    + '<div class="qends"><span>' + q.lo + '</span><span class="qnote">' + note + '</span><span>' + q.hi + '</span></div></div>';
+}
+const qHeadHTML = (i, badge, btn) => '<div class="pad-h"><i></i><b>' + esc(teamName(i)) + '</b>' + badge + '<span class="who">' + (i ? '客对主' : '主对客') + '</span><span class="sp"></span>' + btn + '</div>';
 function qPadHTML(i){
-  let h = '<div class="pad-h"><i></i><b>' + esc(teamName(i)) + '</b>' + mBadge('q', i) + '<span class="who">' + (i ? '客对主' : '主对客') + '</span><span class="sp"></span>'
-    + '<button class="qck" data-a="ck" data-i="' + i + '" aria-label="' + esc(teamName(i)) + ' 角球加一">' + FLAG + '<span>角球</span><b>' + statOf(M, i, 'ft').ck + '</b><small>＋1</small></button></div>';
-  for (const q of QS){
-    const s = svCur(M, i, q.f), v = s ? s.v : null, x = i + '_' + q.f;
-    let prev = null; for (const y of M.sv) if (y.i === i && y.f === q.f && s && y.k !== s.k && (!prev || y.k > prev.k)) prev = y;
-    const note = !s ? '还没设' : v == null ? fmtMin(s.p, s.t) + ' 清除' : fmtMin(s.p, s.t) + ' 设的' + (prev && prev.v != null && !hideNum() ? '（之前 ' + fp(prev.v) + '%）' : '');
-    h += '<div class="qcard"><div class="qh"><h3 class="qq">' + q.n + '</h3><span class="qval' + (v == null ? ' na' : '') + '" id="qv_' + x + '">' + qValHTML(v) + '</span></div>'
-      + '<div class="qsub"><span class="qd">' + q.d + '</span><span class="qw" id="qw_' + x + '">' + wordHTML(q.f, v) + '</span></div>'
-      + slHTML('q', x, v, { cls: 'big lock ' + (i ? 'a' : 'h'), lab: q.n })
-      + '<div class="qends"><span>' + q.lo + '</span><span class="qnote">' + note + '</span><span>' + q.hi + '</span></div></div>';
-  }
-  return h;
+  return qHeadHTML(i, mBadge('q', i), '<button class="qck" data-a="ck" data-i="' + i + '" aria-label="' + esc(teamName(i)) + ' 角球加一">' + FLAG + '<span>角球</span><b>' + statOf(M, i, 'ft').ck + '</b><small>＋1</small></button>')
+    + QS.map(q => qCardHTML(i, q)).join('');
+}
+/* 进球预测：每队三题；上方的“进球 ＋1”记进球（记下时间），暂时没有模型 */
+function gPadHTML(i){
+  return qHeadHTML(i, '', '<button class="qck gck" data-a="goal" data-i="' + i + '" aria-label="' + esc(teamName(i)) + ' 进球加一">' + BALL + '<span>进球</span><b>' + statOf(M, i, 'ft').gl + '</b><small>＋1</small></button>')
+    + GS.map(q => qCardHTML(i, q)).join('');
 }
 function renderPads(){
   document.body.classList.toggle('ended', M.st === 2);
@@ -187,7 +198,7 @@ function renderPads(){
     return;
   }
   const sc = 'h' + curP();
-  for (const i of [0, 1]) $('.pad[data-i="' + i + '"]').innerHTML = PREF.mode === 'q' ? qPadHTML(i) : recPadHTML(i, sc);
+  for (const i of [0, 1]) $('.pad[data-i="' + i + '"]').innerHTML = PREF.mode === 'q' ? qPadHTML(i) : PREF.mode === 'g' ? gPadHTML(i) : recPadHTML(i, sc);
 }
 /* 最近的一笔（事件或主观选择） */
 function lastAny(){
@@ -319,6 +330,21 @@ function tapCorner(i){
   flash('.pad[data-i="' + i + '"] [data-a="ck"]');
   if (dup) showToast('刚才那次到达已经记了角球，这个会再多算一个', () => { removeEv(e); renderAll(); }, '撤销', 7000);
   else showToast(teamName(i) + ' 角球，共 ' + cornersOf(M, 'ft')[i] + ' 个' + (merged ? '（跟联网补上的角球合并）' : ''));
+  clockTip();
+}
+/* 进球预测的“进球 ＋1”：记下时间（以后可以统计每种判断下进球多不多）；跟联网补上的那球合并，撤销时放回去 */
+function tapGoal(i){
+  if (M.st === 2){ endedToast(); return; }
+  const s = nowStamp();
+  const dup = M.ev.some(e => e.i === i && e.c === 'ar' && resOf(e.pa) === 'g' && e.p === s.p && s.t >= e.t && s.t - e.t <= 60);
+  const auto = mergeAuto(i, 'gl');
+  const e = addEv(i, 'gl');
+  lastAdd = { k: e.k, i: i, at: Date.now() };
+  renderAll();
+  flash('.pad[data-i="' + i + '"] [data-a="goal"]');
+  const undo = () => { removeEv(e); if (auto){ M.ev.push(auto); sortEv(M); save(); } renderAll(); };
+  if (dup) showToast('刚才那次到达已经记了进球，这个会再多算一个', undo, '撤销', 7000);
+  else showToast(teamName(i) + ' 进球 ' + score(M).join('–') + (auto ? '（跟联网补上的那球合并）' : ''), undo, '撤销');
   clockTip();
 }
 function pickQ(i, f, v){

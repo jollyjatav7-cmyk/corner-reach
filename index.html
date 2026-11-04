@@ -80,9 +80,9 @@ input,textarea{font:inherit;color:inherit}
 .nh{display:inline-flex;align-items:center;gap:6px;color:var(--muted);font:600 14px/1.2 var(--f-ui);white-space:nowrap}
 .nh svg{width:22px;height:22px;flex:none}
 .qval .nh svg{width:26px;height:26px}
-/* 两个程序的切换；右边是简易模型的提示（不会把下面的按键挤下去） */
+/* 三个程序的切换；右边是简易模型的提示（不会把下面的按键挤下去） */
 .modebar{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,420px) minmax(0,1fr);align-items:center;gap:12px;padding:0 20px 6px;flex:none}
-.mseg{grid-column:2;display:grid;grid-template-columns:1fr 1fr;width:100%;background:var(--card);border:1px solid var(--line2);border-radius:12px;padding:3px}
+.mseg{grid-column:2;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:100%;background:var(--card);border:1px solid var(--line2);border-radius:12px;padding:3px}
 .mseg button{height:32px;border:0;border-radius:9px;background:none;font-size:14px;font-weight:600;color:var(--ink2);white-space:nowrap}
 .mseg button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
 .mbn{grid-column:3;justify-self:start;height:40px;max-width:100%;min-width:0;border:0;border-radius:12px;padding:0 12px 0 10px;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;overflow:hidden;color:var(--muted);background:var(--card);box-shadow:inset 0 0 0 1px var(--line2)}
@@ -240,6 +240,21 @@ body.ended .pad[data-i="1"]{display:none}
 .qck small{font-size:12px;color:var(--muted);font-weight:600}
 .qck:active{background:var(--raise)}
 @media (min-width:900px){.qh{min-height:48px}.qq{font-size:26px}.qval{font-size:46px}.qval small{font-size:20px}.qsub{font-size:14px}.qcard{padding:18px 18px 12px;gap:10px;margin-bottom:14px}.sl.big{height:60px;padding:0 21px}.sl.big .sl-t{height:14px;border-radius:7px}.sl.big .sl-k{width:42px;height:42px;margin:-21px 0 0 -21px}}
+/* ---------- 进球预测：每队三张卡（跟两个问题一样）；分档的字在值的旁边，“进球 ＋1”是绿色的圈 ---------- */
+.qab,.qwh{display:none}
+.qck.gck{box-shadow:inset 0 0 0 1.5px var(--ok)}
+.qck.gck svg{width:17px;height:17px}
+.qck.hit{animation:qckh .5s ease-out}
+.qck.gck.hit{animation-name:gckh}
+@keyframes qckh{0%{background:rgba(242,194,48,.45)}100%{background:var(--card)}}
+@keyframes gckh{0%{background:rgba(47,138,87,.3)}100%{background:var(--card)}}
+@media (prefers-reduced-motion:reduce){.qck.hit{animation:none}}
+/* iPad 直放（两栏比较窄）、大 iPad：题目和值放得下一行，不要在字中间换行 */
+@media (min-width:600px) and (max-width:799px){.gcard .qq{font-size:18px}.gcard .qval{font-size:32px}.gcard .qval.na{font-size:15px}}
+@media (min-width:800px) and (max-width:899px){.gcard .qq{font-size:20px}}
+@media (min-width:900px) and (max-width:1100px){.gcard .qq{font-size:23px}}
+@media (min-width:900px){.gcard{padding:12px 18px 10px;gap:5px;margin-bottom:10px}}
+@media (min-width:900px) and (max-height:860px){.gcard{padding:10px 16px 8px;gap:4px}.gcard .qh{min-height:40px}.gcard .qq{font-size:23px}.gcard .qval{font-size:38px}.gcard .qval small{font-size:18px}.gcard .qval.na{font-size:15px}.gcard .sl.big{height:52px}}
 
 /* ---------- 统计（iPad 中间；手机底部抽屉） ---------- */
 .mid{min-width:0;background:var(--card);border:1px solid var(--line2);border-radius:18px;padding:12px 14px 16px;display:flex;flex-direction:column;gap:10px}
@@ -548,6 +563,7 @@ textarea.fi{height:140px;padding:10px 12px;font:12px/1.4 ui-monospace,Menlo,mono
   .modebar{padding:0 10px 4px;grid-template-columns:minmax(0,1fr) minmax(0,46%);gap:6px}
   .mseg{grid-column:1}
   .mseg button{height:30px;font-size:13.5px}
+  .mseg .mx{display:none}   /* 手机：“到达选择”（三个按钮放得下） */
   .mbn{grid-column:2;width:100%;height:36px;padding:0 9px 0 7px;gap:6px}
   .mbn svg{width:17px;height:17px}
   .mbn .t1{font-size:9.5px} .mbn .t2{font-size:13.5px} .mbn.none .t2{font-size:12px}
@@ -618,6 +634,29 @@ textarea.fi{height:140px;padding:10px 12px;font:12px/1.4 ui-monospace,Menlo,mono
   .qck{height:32px;padding:0 10px 0 8px;font-size:13px}
   .qck b{font-size:18px}
   @media (max-height:700px){.sto .k .l{font-size:14px}.k.arb{min-height:46px}.qq{font-size:17px}.qval{font-size:24px}.qh{min-height:26px}.sl.big{height:40px}.qcard{padding:6px 10px 4px}.qends{display:none}}
+  /* 进球预测：每队三题，卡片压缩：说明那一行不显示，高一点的手机才显示两头的字 */
+  body.gmode .pad-h{padding:0 2px 3px}
+  body.gmode .qck{height:30px}
+  body.gmode .qcard{padding:5px 10px 4px;gap:2px;margin-bottom:5px}
+  body.gmode .qsub,body.gmode .qends{display:none}
+  body.gmode .qh{min-height:26px}
+  body.gmode .qq{font-size:16px}
+  body.gmode .qval{font-size:24px} body.gmode .qval small{font-size:13px} body.gmode .qval.na{font-size:13px}
+  body.gmode .qval .nh svg{width:22px;height:22px}
+  body.gmode .qwh{display:inline;font-size:12px;color:var(--ink2)}
+  body.gmode .sl.big{height:40px}
+  @media (min-height:860px){body.gmode .qends{display:flex}}
+  @media (max-height:700px){body.gmode .qcard{padding:3px 10px 2px;gap:1px;margin-bottom:4px}body.gmode .qh{min-height:22px}body.gmode .qq{font-size:15px}body.gmode .qval{font-size:21px}body.gmode .sl.big{height:36px}body.gmode .sl.big .sl-k{width:34px;height:34px;margin:-17px 0 0 -17px}body.gmode .slw.big .slb{width:36px;height:36px;border-radius:18px}}
+}
+/* 进球预测在很矮的手机上：每题一行（短名字和值在左边，拖动条在右边）；浮窗模式也是这样（在下面） */
+@media (max-width:599px) and (max-height:600px){
+  body.gmode .qcard{display:grid;grid-template-columns:4.1em minmax(0,1fr);align-items:center;gap:0 6px;padding:2px 6px 2px 10px;margin-bottom:4px}
+  body.gmode .qh{flex-direction:column;align-items:flex-start;justify-content:center;gap:1px;min-height:0;min-width:0}
+  body.gmode .qq,body.gmode .gcard .qw{display:none}
+  body.gmode .qab{display:block;font-size:12.5px;font-weight:700;line-height:1.2;white-space:nowrap}
+  body.gmode .qval{font-size:18px} body.gmode .qval small{font-size:11px} body.gmode .qval.na{font-size:11.5px}
+  body.gmode .qval .nh svg{width:18px;height:18px}
+  body.gmode .sl.big{height:36px} body.gmode .sl.big .sl-k{width:32px;height:32px;margin:-16px 0 0 -16px} body.gmode .slw.big .slb{width:34px;height:34px;border-radius:17px}
 }
 @media (max-width:389px){
   .pad-h b{max-width:52%}
@@ -662,6 +701,15 @@ textarea.fi{height:140px;padding:10px 12px;font:12px/1.4 ui-monospace,Menlo,mono
   body.pip-on .sl.big{height:38px} body.pip-on .sl.big .sl-k{width:32px;height:32px;margin:-16px 0 0 -16px}
   body.pip-on .slw.big .slb{width:34px;height:34px;border-radius:17px}
   body.pip-on.qmode .pad-h{padding:0 2px 2px} body.pip-on .qck{height:28px}
+  /* 浮窗模式的进球预测：每题一行（短名字和值在左边，拖动条在右边） */
+  body.pip-on.gmode .qcard{display:grid;grid-template-columns:4.1em minmax(0,1fr);align-items:center;gap:0 6px;padding:2px 6px 2px 10px;margin-bottom:4px}
+  body.pip-on.gmode .qh{flex-direction:column;align-items:flex-start;justify-content:center;gap:1px;min-height:0;min-width:0}
+  body.pip-on.gmode .qq,body.pip-on.gmode .gcard .qw{display:none}
+  body.pip-on.gmode .qab{display:block;font-size:12.5px;font-weight:700;line-height:1.2;white-space:nowrap}
+  body.pip-on.gmode .qval{font-size:18px} body.pip-on.gmode .qval small{font-size:11px} body.pip-on.gmode .qval.na{font-size:11.5px}
+  body.pip-on.gmode .qval .nh svg{width:18px;height:18px}
+  body.pip-on.gmode .sl.big{height:36px}
+  body.pip-on.gmode .pad-h{padding:0 2px 2px} body.pip-on.gmode .qck{height:26px}
 }
 @media (max-width:599px) and (max-height:700px){
   body.pip-on .pad-h{padding-bottom:2px} body.pip-on .undo{height:24px}
@@ -699,7 +747,7 @@ textarea.fi{height:140px;padding:10px 12px;font:12px/1.4 ui-monospace,Menlo,mono
       <button class="tbtn ic" data-a="menu" aria-label="功能"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M3 5h12M3 9h12M3 13h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
     </div>
   </header>
-  <nav class="modebar" aria-label="切换程序"><div class="mseg" id="mseg"><button data-a="mode" data-v="rec" aria-pressed="true">到达与选择</button><button data-a="mode" data-v="q" aria-pressed="false">两个问题</button></div><button class="mbn none" id="mBan" data-a="mdl" hidden></button></nav>
+  <nav class="modebar" aria-label="切换程序"><div class="mseg" id="mseg"><button data-a="mode" data-v="rec" aria-pressed="true" aria-label="到达与选择">到达<span class="mx">与</span>选择</button><button data-a="mode" data-v="q" aria-pressed="false">两个问题</button><button data-a="mode" data-v="g" aria-pressed="false">进球预测</button></div><button class="mbn none" id="mBan" data-a="mdl" hidden></button></nav>
   <section class="sugg" id="sugg" hidden aria-live="polite"></section>
   <main class="main">
     <section class="pad" data-i="0" aria-label="主队进攻"></section>
@@ -738,7 +786,7 @@ const f1 = v => ok(v) ? v.toFixed(1) : '—';
 const pc = v => ok(v) ? Math.round(v * 100) + '%' : '—';
 const r1 = v => Math.round(v * 10) / 10;   // 拖动条的值最多一位小数
 const fp = v => String(r1(v));             // 显示：62.5 → "62.5"，60 → "60"
-const APPVER = 'v4';
+const APPVER = 'v5';
 const APPNAME = '角球到达与选择';
 const LS = {
   get(k, d){ try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e){ return d; } },
@@ -785,8 +833,8 @@ const hasBox = pa => walk(pa).some(n => n.bs);
 const paLabel = (pa, sep) => walk(pa).map(n => n.s || n.n).join(sep || ' › ');
 const CHN = { x: '传中', l: '远射', m: '中路渗透', b: '回传', g: '丢球' };
 
-/* ================= 第一部分（主观，随时可以改）和两个问题 =================
-   球权、难度、意愿和两个问题都是拖动条：存百分比（0–100，最多一位小数；每格多少在功能 → 拖动条，默认 1%）。
+/* ================= 第一部分（主观，随时可以改）、两个问题、进球预测 =================
+   球权、难度、意愿、两个问题、进球预测都是拖动条：存百分比（0–100，最多一位小数；每格多少在功能 → 拖动条，默认 1%）。
    场面还是三个选项：存第几个（0 开始）。
    球权只有一条：主队＋客队＝100%，两队各存一笔，用同一个 g 配对。
    bk 是统计用的区间 [下限, 上限)，跟画面上显示的字。值最多一位小数，所以 60.05 当上限＝60% 还算中间那一档；
@@ -803,7 +851,17 @@ const QS = [
   { f: 'q1', pct: 1, n: '他容不容易到对方禁区附近？', s: '容不容易到禁区附近', d: '几次进攻里有百分之几能到对方禁区附近', lo: '很难', hi: '很容易', bk: BK5(['很难', '难', '一般', '容易', '很容易']) },
   { f: 'q2', pct: 1, n: '他喜不喜欢传中和远射？', s: '喜不喜欢传中和远射', d: '传中和远射的比例', lo: '很不喜欢', hi: '很喜欢', bk: BK5(['很不喜欢', '不喜欢', '一般', '喜欢', '很喜欢']) }
 ];
-const SVF = {}; P1.concat(QS).forEach(x => { SVF[x.f] = x; });
+/* 进球预测：每队三个问题，跟两个问题一样是拖动条（百分比），随时可以改。暂时没有模型。
+   第一题跟两个问题的第一题一样，但分开记（三个程序可以只用一个）。
+   pg＝程序（列表、表格的名字前面加“进球·”）；ab＝浮窗模式（手机）里的短名字 */
+const GS = [
+  { f: 'g1', pct: 1, pg: 'g', n: '容不容易到对面禁区附近？', s: '容不容易到禁区附近', ab: '到禁区', d: '几次进攻里有百分之几能到对方禁区附近', lo: '很难', hi: '很容易', bk: BK5(['很难', '难', '一般', '容易', '很容易']) },
+  { f: 'g2', pct: 1, pg: 'g', n: '对面球门前漏洞大不大？', s: '对面门前漏洞大不大', ab: '门前漏洞', d: '对方门前防守的空当和失误', lo: '很小', hi: '很大', bk: BK5(['很小', '小', '一般', '大', '很大']) },
+  { f: 'g3', pct: 1, pg: 'g', n: '自己的进攻质量高不高？', s: '自己的进攻质量高不高', ab: '进攻质量', d: '传中、射门、基本功、战术配合……', lo: '很低', hi: '很高', bk: BK5(['很低', '低', '一般', '高', '很高']) }
+];
+const SVL = P1.concat(QS, GS);   // 所有主观的项目（导出、统计都用这个顺序）
+const SVF = {}; SVL.forEach(x => { SVF[x.f] = x; });
+const svName = f => (SVF[f].pg === 'g' ? '进球·' : '') + SVF[f].s;
 const bucketOf = (f, v) => { const b = SVF[f].bk; for (let j = 0; j < b.length; j++) if (v >= b[j][0] && v < b[j][1]) return j; return b.length - 1; };
 const wordOf = (f, v) => v == null ? '' : SVF[f].bk[bucketOf(f, v)][3];
 const svText = (f, v) => { const x = SVF[f]; if (v == null) return '清除'; return x.pct ? pctText(f, v) : x.o[v]; };
@@ -836,7 +894,7 @@ function fixSv(s, old){
   let v = s.v == null || s.v === '' ? null : +s.v, o = null;
   if (v != null && !isFinite(v)) return null;
   if (x.pct && v != null){
-    if (old){ v = Math.round(v); const mp = OLDPCT[s.f]; if (!(v >= 0 && v < mp.length)) return null; o = v; v = mp[v]; }
+    if (old){ v = Math.round(v); const mp = OLDPCT[s.f]; if (!mp || !(v >= 0 && v < mp.length)) return null; o = v; v = mp[v]; }
     else { v = clamp(r1(v), 0, 100); if (s.o != null && isFinite(+s.o)) o = +s.o; }   // 百分比留一位小数
   } else if (v != null){ v = Math.round(v); if (!(v >= 0 && v < x.o.length)) return null; }
   const r = { t: Math.max(0, Math.round(numOr(+s.t, 0))), p: +s.p, i: s.i, f: s.f, v: v, k: ++seq };
@@ -1078,13 +1136,13 @@ const score = m => [statOf(m, 0, 'ft').gl, statOf(m, 1, 'ft').gl];
 const cornersOf = (m, scope) => [statOf(m, 0, scope).ck, statOf(m, 1, scope).ck];
 const avg = a => a.length ? a.reduce((s, x) => s + x, 0) / a.length : null;
 function median(a){ if (!a.length) return null; const s = a.slice().sort((x, y) => x - y), n = s.length; return n % 2 ? s[(n - 1) / 2] : (s[n / 2 - 1] + s[n / 2]) / 2; }
-/* 每个区间（拖动条）或选项（场面）停留了几分钟、那段时间几个角球（统计和导出用）。
+/* 每个区间（拖动条）或选项（场面）停留了几分钟、那段时间几个角球、几个进球（统计和导出用）。
    键：区间或选项第几个，-1＝没设；avg＝按时间平均的百分比（拖动条才有） */
 function stateSplit(m, i, f, scope){
   const x = SVF[f], n = x.pct ? x.bk.length : x.o.length;
   const key = v => v == null ? -1 : x.pct ? bucketOf(f, v) : v;
   const out = { avg: null }; let sw = 0, sm = 0;
-  for (let v = -1; v < n; v++) out[v] = { mins: 0, ck: 0, ar: 0, xl: 0 };
+  for (let v = -1; v < n; v++) out[v] = { mins: 0, ck: 0, ar: 0, xl: 0, gl: 0 };
   const ps = scope === 'ft' || !scope ? [1, 2] : [+scope[1]];
   for (const p of ps){
     const sp = halfSpan(m, p); if (!sp) continue;
@@ -1106,6 +1164,7 @@ function stateSplit(m, i, f, scope){
       if (e.t < sp[0] || e.t > sp[1]) continue;
       const s = svAt(m, i, f, p, e.t), o = out[key(s ? s.v : null)];
       if (e.c === 'ck' || (e.c === 'ar' && resOf(e.pa) === 'c')) o.ck++;
+      if (e.c === 'gl' || (e.c === 'ar' && resOf(e.pa) === 'g')) o.gl++;
       if (e.c === 'ar'){ o.ar++; if (e.pa && (e.pa[0] === 'x' || e.pa[0] === 'l')) o.xl++; }
     }
   }
@@ -1352,6 +1411,7 @@ function condText(c){
 
 /* ================= 画面 ================= */
 const FLAG = '<svg viewBox="0 0 18 18" aria-hidden="true"><path d="M4 17V1.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M4.8 2h10l-3 3.2 3 3.2h-10z" fill="currentColor"/></svg>';
+const BALL = '<svg viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="9" r="7.3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M9 5.5l3 2.2-1.15 3.55h-3.7L6 7.7z" fill="currentColor"/><path d="M9 5.5V1.9M12 7.7l3.3-1.1M10.85 11.25l2 2.9M7.15 11.25l-2 2.9M6 7.7L2.7 6.6" stroke="currentColor" stroke-width="1.3"/></svg>';
 const PLAY = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9.5-5.5z" fill="currentColor"/></svg>';
 const PAUSE = '<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="3.5" y="2.5" width="3" height="11" rx="1" fill="currentColor"/><rect x="9.5" y="2.5" width="3" height="11" rx="1" fill="currentColor"/></svg>';
 const IC = {
@@ -1403,7 +1463,7 @@ function svLabel(s){
     if (hideWord()) return '球权 → 已设';
     return '球权 → 主 ' + (h.v == null ? '—' : pctText('bq', h.v)) + ' · 客 ' + (a.v == null ? '—' : pctText('bq', a.v));
   }
-  return SVF[s.f].s + ' → ' + svText(s.f, s.v);
+  return svName(s.f) + ' → ' + svText(s.f, s.v);
 }
 /* 简易模型：每队的“大角／小角”、两队合起来的提示 */
 function mBadge(g, i){
@@ -1422,7 +1482,7 @@ function betText(b){
 let banNew = 0;
 function renderBanner(){
   const el = $('#mBan'); if (!el) return;
-  if (!MODEL.on || M.st === 2 || !MN){ el.hidden = true; return; }
+  if (!MODEL.on || M.st === 2 || !MN || PREF.mode === 'g'){ el.hidden = true; return; }   // 进球预测暂时没有模型
   el.hidden = false;
   const g = PREF.mode === 'q' ? 'q' : 'r', b = MN[g].bet;
   const sig = g + betCls(b);
@@ -1459,7 +1519,9 @@ function tickClock(){
   rb.setAttribute('aria-label', run ? '暂停计时' : (M.tm.ht ? '下半场开球' : '开始计时'));
 }
 function renderMode(){
-  document.body.classList.toggle('qmode', PREF.mode === 'q');
+  // qmode＝问题式的画面（两个问题、进球预测都用）；gmode＝进球预测（每队三题）
+  document.body.classList.toggle('qmode', PREF.mode === 'q' || PREF.mode === 'g');
+  document.body.classList.toggle('gmode', PREF.mode === 'g');
   $$('#mseg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === PREF.mode)));
 }
 
@@ -1510,20 +1572,28 @@ function recPadHTML(i, sc){
     + stageHTML(i, r)
     + '<button class="k ckb" data-a="ck" data-i="' + i + '">' + FLAG + '<span class="l">其他角球</span><span class="c">' + r.cks.o + '</span></button></div>';
 }
-/* ---------- 两个问题：每队一栏，字大，拖动条（百分比） ---------- */
+/* ---------- 两个问题、进球预测：每队一栏，字大，拖动条（百分比） ---------- */
+// 一个问题一张卡。进球预测每队三张：手机上说明那一行不显示，分档的字改放在值的旁边（qwh）；ab 是浮窗模式的短名字
+function qCardHTML(i, q){
+  const s = svCur(M, i, q.f), v = s ? s.v : null, x = i + '_' + q.f, g = q.pg === 'g';
+  let prev = null; for (const y of M.sv) if (y.i === i && y.f === q.f && s && y.k !== s.k && (!prev || y.k > prev.k)) prev = y;
+  const note = !s ? '还没设' : v == null ? fmtMin(s.p, s.t) + ' 清除' : fmtMin(s.p, s.t) + ' 设的' + (prev && prev.v != null && !hideNum() ? '（之前 ' + fp(prev.v) + '%）' : '');
+  return '<div class="qcard' + (g ? ' gcard' : '') + '"><div class="qh"><h3 class="qq">' + q.n + '</h3>' + (q.ab ? '<span class="qab" aria-hidden="true">' + q.ab + '</span>' : '')
+    + (g ? '<span class="qw qwh" id="qwh_' + x + '" aria-hidden="true">' + wordHTML(q.f, v) + '</span>' : '')
+    + '<span class="qval' + (v == null ? ' na' : '') + '" id="qv_' + x + '">' + qValHTML(v) + '</span></div>'
+    + '<div class="qsub"><span class="qd">' + q.d + '</span><span class="qw" id="qw_' + x + '">' + wordHTML(q.f, v) + '</span></div>'
+    + slHTML('q', x, v, { cls: 'big lock ' + (i ? 'a' : 'h'), lab: q.n })
+    + '<div class="qends"><span>' + q.lo + '</span><span class="qnote">' + note + '</span><span>' + q.hi + '</span></div></div>';
+}
+const qHeadHTML = (i, badge, btn) => '<div class="pad-h"><i></i><b>' + esc(teamName(i)) + '</b>' + badge + '<span class="who">' + (i ? '客对主' : '主对客') + '</span><span class="sp"></span>' + btn + '</div>';
 function qPadHTML(i){
-  let h = '<div class="pad-h"><i></i><b>' + esc(teamName(i)) + '</b>' + mBadge('q', i) + '<span class="who">' + (i ? '客对主' : '主对客') + '</span><span class="sp"></span>'
-    + '<button class="qck" data-a="ck" data-i="' + i + '" aria-label="' + esc(teamName(i)) + ' 角球加一">' + FLAG + '<span>角球</span><b>' + statOf(M, i, 'ft').ck + '</b><small>＋1</small></button></div>';
-  for (const q of QS){
-    const s = svCur(M, i, q.f), v = s ? s.v : null, x = i + '_' + q.f;
-    let prev = null; for (const y of M.sv) if (y.i === i && y.f === q.f && s && y.k !== s.k && (!prev || y.k > prev.k)) prev = y;
-    const note = !s ? '还没设' : v == null ? fmtMin(s.p, s.t) + ' 清除' : fmtMin(s.p, s.t) + ' 设的' + (prev && prev.v != null && !hideNum() ? '（之前 ' + fp(prev.v) + '%）' : '');
-    h += '<div class="qcard"><div class="qh"><h3 class="qq">' + q.n + '</h3><span class="qval' + (v == null ? ' na' : '') + '" id="qv_' + x + '">' + qValHTML(v) + '</span></div>'
-      + '<div class="qsub"><span class="qd">' + q.d + '</span><span class="qw" id="qw_' + x + '">' + wordHTML(q.f, v) + '</span></div>'
-      + slHTML('q', x, v, { cls: 'big lock ' + (i ? 'a' : 'h'), lab: q.n })
-      + '<div class="qends"><span>' + q.lo + '</span><span class="qnote">' + note + '</span><span>' + q.hi + '</span></div></div>';
-  }
-  return h;
+  return qHeadHTML(i, mBadge('q', i), '<button class="qck" data-a="ck" data-i="' + i + '" aria-label="' + esc(teamName(i)) + ' 角球加一">' + FLAG + '<span>角球</span><b>' + statOf(M, i, 'ft').ck + '</b><small>＋1</small></button>')
+    + QS.map(q => qCardHTML(i, q)).join('');
+}
+/* 进球预测：每队三题；上方的“进球 ＋1”记进球（记下时间），暂时没有模型 */
+function gPadHTML(i){
+  return qHeadHTML(i, '', '<button class="qck gck" data-a="goal" data-i="' + i + '" aria-label="' + esc(teamName(i)) + ' 进球加一">' + BALL + '<span>进球</span><b>' + statOf(M, i, 'ft').gl + '</b><small>＋1</small></button>')
+    + GS.map(q => qCardHTML(i, q)).join('');
 }
 function renderPads(){
   document.body.classList.toggle('ended', M.st === 2);
@@ -1539,7 +1609,7 @@ function renderPads(){
     return;
   }
   const sc = 'h' + curP();
-  for (const i of [0, 1]) $('.pad[data-i="' + i + '"]').innerHTML = PREF.mode === 'q' ? qPadHTML(i) : recPadHTML(i, sc);
+  for (const i of [0, 1]) $('.pad[data-i="' + i + '"]').innerHTML = PREF.mode === 'q' ? qPadHTML(i) : PREF.mode === 'g' ? gPadHTML(i) : recPadHTML(i, sc);
 }
 /* 最近的一笔（事件或主观选择） */
 function lastAny(){
@@ -1671,6 +1741,21 @@ function tapCorner(i){
   flash('.pad[data-i="' + i + '"] [data-a="ck"]');
   if (dup) showToast('刚才那次到达已经记了角球，这个会再多算一个', () => { removeEv(e); renderAll(); }, '撤销', 7000);
   else showToast(teamName(i) + ' 角球，共 ' + cornersOf(M, 'ft')[i] + ' 个' + (merged ? '（跟联网补上的角球合并）' : ''));
+  clockTip();
+}
+/* 进球预测的“进球 ＋1”：记下时间（以后可以统计每种判断下进球多不多）；跟联网补上的那球合并，撤销时放回去 */
+function tapGoal(i){
+  if (M.st === 2){ endedToast(); return; }
+  const s = nowStamp();
+  const dup = M.ev.some(e => e.i === i && e.c === 'ar' && resOf(e.pa) === 'g' && e.p === s.p && s.t >= e.t && s.t - e.t <= 60);
+  const auto = mergeAuto(i, 'gl');
+  const e = addEv(i, 'gl');
+  lastAdd = { k: e.k, i: i, at: Date.now() };
+  renderAll();
+  flash('.pad[data-i="' + i + '"] [data-a="goal"]');
+  const undo = () => { removeEv(e); if (auto){ M.ev.push(auto); sortEv(M); save(); } renderAll(); };
+  if (dup) showToast('刚才那次到达已经记了进球，这个会再多算一个', undo, '撤销', 7000);
+  else showToast(teamName(i) + ' 进球 ' + score(M).join('–') + (auto ? '（跟联网补上的那球合并）' : ''), undo, '撤销');
   clockTip();
 }
 function pickQ(i, f, v){
@@ -1891,9 +1976,9 @@ const SLK = {
       if (!cur || cur.v !== v) setSv(sheetData.i, f, v);
     }
   },
-  // 两个问题（画面上）：x＝'0_q1'
+  // 两个问题、进球预测（画面上）：x＝'0_q1'、'0_g2'（进球预测的字在两个地方：说明那一行和手机上值的旁边）
   q: {
-    input(x, v){ const p = x.split('_'); setTx('qv_' + x, qValHTML(v)); setTx('qw_' + x, wordHTML(p[1], v)); },
+    input(x, v){ const p = x.split('_'); setTx('qv_' + x, qValHTML(v)); setTx('qw_' + x, wordHTML(p[1], v)); setTx('qwh_' + x, wordHTML(p[1], v)); },
     commit(x, v){ const p = x.split('_'); pickQ(+p[0], p[1], v); }
   },
   // 全部记录里改一笔：x＝那一笔的 k
@@ -1934,8 +2019,9 @@ function openClock(){
 const HELP = {
   rec: ['到达与选择', '上方切换“到达与选择”', '左边记主对客（主队进攻）、右边记客对主（客队进攻）。球队到了对方禁区附近点“到达”，秒数开始走；做出选择时点传中、远射、中路渗透、回传或丢球，app 记下用了几秒。传中和远射接着选内或外；传中内再选禁区射门或解围/中途拦截；中路渗透选有没有禁区射门；最后选进球、角球或无角球。同一次进攻里又做了一次选择（例如传中被解围后再传中），就再按一次“到达”。点错了按“返回”，或球队名字旁边的“撤销”。'],
   p1: ['第一部分（主观）', '每队“到达”上方的四格', '球权、到禁区附近的难度、意愿是拖动条（百分比），场面是三个选项，由你主观判断，比赛中随时可以改。球权只有一条：主队拖多一点，客队就自动少一点（两队加起来 100%）。每次放开都会记下时间（20 秒内再调算改正），以后可以统计在每种状态下角球多还是少。'],
-  q: ['两个问题', '上方切换“两个问题”', '每队两个问题，都是拖动条（百分比）：一、他容不容易到对方禁区附近＝几次进攻里有百分之几能到对方禁区附近；二、他喜不喜欢传中和远射＝传中和远射的比例。随时可以改，每次放开都记下时间。上方的“角球 ＋1”可以顺便记角球。两个程序记在同一场比赛里，可以只用一个。'],
-  sl: ['拖动条', '第一部分、两个问题、简易模型的标准；每格多少在功能 → 拖动条', '手指左右拖，或点一下条上的位置；条两边的按钮（− ＋，球权是往左、往右）每按一下动一格，按住不放会一直动，放开才记下。每格默认 1%，可以改成 0.5% 或 0.1%（模型的标准也一样）。格子越小越难刚好停在整数上：先拖到附近，再用两边的按钮微调。改了每格多少，已经记下的数字不会变。'],
+  q: ['两个问题', '上方切换“两个问题”', '每队两个问题，都是拖动条（百分比）：一、他容不容易到对方禁区附近＝几次进攻里有百分之几能到对方禁区附近；二、他喜不喜欢传中和远射＝传中和远射的比例。随时可以改，每次放开都记下时间。上方的“角球 ＋1”可以顺便记角球。三个程序记在同一场比赛里，可以只用一个。'],
+  g: ['进球预测', '上方切换“进球预测”', '每队三个问题，都是拖动条（百分比）：一、容不容易到对面禁区附近；二、对面球门前漏洞大不大；三、自己的进攻质量高不高（传中、射门、基本功、战术配合……）。用法跟两个问题一样，随时可以改，每次放开都记下时间。这队进球时点上方的“进球 ＋1”（记下时间），以后可以统计每种判断下进球多不多。暂时没有模型提醒。第一题跟两个问题的第一题分开记。'],
+  sl: ['拖动条', '第一部分、两个问题、进球预测、简易模型的标准；每格多少在功能 → 拖动条', '手指左右拖，或点一下条上的位置；条两边的按钮（− ＋，球权是往左、往右）每按一下动一格，按住不放会一直动，放开才记下。每格默认 1%，可以改成 0.5% 或 0.1%（模型的标准也一样）。格子越小越难刚好停在整数上：先拖到附近，再用两边的按钮微调。改了每格多少，已经记下的数字不会变。'],
   hn: ['隐藏数字', '画面右上角的眼睛（iPad 上写着“隐藏数字”）、第一部分视窗上方、功能 → 拖动条', '把拖动条旁边的百分比藏起来，只看条的位置来判断，不受数字影响；隐藏中眼睛按钮会变成深色、划掉的眼睛。默认连分档的文字（例如“有难度但小”“很容易”）也一起藏起来，可以在功能 → 拖动条改成照样显示文字。再按一次眼睛（显示数字）就看得到。只影响画面：记录、统计、导出照样有数字，简易模型的标准也照样显示数字。'],
   mdl: ['简易模型', '上方“简易模型”、每队名字旁边、功能 → 简易模型', '按你定的标准提醒：某队满足“大角”的条件，名字旁边显示“大角”（这队角球会高于平均）；满足“小角”的条件显示“小角”。两队合起来：都大角提示投大角，都小角提示投小角；只有一队有提醒、或一队大角一队小角，提示投角球让球（投角球会比较多的那队）。点提示可以看每个条件现在满不满足；功能 → 简易模型可以用拖动条调标准、加项、删项、关掉提醒。这只是暂时的主观模型，不会改任何记录。'],
   stats: ['统计', 'iPad 两队中间；手机底部“统计”', '两队对比：到达次数和每 10 分钟几次、五个选择的比例（每队一条＝100%）和次数、传中＋远射占比、从到达到选择的秒数、传中和远射在范围内的比例、射门、角球和角球从哪里来。上方可以切换上半场、下半场、全场。'],
@@ -1943,10 +2029,10 @@ const HELP = {
   net: ['联网', '底部“同步”、功能 → 联网数据', '输入球队名字后自动在网上找这场比赛（API-Football，key 默认用“角球数据记录”里的那个）。比赛已经在踢时按“加入”，时间、比分、角球、红牌一次填好；记录时按“同步”才会联网（省额度），漏点的角球、进球、红牌会等画面追上后补上，你自己再点会自动合并，不会多算。'],
   clock: ['比赛时间', '点比分中间的时间', '开球时按“上半场开球／下半场开球”，上半场吹哨按“上半场结束”。时间跟画面对不上时，用加减按钮或拖动条对准画面上的时间。中途才开始看，就把时间调到画面上的时间再开始，每 10 分钟的次数会按你看的时间算。'],
   fix: ['补录比分和角球', '点比分或“角球”数字', '中途加入，或数字跟实际对不上时用。补录的角球和进球算进比分和总数，但不算进到达和选择的统计。'],
-  arch: ['比赛仓库', '底部“仓库”', '保存结束时选“加入仓库”的比赛，以及还没结束的比赛。可以搜索、打开、导出、删除；“统计”有平均角球、你的到达和选择平均、你的逻辑检验，以及第一部分和两个问题每种选择下的角球（以后建模型用）；“备份”可以导出全部（JSON 或表格 CSV）和导入。'],
+  arch: ['比赛仓库', '底部“仓库”', '保存结束时选“加入仓库”的比赛，以及还没结束的比赛。可以搜索、打开、导出、删除；“统计”有平均角球、你的到达和选择平均、你的逻辑检验，第一部分和两个问题每种选择下的角球，以及进球预测每个区间下的进球（以后建模型用）；“备份”可以导出全部（JSON 或表格 CSV）和导入。'],
   pip: ['视频浮窗', '功能 → 视频浮窗', '用一台手机边看边记时：把视频切到画中画，拖到屏幕上方或下方，再在这里选同样的位置。app 会空出浮窗的位置，只留比分那一行，按键压缩。']
 };
-const HELP_ORDER = ['rec', 'p1', 'q', 'sl', 'hn', 'mdl', 'stats', 'ck', 'net', 'clock', 'fix', 'arch', 'pip'];
+const HELP_ORDER = ['rec', 'p1', 'q', 'g', 'sl', 'hn', 'mdl', 'stats', 'ck', 'net', 'clock', 'fix', 'arch', 'pip'];
 const DEFS = [
   ['到达', '本队在对方禁区附近（禁区线外大约 10 米以内，或禁区两侧一直到底线的边路）把球控制住，点一次。同一次进攻在禁区附近来回传只点一次；做了一次选择以后（例如传中被解围），本队又在禁区附近拿到球、再做选择，就再点一次“到达”。角球、任意球本身不算。', null],
   ['传中', '从边路往禁区里传的球（下底传中、45 度传中、倒三角都算）。任意球、角球开出的不算。', ['内：球往有威胁的范围飞（禁区里、门前、队友能争到的地方），不管之后被挡、被解围、被门将拿到，还是有人射门', '外：传偏了：直接出界、飞过所有人、落点没有威胁', '内之后：禁区射门＝队友在禁区里射门（包括头球）；解围/中途拦截＝防守球员（包括门将）把球顶出、踢出、挡下、拿住']],
@@ -1959,6 +2045,7 @@ const DEFS = [
   ['其他角球', '不是从你记的那次到达直接来的角球（任意球、反击，或忘了记的那次）。到达链里选了“角球”的，不要再点，不然会多算。', null],
   ['第一部分', '对球队未来能到对面禁区附近次数与呆在对方禁区附近总时长的预测，由你主观判断。', ['球权：两队加起来 100%，主队拖多一点，客队就少一点', '到禁区附近的难度：0% 没难度 … 100% 难且进不去（中间是有难度但小、有难度但进得去、有很大难度但勉强进得去）', '意愿：0% 弱 … 100% 强', '场面：包饺子／包一会饺子然后转换球权／快速转换球权（还是选项）']],
   ['两个问题', '都是百分比。', ['一、他容不容易到对方禁区附近：几次进攻里有百分之几能到对方禁区附近', '二、他喜不喜欢传中和远射：传中和远射的比例']],
+  ['进球预测', '每队三题，都是百分比，由你主观判断（暂时没有模型）。', ['一、容不容易到对面禁区附近：0% 很难 … 100% 很容易（跟两个问题的第一题分开记）', '二、对面球门前漏洞大不大：0% 很小 … 100% 很大', '三、自己的进攻质量高不高（传中、射门、基本功、战术配合……）：0% 很低 … 100% 很高', '进球 ＋1：这队进球时点一下，记下时间。到达链里选了“进球”的，不用再点']],
   ['简易模型', '你主观定的暂时标准，可以在功能 → 简易模型里改。默认：', ['到达与选择·大角：球权至少 30%、难度低于 50%、意愿高于 50%、传中＋远射占三项高于 50%，全部满足', '到达与选择·小角：球权最多 70%、难度高于 60%、意愿低于 50%、传中＋远射占三项低于 40%，全部满足；或者难度高于 80%、或者传中＋远射占三项低于 20%，任意一项满足', '三项＝传中、远射、中路渗透；这类比例要三项加起来满 4 次才算', '两个问题·大角：两个问题都高于 60%；小角：都低于 40%', '两队都大角→投大角；都小角→投小角；只有一队有提醒，或一队大角一队小角→投角球让球（投角球会比较多的那队）']]
 ];
 function renderSheet(){
@@ -1982,7 +2069,7 @@ function renderSheet(){
         + t('new', '新比赛', '开始记录另一场') + '</div></div>'
         + '<div><h4>比赛仓库</h4><div class="fcg">'
         + t('arch', '比赛仓库', n + ' 场：搜索、打开、导出、删除')
-        + t('wstats', '统计', '平均角球、到达和选择的平均、每种主观选择下的角球')
+        + t('wstats', '统计', '平均角球、到达和选择的平均、每种主观选择下的角球和进球')
         + t('exp1', '导出这场', '存成文件，可以传给 Claude 分析')
         + t('wback', '备份与导入', ago == null ? '还没备份过：导出全部、导入' : '上次备份 ' + (ago ? ago + ' 天前' : '今天')) + '</div></div>'
         + '<div><h4>设置与说明</h4><div class="fcg">'
@@ -2210,7 +2297,7 @@ function renderSheet(){
     }
     case 'slst':
       h = '<div class="card-h"><h3>拖动条</h3><button class="pill dark" data-a="close">完成</button></div>'
-        + '<div class="lbl">每格多少（第一部分、两个问题、简易模型的标准）</div>'
+        + '<div class="lbl">每格多少（第一部分、两个问题、进球预测、简易模型的标准）</div>'
         + '<div class="chips">' + SLSTEPS.map(x => '<button class="chip" data-a="slst" data-v="' + x + '" aria-pressed="' + (pctStep() === x) + '">每格 ' + fp(x) + '%</button>').join('') + '</div>'
         + '<div class="lbl">试试看（不会记下来）</div>'
         + '<div class="p1val"><b id="sldv">' + fp(DEMO_V) + '%</b></div>'
@@ -2305,11 +2392,11 @@ function whListHTML(d){
   if (!list.length) return '<p class="hint">' + (whAll().length ? '没有符合的比赛。' : '还没有比赛。结束一场比赛时选“加入仓库”，就会保存在这里。') + '</p>';
   return list.map(m => {
     const sc = score(m), c1 = cornersOf(m, 'h1'), c2 = cornersOf(m, 'h2');
-    const nar = m.ev.filter(e => e.c === 'ar').length, nq = m.sv.filter(s => s.f[0] === 'q').length;
+    const nar = m.ev.filter(e => e.c === 'ar').length, nq = m.sv.filter(s => s.f[0] === 'q').length, ng = m.sv.filter(s => SVF[s.f].pg === 'g').length;
     const cur = m.id === M.id, open = d.open === m.id;
     const act = open ? '<div class="wact"><div class="row">' + (cur ? '' : '<button class="pill dark" data-a="mopen" data-id="' + esc(m.id) + '">打开</button>') + '<button class="pill" data-a="mexp" data-id="' + esc(m.id) + '">导出</button><button class="pill' + (d.del === m.id ? ' danger' : '') + '" data-a="mdel" data-id="' + esc(m.id) + '">' + (d.del === m.id ? '确定删除' : '删除') + '</button></div></div>' : '';
     return '<div class="wrow"><button data-a="wopen" data-id="' + esc(m.id) + '" aria-expanded="' + open + '"><span class="w1">' + esc(m.h || '主队') + ' ' + sc[0] + '–' + sc[1] + ' ' + esc(m.a || '客队') + (cur ? ' <i class="wtag live">目前这场</i>' : '') + (m.st !== 2 ? ' <i class="wtag">未结束</i>' : '') + '</span>'
-      + '<span class="w2">' + esc(m.d) + (m.lg ? ' · ' + esc(m.lg) : '') + ' · 角球 ' + (c1[0] + c2[0]) + '–' + (c1[1] + c2[1]) + '（上半场 ' + c1[0] + '–' + c1[1] + '） · 到达 ' + nar + ' 次' + (nq ? ' · 两个问题' : '') + '</span></button>' + act + '</div>';
+      + '<span class="w2">' + esc(m.d) + (m.lg ? ' · ' + esc(m.lg) : '') + ' · 角球 ' + (c1[0] + c2[0]) + '–' + (c1[1] + c2[1]) + '（上半场 ' + c1[0] + '–' + c1[1] + '） · 到达 ' + nar + ' 次' + (nq ? ' · 两个问题' : '') + (ng ? ' · 进球预测' : '') + '</span></button>' + act + '</div>';
   }).join('');
 }
 /* 统计：以后建模型用。每队每半场一笔（看了 20 分钟以上的半场） */
@@ -2364,26 +2451,29 @@ function whStats(){
   h += '<div><h4>你的逻辑：到达多不多 × 传中远射多不多</h4><table class="sts"><thead><tr><th>到达每10分＼传中＋远射占三项</th><th>少 &lt;40%</th><th>中 40–60%</th><th>多 ≥60%</th></tr></thead><tbody>'
     + ['少 &lt;2.5', '中 2.5–4', '多 ≥4'].map((t, a) => '<tr><td class="tl">' + t + '</td>' + [0, 1, 2].map(b => { const c = cell[a + '' + b]; return c ? '<td>' + f1(c.ck / c.mins * 10) + '<small>' + c.n + '</small></td>' : '<td class="dim">—</td>'; }).join('') + '</tr>').join('')
     + '</tbody></table><p class="hint">格子里是每 10 分钟几个角球，小字是队伍半场数（传中、远射、中路渗透加起来至少 4 次才算）。每格少于 10 个半场时，数字还会跳得很厉害。</p></div>';
-  // 第一部分、两个问题：每个区间（拖动条）或选项（场面）下的角球
-  const stTab = (x, title) => {
+  // 第一部分、两个问题：每个区间（拖动条）或选项（场面）下的角球；进球预测（goal）：每个区间下的进球
+  const stTab = (x, title, goal) => {
     const agg = {}; const n = x.pct ? x.bk.length : x.o.length;
-    for (let v = -1; v < n; v++) agg[v] = { mins: 0, ck: 0, ar: 0 };
-    for (const m of done) for (const i of [0, 1]){ const s = stateSplit(m, i, x.f, 'ft'); for (let v = -1; v < n; v++){ agg[v].mins += s[v].mins; agg[v].ck += s[v].ck; agg[v].ar += s[v].ar; } }
+    for (let v = -1; v < n; v++) agg[v] = { mins: 0, ck: 0, ar: 0, gl: 0 };
+    for (const m of done) for (const i of [0, 1]){ const s = stateSplit(m, i, x.f, 'ft'); for (let v = -1; v < n; v++){ agg[v].mins += s[v].mins; agg[v].ck += s[v].ck; agg[v].ar += s[v].ar; agg[v].gl += s[v].gl; } }
     const lines = [];
-    for (let v = 0; v < n; v++) if (agg[v].mins >= 1) lines.push('<tr><td class="tl">' + (x.pct ? x.bk[v][2] + '<small>' + esc(x.bk[v][3]) + '</small>' : esc(x.o[v])) + '</td><td>' + Math.round(agg[v].mins) + '</td><td>' + f1(agg[v].ar / agg[v].mins * 10) + '</td><td>' + f1(agg[v].ck / agg[v].mins * 10) + '</td></tr>');
+    for (let v = 0; v < n; v++) if (agg[v].mins >= 1) lines.push('<tr><td class="tl">' + (x.pct ? x.bk[v][2] + '<small>' + esc(x.bk[v][3]) + '</small>' : esc(x.o[v])) + '</td><td>' + Math.round(agg[v].mins) + '</td>'
+      + (goal ? '<td>' + agg[v].gl + '</td><td>' + (agg[v].gl / agg[v].mins * 90).toFixed(2) + '</td>' : '<td>' + f1(agg[v].ar / agg[v].mins * 10) + '</td><td>' + f1(agg[v].ck / agg[v].mins * 10) + '</td>') + '</tr>');
     if (!lines.length) return '';
-    return '<div><h4>' + title + '</h4><table class="sts"><thead><tr><th>' + (x.pct ? '区间' : '选择') + '</th><th>分钟</th><th>到达/10分</th><th>角球/10分</th></tr></thead><tbody>' + lines.join('') + '</tbody></table></div>';
+    return '<div><h4>' + title + '</h4><table class="sts"><thead><tr><th>' + (x.pct ? '区间' : '选择') + '</th><th>分钟</th>' + (goal ? '<th>进球</th><th>进球/90分</th>' : '<th>到达/10分</th><th>角球/10分</th>') + '</tr></thead><tbody>' + lines.join('') + '</tbody></table></div>';
   };
-  let st = P1.map(x => stTab(x, '第一部分：' + x.n)).join('') + QS.map(x => stTab(x, '两个问题：' + x.s)).join('');
-  h += st || '<p class="hint">还没有第一部分或两个问题的记录。比赛中设了以后，这里会有每个区间下平均几个角球。</p>';
-  if (st) h += '<p class="hint">分钟＝这一队处在这个区间（或选项）的时间（所有比赛加起来），角球和到达都算这一队的。拖动条的值最多一位小数，所以区间写到 .9（例如 20–39.9%）。数据多了以后，可以导出给 Claude 建模型。</p>';
+  const st = P1.map(x => stTab(x, '第一部分：' + x.n)).join('') + QS.map(x => stTab(x, '两个问题：' + x.s)).join('');
+  const sg = GS.map(x => stTab(x, '进球预测：' + x.s, true)).join('');
+  if (!st && !sg) h += '<p class="hint">还没有第一部分、两个问题或进球预测的记录。比赛中设了以后，这里会有每个区间下平均几个角球（进球预测是几个进球）。</p>';
+  if (st) h += st + '<p class="hint">分钟＝这一队处在这个区间（或选项）的时间（所有比赛加起来），角球和到达都算这一队的。拖动条的值最多一位小数，所以区间写到 .9（例如 20–39.9%）。数据多了以后，可以导出给 Claude 建模型。</p>';
+  if (sg) h += sg + '<p class="hint">进球预测：分钟＝这一队处在这个区间的时间（所有比赛加起来），进球是这一队在那段时间进的；补录的进球时间不详，不算。进球/90分＝每 90 分钟几个进球。进球比角球少很多，要很多场才看得出差别。</p>';
   return h + '</div>';
 }
 function whBack(){
   const last = LS.get('corner-reach-exported', 0), all = whAll();
   return '<div class="tidy"><b>备份</b><p>数据只存在这台设备上，换手机或清除浏览器数据会不见，建议每周导出一次。' + (last ? '上次导出：' + new Date(last * 1000).toLocaleString('zh-CN', { hour12: false }) + '。' : '还没导出过。') + '导出档可以直接传给 Claude 分析、建模型。</p>'
     + '<div class="row"><button class="pill dark" data-a="expall" ' + (all.length ? '' : 'disabled') + '>导出全部（' + all.length + ' 场）</button><button class="pill" data-a="expcsv" ' + (all.length ? '' : 'disabled') + '>每一笔（CSV）</button><button class="pill" data-a="expcsvh" ' + (all.length ? '' : 'disabled') + '>每队每半场（CSV）</button><button class="pill" data-a="import">导入</button></div></div>'
-    + '<p class="hint">JSON 有每一笔记录和时间，可以再导入；“每一笔”是每次到达、角球、进球一行，带着当时第一部分和两个问题的值（百分比）；“每队每半场”是次数加起来一行，拖动条的项目是按时间平均的百分比，还有简易模型提醒了几分钟。CSV 用 Excel 或 Numbers 打开。</p>';
+    + '<p class="hint">JSON 有每一笔记录和时间，可以再导入；“每一笔”是每次到达、角球、进球一行，带着当时第一部分、两个问题、进球预测的值（百分比）；“每队每半场”是次数加起来一行，拖动条的项目是按时间平均的百分比，还有简易模型提醒了几分钟。CSV 用 Excel 或 Numbers 打开。</p>';
 }
 function dropMatch(m, msg){
   const wasCur = m.id === M.id;
@@ -2406,9 +2496,9 @@ function askNew(){ if (M.st === 2 || !hasContent(M)){ startNew(); return; } open
 
 /* ================= 导出与导入 ================= */
 const README = APPNAME + '导出档（fmt=2）。matches 是比赛阵列，每场：id、d 日期、lg 联赛、h 主队、a 客队、st 状态(1进行中/2已结束)、keep(1=结束时选了加入仓库)、pe 各半场结束时的比赛时钟秒数、obs 开始记录的位置{p 半场, t 比赛时钟秒数}、stop 结束记录的位置、note 备注、ev 事件、sv 主观选择、al 简易模型的提醒、mc 当时用的模型标准。只有 obs 到 stop 之间是实际看到的。'
-  + 'ev 每笔 = {t 比赛时钟秒数（下半场从2700起算）, p 半场(1/2), i 进攻的队伍(0主队/1客队), c 类型}。c：ar 到达（本队在对方禁区附近控制住球）、ck 其他角球（不是从记下的那次到达直接来的）、gl 进球（补录、点球等）、rc 红牌；b=1 加入前补录、时间不详；a=1 联网同步补上的，时间是估计。'
+  + 'ev 每笔 = {t 比赛时钟秒数（下半场从2700起算）, p 半场(1/2), i 进攻的队伍(0主队/1客队), c 类型}。c：ar 到达（本队在对方禁区附近控制住球）、ck 其他角球（不是从记下的那次到达直接来的）、gl 进球（不是从到达链来的：进球预测的“进球 ＋1”、补录、点球等）、rc 红牌；b=1 加入前补录、时间不详；a=1 联网同步补上的，时间是估计。'
   + 'ar 另有 pa 选择路径（一串字母，见 tree）和 dt 从按到达到第一个选择的秒数（没有＝不详）。路径第一个字母：x 传中、l 远射、m 中路渗透、b 回传、g 丢球；传中 x 后 i 内/o 外，xi 后 s 禁区射门/c 解围或中途拦截，再后 g 进球/c 角球/n 无角球；远射 l 后 i 内/o 外，li 后 g/c/n；中路渗透 m 后 s 禁区射门/n 无禁区射门，ms 后 g/c/n；回传、丢球没有后续。路径以 c 结果结束的（例如 xisc、xicc、lic、msc）＝这次到达直接得到角球。空字串＝到达后没选。'
-  + 'sv 每笔 = {t, p, i 进攻的队伍, f 项目, v 值(null=清除)}，从这个时间起一直有效到下一笔。拖动条的项目 v 是百分比 0–100，最多一位小数（v2 每格 5，v3 起默认每格 1，可以设成 0.5 或 0.1）：bq 球权（两队加起来 100，同一次调整的两笔有同一个 g）、nd 到禁区附近的难度(0 没难度…100 难且进不去)、yy 到禁区附近的意愿(0 弱…100 强)、q1 他容不容易到对方禁区附近（几次进攻里有百分之几能到对方禁区附近）、q2 他喜不喜欢传中和远射（传中和远射的比例）。cm 到禁区附近的场面 v 是选第几个(0 包饺子/1 包一会饺子然后转换球权/2 快速转换球权)。'
+  + 'sv 每笔 = {t, p, i 进攻的队伍, f 项目, v 值(null=清除)}，从这个时间起一直有效到下一笔。拖动条的项目 v 是百分比 0–100，最多一位小数（v2 每格 5，v3 起默认每格 1，可以设成 0.5 或 0.1）：bq 球权（两队加起来 100，同一次调整的两笔有同一个 g）、nd 到禁区附近的难度(0 没难度…100 难且进不去)、yy 到禁区附近的意愿(0 弱…100 强)、q1 他容不容易到对方禁区附近（几次进攻里有百分之几能到对方禁区附近）、q2 他喜不喜欢传中和远射（传中和远射的比例）；进球预测（v5 起，暂时没有模型）：g1 容不容易到对面禁区附近(0 很难…100 很容易，跟 q1 分开记)、g2 对面球门前漏洞大不大(0 很小…100 很大)、g3 自己的进攻质量高不高（传中、射门、基本功、战术配合，0 很低…100 很高）。cm 到禁区附近的场面 v 是选第几个(0 包饺子/1 包一会饺子然后转换球权/2 快速转换球权)。'
   + '旧版（v1，选项）记的会换成那一档中间的百分比，原来选第几个留在 o：bq 多/中/少→65/50/35、nd 五档→10/30/50/70/90、yy 强/中/弱→80/50/20、q1/q2 1–5 档→10/30/50/70/90。'
   + 'al 每笔 = {t, p, g 程序(r 到达与选择/q 两个问题), i 队伍, v 提醒(b 大角=角球高于平均/s 小角=角球低于平均/空字串=没有提醒)}：简易模型的提醒从这个时间起变成 v。两队合起来：都 b→投大角；都 s→投小角；只有一队有提醒、或一队 b 一队 s→投角球让球（投角球会比较多的那队）。model 是导出时的模型标准（mc 是这场最后一次提醒变化时的标准）：每个程序 b/s 两条规则，all=全部满足、any=满足任意一项；条件 {m 项目, op gt高于/ge至少/lt低于/le最多, v 标准} 或场面 {m:cm, in 选项}；xl=传中＋远射占三项（传中、远射、中路渗透），min=比例最少要几次才算，sc=half 本半场/ft 全场。'
   + 'api 是联网连上的比赛（API-Football fixture id、两队英文名、sw=1 主客相反，最后同步到的 st 状态、el 分钟、g 比分、ck 角球、ck1 上半场角球、sh 射门{t 全部, b 被挡, on 射正}、pos 控球%、rc 红牌、dl 你的画面比实时慢几秒）。';
@@ -2421,17 +2511,19 @@ function openExport(list){
     sv: m.sv.map(s => { const x = { t: s.t, p: s.p, i: s.i, f: s.f, v: s.v }; if (s.g != null) x.g = s.g; if (s.o != null) x.o = s.o; return x; }),
     al: m.al.length ? m.al.map(a => ({ t: a.t, p: a.p, g: a.g, i: a.i, v: a.v })) : undefined, mc: m.mc || undefined, pv: 1 }));
   const obj = { app: APPNAME, fmt: 2, ver: APPVER, exported: new Date().toISOString().slice(0, 16), readme: README, tree: treeObj(),
-    sv: P1.concat(QS).reduce((o, x) => { o[x.f] = x.pct ? { n: x.n, u: '%', lo: x.lo, hi: x.hi, bk: x.bk.map(b => b[2] + ' ' + b[3]) } : { n: x.n, o: x.o }; return o; }, {}),
+    sv: SVL.reduce((o, x) => { o[x.f] = x.pct ? { n: x.n, u: '%', lo: x.lo, hi: x.hi, bk: x.bk.map(b => b[2] + ' ' + b[3]) } : { n: x.n, o: x.o }; return o; }, {}),
     model: MODEL, matches: matches };
   const nm = s => (s || '').replace(/[\\/:*?"<>|\s]+/g, '');
   const name = list.length === 1 ? '角球到达_' + list[0].d + '_' + (nm(list[0].h) || '主队') + 'vs' + (nm(list[0].a) || '客队') + '.json' : '角球到达_全部' + list.length + '场_' + ds + '.json';
   openSheet('export', { text: JSON.stringify(obj), name: name, count: list.length, type: 'application/json' });
 }
 const csvOf = rows => '﻿' + rows.map(r => r.map(v => { const s = String(v == null ? '' : v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }).join(',')).join('\n');
-const svCols = (m, i, p, t) => P1.concat(QS).map(x => { const s = svAt(m, i, x.f, p, t); return s && s.v != null ? (x.pct ? s.v : x.o[s.v]) : ''; });
+const svCols = (m, i, p, t) => SVL.map(x => { const s = svAt(m, i, x.f, p, t); return s && s.v != null ? (x.pct ? s.v : x.o[s.v]) : ''; });
+// 表格里每个主观项目的栏名：第一部分用全名，两个问题用短名，进球预测前面加“进球·”
+const svCol = x => x.pg === 'g' ? svName(x.f) : x.f[0] === 'q' ? x.s : x.n;
 function openCsv(list){
   const head = ['日期', '联赛', '主队', '客队', '进攻方', '进攻球队', '半场', '时间', '比赛钟秒数', '类型', '选择', '用时秒', '内外', '下一步', '结果', '路径', '完整路径', '禁区射门', '角球', '进球', '补录', '联网补上'];
-  P1.concat(QS).forEach(x => head.push((x.f[0] === 'q' ? x.s : x.n) + (x.pct ? '%' : '')));
+  SVL.forEach(x => head.push(svCol(x) + (x.pct ? '%' : '')));
   const rows = [head];
   for (const m of list){
     for (const e of m.ev){
@@ -2450,7 +2542,7 @@ function openCsv(list){
 }
 function openCsvHalf(list){
   const head = ['日期', '联赛', '主队', '客队', '进攻方', '进攻球队', '半场', '看到分钟', '完整半场', '到达', '传中', '远射', '中路渗透', '回传', '丢球', '没选', '传中内', '传中外', '远射内', '远射外', '禁区射门', '角球', '其中到达链', '其他角球', '加入前角球', '进球', '平均用时秒', '传中远射占比', '传中远射占三项'];
-  P1.concat(QS).forEach(x => head.push((x.f[0] === 'q' ? x.s : x.n) + (x.pct ? '（按时间平均%）' : '（停留最久）')));
+  SVL.forEach(x => head.push(svCol(x) + (x.pct ? '（按时间平均%）' : '（停留最久）')));
   head.push('简易模型·到达与选择', '简易模型·两个问题', '备注');
   const rows = [head];
   for (const m of list){
@@ -2461,7 +2553,7 @@ function openCsvHalf(list){
         const row = [m.d, m.lg, m.h, m.a, i ? '客' : '主', i ? m.a : m.h, p === 1 ? '上' : '下', mins.toFixed(1), fullHalf(m, p) ? 1 : 0,
           r.ar, r.ch.x, r.ch.l, r.ch.m, r.ch.b, r.ch.g, r.none, r.io.x[0], r.io.x[1], r.io.l[0], r.io.l[1], r.bs, r.ck, r.ckc, r.cks.o, r.ckb, r.gl, d == null ? '' : d.toFixed(1), r.chosen ? ((r.ch.x + r.ch.l) / r.chosen).toFixed(3) : '',
           r.ch.x + r.ch.l + r.ch.m ? ((r.ch.x + r.ch.l) / (r.ch.x + r.ch.l + r.ch.m)).toFixed(3) : ''];
-        for (const x of P1.concat(QS)){
+        for (const x of SVL){
           const s = stateSplit(m, i, x.f, 'h' + p);
           if (x.pct){ row.push(s.avg == null ? '' : s.avg.toFixed(1)); continue; }
           let best = -1, bm = 0;
@@ -3051,14 +3143,14 @@ function flushHold(force){
   for (const h of due){ const x = commitHold(h.s); for (const k in x) added[k] = (added[k] || 0) + x[k]; }
   saveNow(); renderAll(); addedMsg(added);
 }
-/* 你自己点了角球或进球：跟最近联网补上的那笔合并，不会多算 */
+/* 你自己点了角球或进球：跟最近联网补上的那笔合并，不会多算（回传拿掉的那笔，撤销时可以放回去；没有＝null） */
 function mergeAuto(i, kind){
   const codes = kind === 'ck' ? ['ck'] : ['gl'], win = kind === 'ck' ? 240 : 360, s = nowStamp();
   let pick = null;
   for (const e of M.ev) if (e.a && e.i === i && codes.indexOf(e.c) >= 0 && e.p === s.p && s.t - e.t <= win && (!pick || e.k > pick.k)) pick = e;
-  if (!pick) return false;
+  if (!pick) return null;
   M.ev.splice(M.ev.indexOf(pick), 1); save();
-  return true;
+  return pick;
 }
 function applySync(s, manual){
   const dl = applySnap(s);
@@ -3198,7 +3290,8 @@ document.addEventListener('click', ev => {
   switch (a){
     case 'close': closeSheet(); break;
     // 记录
-    case 'mode': PREF.mode = b.dataset.v === 'q' ? 'q' : 'rec'; savePref(); setMid(false); renderAll(); break;
+    case 'mode': PREF.mode = b.dataset.v === 'q' || b.dataset.v === 'g' ? b.dataset.v : 'rec'; savePref(); setMid(false); renderAll(); break;
+    case 'goal': tapGoal(+b.dataset.i); break;
     case 'ar': tapArrive(+b.dataset.i); break;
     case 'pick': pick(+b.dataset.i, b.dataset.v); break;
     case 'stb': stageBack(+b.dataset.i); break;

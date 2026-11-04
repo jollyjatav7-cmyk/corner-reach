@@ -65,9 +65,9 @@ input,textarea{font:inherit;color:inherit}
 .nh{display:inline-flex;align-items:center;gap:6px;color:var(--muted);font:600 14px/1.2 var(--f-ui);white-space:nowrap}
 .nh svg{width:22px;height:22px;flex:none}
 .qval .nh svg{width:26px;height:26px}
-/* 两个程序的切换；右边是简易模型的提示（不会把下面的按键挤下去） */
+/* 三个程序的切换；右边是简易模型的提示（不会把下面的按键挤下去） */
 .modebar{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,420px) minmax(0,1fr);align-items:center;gap:12px;padding:0 20px 6px;flex:none}
-.mseg{grid-column:2;display:grid;grid-template-columns:1fr 1fr;width:100%;background:var(--card);border:1px solid var(--line2);border-radius:12px;padding:3px}
+.mseg{grid-column:2;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:100%;background:var(--card);border:1px solid var(--line2);border-radius:12px;padding:3px}
 .mseg button{height:32px;border:0;border-radius:9px;background:none;font-size:14px;font-weight:600;color:var(--ink2);white-space:nowrap}
 .mseg button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
 .mbn{grid-column:3;justify-self:start;height:40px;max-width:100%;min-width:0;border:0;border-radius:12px;padding:0 12px 0 10px;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;overflow:hidden;color:var(--muted);background:var(--card);box-shadow:inset 0 0 0 1px var(--line2)}
@@ -225,6 +225,21 @@ body.ended .pad[data-i="1"]{display:none}
 .qck small{font-size:12px;color:var(--muted);font-weight:600}
 .qck:active{background:var(--raise)}
 @media (min-width:900px){.qh{min-height:48px}.qq{font-size:26px}.qval{font-size:46px}.qval small{font-size:20px}.qsub{font-size:14px}.qcard{padding:18px 18px 12px;gap:10px;margin-bottom:14px}.sl.big{height:60px;padding:0 21px}.sl.big .sl-t{height:14px;border-radius:7px}.sl.big .sl-k{width:42px;height:42px;margin:-21px 0 0 -21px}}
+/* ---------- 进球预测：每队三张卡（跟两个问题一样）；分档的字在值的旁边，“进球 ＋1”是绿色的圈 ---------- */
+.qab,.qwh{display:none}
+.qck.gck{box-shadow:inset 0 0 0 1.5px var(--ok)}
+.qck.gck svg{width:17px;height:17px}
+.qck.hit{animation:qckh .5s ease-out}
+.qck.gck.hit{animation-name:gckh}
+@keyframes qckh{0%{background:rgba(242,194,48,.45)}100%{background:var(--card)}}
+@keyframes gckh{0%{background:rgba(47,138,87,.3)}100%{background:var(--card)}}
+@media (prefers-reduced-motion:reduce){.qck.hit{animation:none}}
+/* iPad 直放（两栏比较窄）、大 iPad：题目和值放得下一行，不要在字中间换行 */
+@media (min-width:600px) and (max-width:799px){.gcard .qq{font-size:18px}.gcard .qval{font-size:32px}.gcard .qval.na{font-size:15px}}
+@media (min-width:800px) and (max-width:899px){.gcard .qq{font-size:20px}}
+@media (min-width:900px) and (max-width:1100px){.gcard .qq{font-size:23px}}
+@media (min-width:900px){.gcard{padding:12px 18px 10px;gap:5px;margin-bottom:10px}}
+@media (min-width:900px) and (max-height:860px){.gcard{padding:10px 16px 8px;gap:4px}.gcard .qh{min-height:40px}.gcard .qq{font-size:23px}.gcard .qval{font-size:38px}.gcard .qval small{font-size:18px}.gcard .qval.na{font-size:15px}.gcard .sl.big{height:52px}}
 
 /* ---------- 统计（iPad 中间；手机底部抽屉） ---------- */
 .mid{min-width:0;background:var(--card);border:1px solid var(--line2);border-radius:18px;padding:12px 14px 16px;display:flex;flex-direction:column;gap:10px}
@@ -533,6 +548,7 @@ textarea.fi{height:140px;padding:10px 12px;font:12px/1.4 ui-monospace,Menlo,mono
   .modebar{padding:0 10px 4px;grid-template-columns:minmax(0,1fr) minmax(0,46%);gap:6px}
   .mseg{grid-column:1}
   .mseg button{height:30px;font-size:13.5px}
+  .mseg .mx{display:none}   /* 手机：“到达选择”（三个按钮放得下） */
   .mbn{grid-column:2;width:100%;height:36px;padding:0 9px 0 7px;gap:6px}
   .mbn svg{width:17px;height:17px}
   .mbn .t1{font-size:9.5px} .mbn .t2{font-size:13.5px} .mbn.none .t2{font-size:12px}
@@ -603,6 +619,29 @@ textarea.fi{height:140px;padding:10px 12px;font:12px/1.4 ui-monospace,Menlo,mono
   .qck{height:32px;padding:0 10px 0 8px;font-size:13px}
   .qck b{font-size:18px}
   @media (max-height:700px){.sto .k .l{font-size:14px}.k.arb{min-height:46px}.qq{font-size:17px}.qval{font-size:24px}.qh{min-height:26px}.sl.big{height:40px}.qcard{padding:6px 10px 4px}.qends{display:none}}
+  /* 进球预测：每队三题，卡片压缩：说明那一行不显示，高一点的手机才显示两头的字 */
+  body.gmode .pad-h{padding:0 2px 3px}
+  body.gmode .qck{height:30px}
+  body.gmode .qcard{padding:5px 10px 4px;gap:2px;margin-bottom:5px}
+  body.gmode .qsub,body.gmode .qends{display:none}
+  body.gmode .qh{min-height:26px}
+  body.gmode .qq{font-size:16px}
+  body.gmode .qval{font-size:24px} body.gmode .qval small{font-size:13px} body.gmode .qval.na{font-size:13px}
+  body.gmode .qval .nh svg{width:22px;height:22px}
+  body.gmode .qwh{display:inline;font-size:12px;color:var(--ink2)}
+  body.gmode .sl.big{height:40px}
+  @media (min-height:860px){body.gmode .qends{display:flex}}
+  @media (max-height:700px){body.gmode .qcard{padding:3px 10px 2px;gap:1px;margin-bottom:4px}body.gmode .qh{min-height:22px}body.gmode .qq{font-size:15px}body.gmode .qval{font-size:21px}body.gmode .sl.big{height:36px}body.gmode .sl.big .sl-k{width:34px;height:34px;margin:-17px 0 0 -17px}body.gmode .slw.big .slb{width:36px;height:36px;border-radius:18px}}
+}
+/* 进球预测在很矮的手机上：每题一行（短名字和值在左边，拖动条在右边）；浮窗模式也是这样（在下面） */
+@media (max-width:599px) and (max-height:600px){
+  body.gmode .qcard{display:grid;grid-template-columns:4.1em minmax(0,1fr);align-items:center;gap:0 6px;padding:2px 6px 2px 10px;margin-bottom:4px}
+  body.gmode .qh{flex-direction:column;align-items:flex-start;justify-content:center;gap:1px;min-height:0;min-width:0}
+  body.gmode .qq,body.gmode .gcard .qw{display:none}
+  body.gmode .qab{display:block;font-size:12.5px;font-weight:700;line-height:1.2;white-space:nowrap}
+  body.gmode .qval{font-size:18px} body.gmode .qval small{font-size:11px} body.gmode .qval.na{font-size:11.5px}
+  body.gmode .qval .nh svg{width:18px;height:18px}
+  body.gmode .sl.big{height:36px} body.gmode .sl.big .sl-k{width:32px;height:32px;margin:-16px 0 0 -16px} body.gmode .slw.big .slb{width:34px;height:34px;border-radius:17px}
 }
 @media (max-width:389px){
   .pad-h b{max-width:52%}
@@ -647,6 +686,15 @@ textarea.fi{height:140px;padding:10px 12px;font:12px/1.4 ui-monospace,Menlo,mono
   body.pip-on .sl.big{height:38px} body.pip-on .sl.big .sl-k{width:32px;height:32px;margin:-16px 0 0 -16px}
   body.pip-on .slw.big .slb{width:34px;height:34px;border-radius:17px}
   body.pip-on.qmode .pad-h{padding:0 2px 2px} body.pip-on .qck{height:28px}
+  /* 浮窗模式的进球预测：每题一行（短名字和值在左边，拖动条在右边） */
+  body.pip-on.gmode .qcard{display:grid;grid-template-columns:4.1em minmax(0,1fr);align-items:center;gap:0 6px;padding:2px 6px 2px 10px;margin-bottom:4px}
+  body.pip-on.gmode .qh{flex-direction:column;align-items:flex-start;justify-content:center;gap:1px;min-height:0;min-width:0}
+  body.pip-on.gmode .qq,body.pip-on.gmode .gcard .qw{display:none}
+  body.pip-on.gmode .qab{display:block;font-size:12.5px;font-weight:700;line-height:1.2;white-space:nowrap}
+  body.pip-on.gmode .qval{font-size:18px} body.pip-on.gmode .qval small{font-size:11px} body.pip-on.gmode .qval.na{font-size:11.5px}
+  body.pip-on.gmode .qval .nh svg{width:18px;height:18px}
+  body.pip-on.gmode .sl.big{height:36px}
+  body.pip-on.gmode .pad-h{padding:0 2px 2px} body.pip-on.gmode .qck{height:26px}
 }
 @media (max-width:599px) and (max-height:700px){
   body.pip-on .pad-h{padding-bottom:2px} body.pip-on .undo{height:24px}

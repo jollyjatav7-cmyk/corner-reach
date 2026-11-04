@@ -1,6 +1,6 @@
 // The arrival chain (timer, back, cancel, end without a choice, pick without 到达, second 到达, double-tap guard),
 // corners (chain + other, duplicate warning), undo, part one (timestamps, correction, cancel), the two questions,
-// the statistics panel, editing, score fix, finish, warehouse, JSON/CSV export and import, and layouts.
+// goal prediction (three bars, 进球 ＋1), the statistics panel, editing, score fix, finish, warehouse, JSON/CSV export and import, and layouts.
 // Usage: node uitest.js <base_url> <out_dir>
 const { chromium } = require(process.env.PLAYWRIGHT || '/opt/node-tools/node_modules/playwright');
 const [base, out] = process.argv.slice(2);
@@ -260,6 +260,38 @@ async function layout(p, tag){
   check((await txt(p, '#ckA')) === '角球 1', 'the corner pill in two-questions mode adds a corner');
   await p.click('#qbUndo');
   check((await txt(p, '#ckA')) === '角球 0', 'bottom 撤销 removes it');
+  // 11b. goal prediction: three bars per team, 进球 ＋1 with undo
+  await p.click('#mseg [data-v="g"]');
+  check((await p.$$('.pad[data-i="0"] .gcard')).length === 3 && (await p.$$('.pad[data-i="1"] .gcard')).length === 3 && !(await p.isVisible('#mBan')) && (await p.getAttribute('#mseg [data-v="g"]', 'aria-pressed')) === 'true' && (await S(p, () => document.body.classList.contains('gmode'))), 'goal prediction: three bars per team, no model banner');
+  await slide(p, '.pad[data-i="0"] .sl[data-x="0_g1"]', 60);
+  await p.clock.runFor(1000);
+  await dragSlide(p, '.pad[data-i="0"] .sl[data-x="0_g2"]', 50, 75);
+  await sbTouch(p, '.pad[data-i="1"] .sl[data-x="1_g3"]', 1);
+  m = await MM(p);
+  check(svOf(m, 0, 'g1').map(s => s.v).join() === '60' && svOf(m, 0, 'g2').map(s => s.v).join() === '75' && svOf(m, 1, 'g3').map(s => s.v).join() === '51' && svOf(m, 0, 'q1').length === 2, 'the goal bars record their own percents (60, 75, away 51) and leave 两个问题 alone');
+  check((await txt(p, '#qv_0_g2')) === '75%' && (await txt(p, '#qw_0_g2')) === '大' && (await txt(p, '#qw_1_g3')) === '一般', 'each value shows with its word beside the question (75% 大; away 51% 一般)');
+  const g0 = +(await txt(p, '#glH'));
+  await p.click('.pad[data-i="0"] [data-a="goal"]');
+  m = await MM(p);
+  const myGl = m.ev.filter(e => e.c === 'gl' && e.i === 0 && !e.b);
+  check(+(await txt(p, '#glH')) === g0 + 1 && myGl.length === 1 && typeof myGl[0].t === 'number' && +(await txt(p, '.pad[data-i="0"] [data-a="goal"] b')) === g0 + 1, '进球 ＋1 adds a home goal with its time (score ' + (g0 + 1) + ')');
+  check((await txt(p, '#toastMsg')).indexOf('鹿岛鹿角 进球') >= 0 && await p.isVisible('#toastBtn'), 'the goal is announced with an undo button');
+  await p.click('#toastBtn');
+  check(+(await txt(p, '#glH')) === g0 && !(await MM(p)).ev.some(e => e.c === 'gl' && e.i === 0 && !e.b), '…and undo takes it back');
+  await p.click('.pad[data-i="1"] [data-a="goal"]');
+  check((await txt(p, '#glA')) === '1', 'an away goal from its own pad');
+  await p.click('#qbUndo');
+  check((await txt(p, '#glA')) === '0', 'bottom 撤销 removes it');
+  const gfit = await layout(p, 'phone goal prediction');
+  check(gfit.low <= gfit.strip + 1, 'both teams fit on one phone screen in goal mode (bottom ' + Math.round(gfit.low) + ' / strip ' + Math.round(gfit.strip) + ')');
+  await p.screenshot({ path: `${out}/t_phone_g.png` });
+  await p.click('#qbMenu'); await p.click('#card [data-a="list"]');
+  const lgl = await txt(p, '#card .list');
+  check(lgl.indexOf('进球·对面门前漏洞大不大 → 75%') >= 0 && lgl.indexOf('进球·容不容易到禁区附近 → 60%') >= 0 && lgl.indexOf('横滨水手 进球·自己的进攻质量高不高 → 51%') >= 0, 'the record list names the goal bars apart from 两个问题 (进球·…)');
+  await p.keyboard.press('Escape');
+  await p.click('#qbMenu'); await p.click('#card [data-a="help"]');
+  check((await txt(p, '#card')).indexOf('进球预测') >= 0 && (await txt(p, '#card')).indexOf('进球 ＋1') >= 0, 'help explains 进球预测');
+  await p.keyboard.press('Escape');
   await p.click('#mseg [data-v="rec"]');
   await p.clock.runFor(1000);
   await chain(p, 0, 'b');   // one arrival after the part-one choices, so the CSV shows them
@@ -313,14 +345,15 @@ async function layout(p, tag){
   const json = await p.$eval('#expText', el => el.value);
   const o = JSON.parse(json);
   check(o.app === '角球到达与选择' && o.fmt === 2 && o.matches.length === 1 && o.matches[0].ev.length === nEv && o.matches[0].sv.length === nSv && o.tree.xisc === '传中 › 内 › 禁区射门 › 角球' && o.model && o.model.r.b.all.length === 4, 'JSON export (fmt 2): all events, percents, the path legend and the model');
+  check(o.sv.g2 && o.sv.g2.n === '对面球门前漏洞大不大？' && o.sv.g2.bk.length === 5 && o.matches[0].sv.some(s => s.f === 'g2' && s.v === 75) && o.readme.indexOf('g3 自己的进攻质量高不高') >= 0, 'JSON export: the goal bars, their legend and the readme');
   await p.click('#card [data-a="close"]');
   await p.click('#qbArch'); await p.click('#card [data-a="wtab"][data-v="back"]'); await p.click('#card [data-a="expcsv"]');
   const csv = (await p.$eval('#expText', el => el.value)).replace(/^﻿/, '').split('\n');
-  check(csv.length === nEv + 1 && csv[0].indexOf('完整路径') >= 0 && csv[0].indexOf('球权%') >= 0 && csv.some(l => /,70,,包饺子,80,$/.test(l)), 'CSV: one row per event with the part-one percents at that time (' + (csv.length - 1) + ' rows, ' + nEv + ' events)');
+  check(csv.length === nEv + 1 && csv[0].indexOf('完整路径') >= 0 && csv[0].indexOf('球权%') >= 0 && csv[0].indexOf('进球·对面门前漏洞大不大%') >= 0 && csv.some(l => /,70,,包饺子,80,,60,75,$/.test(l)), 'CSV: one row per event with the part-one, two-question and goal percents at that time (' + (csv.length - 1) + ' rows, ' + nEv + ' events)');
   await p.click('#card [data-a="close"]');
   await p.click('#qbArch'); await p.click('#card [data-a="wtab"][data-v="back"]'); await p.click('#card [data-a="expcsvh"]');
   const csvh = (await p.$eval('#expText', el => el.value)).split('\n');
-  check(csvh.length >= 3 && csvh[0].indexOf('传中远射占三项') >= 0 && csvh[0].indexOf('难度（按时间平均%）') >= 0, 'CSV per team-half with time-averaged percents: ' + (csvh.length - 1) + ' rows');
+  check(csvh.length >= 3 && csvh[0].indexOf('传中远射占三项') >= 0 && csvh[0].indexOf('难度（按时间平均%）') >= 0 && csvh[0].indexOf('进球·自己的进攻质量高不高（按时间平均%）') >= 0, 'CSV per team-half with time-averaged percents: ' + (csvh.length - 1) + ' rows');
   await p.click('#card [data-a="close"]');
   await p.click('.endc [data-a="new"]');
   m = await MM(p);
@@ -571,6 +604,11 @@ async function layout(p, tag){
   check(svOf(await MM(p), 0, 'q2')[0].v === 66 && (await txt(p, '#qv_0_q2')) === '', 'the ＋ button still works while hidden (66% recorded, nothing shown)');
   await layout(p, 'phone two questions, numbers hidden');
   await p.screenshot({ path: `${out}/t_phone_q_hidden.png` });
+  await p.click('#mseg [data-v="g"]');
+  await sbTouch(p, '.pad[data-i="0"] .sl[data-x="0_g2"]', 1);
+  check(svOf(await MM(p), 0, 'g2')[0].v === 51 && !PCT.test(await txt(p, '.pad[data-i="0"]')) && !!(await p.$('#qv_0_g2 .nh')) && (await txt(p, '#qw_0_g2')) === '', 'goal prediction while hidden: 51% recorded, no number or word shown');
+  await layout(p, 'phone goal prediction, numbers hidden');
+  await p.screenshot({ path: `${out}/t_phone_g_hidden.png` });
   await p.click('#mseg [data-v="rec"]');
   const ps = (await txt(p, '.pad[data-i="0"] .p1s')).replace(/ /g, '');
   check(ps === '球权已设难度已设意愿未设场面未设', 'part-one summary: 已设 instead of numbers (' + ps + ')');
@@ -633,6 +671,22 @@ async function layout(p, tag){
   check(im2 === 'bq:65 nd:70 yy:20 q1:90 cm:1', 'importing a v1 export converts it too (' + im2 + ')');
   console.log('migration errors:', p.errs.length ? p.errs.join('\n') : 'none'); if (p.errs.length) fails++;
   await ctx.close();
+  // goal prediction in the warehouse: minutes and goals in each range (a chain goal counts, a backfilled one does not)
+  const gm = { id: 'rgoal1', c: 1, u: 2, d: '2026-11-03', lg: 'J1', h: '进球主', a: '进球客', st: 2, keep: 1, pv: 1, tm: { p: 2, b: 5400, r: 0, at: 0, ht: 0 }, pe: { 1: 2700 }, obs: { p: 1, t: 0 }, stop: { p: 2, t: 5400 }, note: '', api: null,
+    ev: [{ t: 1200, p: 1, i: 0, c: 'gl' }, { t: 2000, p: 1, i: 0, c: 'ar', pa: 'msg' }, { t: 3000, p: 2, i: 0, c: 'gl' }, { t: 4500, p: 2, i: 0, c: 'gl' }, { t: 2700, p: 2, i: 0, c: 'gl', b: 1 }],
+    sv: [{ t: 0, p: 1, i: 0, f: 'g2', v: 70 }, { t: 4000, p: 2, i: 0, f: 'g2', v: 30 }] };
+  ({ ctx, p } = await open(b, 390, 763, true, null, { 'corner-reach-matches': JSON.stringify({ rgoal1: gm }), 'corner-reach-current': JSON.stringify('rgoal1') }));
+  await p.click('#qbArch');
+  check((await txt(p, '#card .wrow')).indexOf('· 进球预测') >= 0, 'warehouse list marks matches with goal-prediction records');
+  await p.click('#card [data-a="wtab"][data-v="stats"]');
+  const wg = (await txt(p, '#card')).replace(/ /g, '');
+  check(wg.indexOf('进球预测：对面门前漏洞大不大') >= 0 && wg.indexOf('60–79.9%大6734.05') >= 0 && wg.indexOf('20–39.9%小2313.86') >= 0, 'warehouse: goals in each range of a goal bar (大: 67 min, 3 goals, 4.05 per 90; 小: 23 min, 1 goal, 3.86)');
+  await p.click('#card [data-a="wtab"][data-v="back"]'); await p.click('#card [data-a="expcsvh"]');
+  const gh = (await p.$eval('#expText', el => el.value)).replace(/^﻿/, '').split('\n').map(l => l.split(','));
+  const gi = gh[0].indexOf('进球·对面门前漏洞大不大（按时间平均%）'), ghv = gh.slice(1).filter(r => r[4] === '主').map(r => r[gi]).join('/');
+  check(gi > 0 && ghv === '70.0/49.3', 'per team-half CSV: the goal bar averaged over time (home ' + ghv + ')');
+  console.log('goal-warehouse errors:', p.errs.length ? p.errs.join('\n') : 'none'); if (p.errs.length) fails++;
+  await ctx.close();
 
   // ================= B. iPad and phone sizes =================
   for (const [w, h, mob, tag, pip] of [[1180, 820, false, 'iPad landscape'], [820, 1180, false, 'iPad portrait'], [1133, 744, false, 'iPad mini landscape'], [375, 667, true, 'small phone'], [414, 896, true, 'large phone'], [390, 763, true, 'phone + PiP', { pos: 'top', h: 190 }], [375, 667, true, 'small phone + PiP', { pos: 'bot', h: 150 }]]){
@@ -661,6 +715,11 @@ async function layout(p, tag){
     const rq = await layout(p, tag + ' (two questions)');
     if (mob) check(rq.low <= rq.strip + 1, tag + ': two questions fit without scrolling');
     await p.screenshot({ path: `${out}/t_${slug}_q.png` });
+    await p.click('#mseg [data-v="g"]');
+    await S(p, () => { const R = window.__reach, M = R.M; M.sv.push({ t: 230, p: 1, i: 0, f: 'g1', v: 64.5, k: 9101 }, { t: 230, p: 1, i: 0, f: 'g2', v: 100, k: 9102 }, { t: 230, p: 1, i: 1, f: 'g3', v: 7, k: 9103 }); R.render(); });
+    const rgl = await layout(p, tag + ' (goal prediction)');
+    check(rgl.low <= rgl.strip + 1, tag + ': goal prediction fits without scrolling (bottom ' + Math.round(rgl.low) + ' / bar ' + Math.round(rgl.strip) + ')');
+    await p.screenshot({ path: `${out}/t_${slug}_g.png` });
     console.log(tag + ' errors:', p.errs.length ? p.errs.join('\n') : 'none'); if (p.errs.length) fails++;
     await ctx.close();
   }
