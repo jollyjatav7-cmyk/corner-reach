@@ -721,6 +721,72 @@ textarea.fi{height:140px;padding:10px 12px;font:12px/1.4 ui-monospace,Menlo,mono
   body.pip-on .sto{gap:4px}
 }
 
+/* ---------- 两个问题 v6：每题“现在／潜能”、备注、心得 ---------- */
+/* 潜能的条半透明；另一个值画成影子：拖现在时影子是潜能（半透明），拖潜能时影子是现在（一条细线） */
+.sl-g{position:absolute;left:0;top:0;bottom:0;border-radius:4px;opacity:.32;background:var(--ink2)}
+.sl.h .sl-g{background:var(--hm)} .sl.a .sl-g{background:var(--am)}
+.sl.pot .sl-g{opacity:1;background:none;border-radius:0;border-right:3px solid var(--ink2)}
+.sl.pot.h .sl-g{border-right-color:var(--hm)} .sl.pot.a .sl-g{border-right-color:var(--am)}
+.sl.pot .sl-f{opacity:.42}
+.sl.pot .sl-k{opacity:.7}
+.qcard.pot{border-style:dashed}
+.qcard.pot .qval{opacity:.75}
+.qseg{display:inline-flex;flex:none;padding:2px;border-radius:13px;background:var(--paper);box-shadow:inset 0 0 0 1px var(--rule);align-self:center}
+.qseg button{height:24px;padding:0 9px;border:0;border-radius:11px;background:none;font:600 12.5px/1 var(--f-ui);color:var(--ink2);white-space:nowrap}
+.qseg button[aria-pressed="true"]{background:var(--ink);color:var(--card)}
+.qseg button.pt[aria-pressed="true"]{background:var(--ink2);opacity:.8}
+.qsub{align-items:center}
+.qnb{flex:none;height:26px;padding:0 10px;border:0;border-radius:13px;background:var(--paper);box-shadow:inset 0 0 0 1px var(--rule);font:600 12.5px/1 var(--f-ui);color:var(--ink2);position:relative;white-space:nowrap}
+.qnb.has::after{content:"";position:absolute;top:2px;right:2px;width:7px;height:7px;border-radius:50%;background:var(--flag)}
+.qnb.on{background:var(--ink);color:var(--card)}
+.qnw{padding:2px 0 4px}
+.qnta,.tipta{display:block;width:100%;box-sizing:border-box;border:1px solid var(--rule);border-radius:12px;background:var(--paper);color:var(--ink);font:16px/1.45 var(--f-ui);padding:8px 10px;resize:vertical;min-height:58px}
+.qnta:focus,.tipta:focus{outline:2px solid var(--flag);outline-offset:0;border-color:transparent}
+/* 心得：两个问题页面上方 */
+.tips{margin:0 20px 8px}
+.tips[hidden]{display:none}
+.tipbar{display:flex;align-items:flex-start;gap:10px;width:100%;text-align:left;border:1px solid var(--line2);border-radius:14px;background:var(--card);color:var(--ink);padding:8px 12px;font:14px/1.4 var(--f-ui)}
+.tipbar b,.tiph b{flex:none;color:var(--flag);font-weight:800}
+.tipt{flex:1;min-width:0;white-space:pre-wrap;overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2}
+.tipt.na{color:var(--muted)}
+.tipc{flex:none;font-size:12.5px;color:var(--ink2);border:0;background:none;padding:0 2px;height:22px}
+.tips.open{border:1px solid var(--line2);border-radius:14px;background:var(--card);padding:8px 12px 10px}
+.tiph{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:14px}
+.tiph .sp{flex:1}
+.tips-s{font-size:12px;color:var(--muted)}
+@media (max-width:599px){
+  .tips{margin:2px 10px 4px}
+  .tipbar{padding:6px 10px;font-size:13px}
+  .tips.open{padding:6px 10px 8px}
+  /* 手机：卡不要被压扁，放不下就在那一队里上下捲动 */
+  body.qmode:not(.gmode) .main .pad{overflow-y:auto;-webkit-overflow-scrolling:touch}
+  body.qmode:not(.gmode) .pad .qcard{min-height:auto}
+  .qseg{padding:1px;border-radius:11px}
+  .qseg button{height:18px;padding:0 7px;font-size:11.5px;border-radius:9px}
+  .qnb{height:20px;padding:0 8px;font-size:11.5px;border-radius:10px}
+  .qnb.has::after{top:-2px;right:-2px}
+  .tipbar{padding:4px 10px;font-size:13px;gap:8px;border-radius:12px}
+  .tipt{-webkit-line-clamp:1}
+  .tipc{height:18px}
+  /* 浮窗模式：心得的位置留给视频 */
+  body.pip-on .tips{display:none}
+}
+/* 手机比较矮：卡片压缩一点，两队还是放得下一个画面 */
+@media (max-width:599px) and (max-height:800px){
+  body.qmode:not(.gmode) .qcard{padding:4px 10px 2px;gap:1px}
+  body.qmode:not(.gmode) .qh{min-height:25px}
+  body.qmode:not(.gmode) .sl.big{height:40px}
+  body.qmode:not(.gmode) .qends{font-size:11px;line-height:13px}
+  .tips{margin:0 10px 3px}
+}
+@media (max-width:599px) and (max-height:700px){
+  body.qmode:not(.gmode) .qcard{padding:2px 10px 1px;gap:1px}
+  body.qmode:not(.gmode) .qh{min-height:23px}
+  body.qmode:not(.gmode) .sl.big{height:36px}
+  body.qmode:not(.gmode) .sl.big .sl-k{width:32px;height:32px;margin:-16px 0 0 -16px}
+  body.qmode:not(.gmode) .slw.big .slb{width:36px;height:36px;border-radius:18px}
+}
+
 </style>
 </head>
 <body>
@@ -748,6 +814,7 @@ textarea.fi{height:140px;padding:10px 12px;font:12px/1.4 ui-monospace,Menlo,mono
     </div>
   </header>
   <nav class="modebar" aria-label="切换程序"><div class="mseg" id="mseg"><button data-a="mode" data-v="rec" aria-pressed="true" aria-label="到达与选择">到达<span class="mx">与</span>选择</button><button data-a="mode" data-v="q" aria-pressed="false">两个问题</button><button data-a="mode" data-v="g" aria-pressed="false">进球预测</button></div><button class="mbn none" id="mBan" data-a="mdl" hidden></button></nav>
+  <section class="tips" id="tips" hidden aria-label="心得"></section>
   <section class="sugg" id="sugg" hidden aria-live="polite"></section>
   <main class="main">
     <section class="pad" data-i="0" aria-label="主队进攻"></section>
@@ -786,7 +853,7 @@ const f1 = v => ok(v) ? v.toFixed(1) : '—';
 const pc = v => ok(v) ? Math.round(v * 100) + '%' : '—';
 const r1 = v => Math.round(v * 10) / 10;   // 拖动条的值最多一位小数
 const fp = v => String(r1(v));             // 显示：62.5 → "62.5"，60 → "60"
-const APPVER = 'v5';
+const APPVER = 'v6';
 const APPNAME = '角球到达与选择';
 const LS = {
   get(k, d){ try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e){ return d; } },
@@ -851,6 +918,14 @@ const QS = [
   { f: 'q1', pct: 1, n: '他容不容易到对方禁区附近？', s: '容不容易到禁区附近', d: '几次进攻里有百分之几能到对方禁区附近', lo: '很难', hi: '很容易', bk: BK5(['很难', '难', '一般', '容易', '很容易']) },
   { f: 'q2', pct: 1, n: '他喜不喜欢传中和远射？', s: '喜不喜欢传中和远射', d: '传中和远射的比例', lo: '很不喜欢', hi: '很喜欢', bk: BK5(['很不喜欢', '不喜欢', '一般', '喜欢', '很喜欢']) }
 ];
+/* 两个问题的“潜能”：每张卡另一个问题——现在不明显，但你看得出他有这个潜能。
+   卡上选“现在”或“潜能”，拖对应的那一条；潜能的条是半透明的。分开记（q1p、q2p），跟现在的值互不影响。
+   b＝对应的现在那一题 */
+const QSP = [
+  { f: 'q1p', b: 'q1', pct: 1, pot: 1, n: '他有没有到对方禁区附近的潜能？', s: '潜能·容不容易到禁区附近', d: '现在不明显，但看得出他有能力常到对方禁区附近', lo: '没有', hi: '很有', bk: BK5(['没有', '不大', '一般', '有', '很有']) },
+  { f: 'q2p', b: 'q2', pct: 1, pot: 1, n: '他有没有高频传中和远射的潜能？', s: '潜能·喜不喜欢传中和远射', d: '现在不明显，但看得出他会多传中、多远射', lo: '没有', hi: '很有', bk: BK5(['没有', '不大', '一般', '有', '很有']) }
+];
+const QPOT = {}; QSP.forEach(x => { QPOT[x.b] = x; });
 /* 进球预测：每队三个问题，跟两个问题一样是拖动条（百分比），随时可以改。暂时没有模型。
    第一题跟两个问题的第一题一样，但分开记（三个程序可以只用一个）。
    pg＝程序（列表、表格的名字前面加“进球·”）；ab＝浮窗模式（手机）里的短名字 */
@@ -859,7 +934,7 @@ const GS = [
   { f: 'g2', pct: 1, pg: 'g', n: '对面球门前漏洞大不大？', s: '对面门前漏洞大不大', ab: '门前漏洞', d: '对方门前防守的空当和失误', lo: '很小', hi: '很大', bk: BK5(['很小', '小', '一般', '大', '很大']) },
   { f: 'g3', pct: 1, pg: 'g', n: '自己的进攻质量高不高？', s: '自己的进攻质量高不高', ab: '进攻质量', d: '传中、射门、基本功、战术配合……', lo: '很低', hi: '很高', bk: BK5(['很低', '低', '一般', '高', '很高']) }
 ];
-const SVL = P1.concat(QS, GS);   // 所有主观的项目（导出、统计都用这个顺序）
+const SVL = P1.concat(QS, QSP, GS);   // 所有主观的项目（导出、统计都用这个顺序）
 const SVF = {}; SVL.forEach(x => { SVF[x.f] = x; });
 const svName = f => (SVF[f].pg === 'g' ? '进球·' : '') + SVF[f].s;
 const bucketOf = (f, v) => { const b = SVF[f].bk; for (let j = 0; j < b.length; j++) if (v >= b[j][0] && v < b[j][1]) return j; return b.length - 1; };
@@ -878,7 +953,7 @@ function newMatch(prev){
   const d = new Date();
   return { id: 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), c: nowSec(), u: nowSec(),
     d: d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()), lg: prev ? prev.lg : '', h: '', a: '', st: 1,
-    tm: { p: 1, b: 0, r: 0, at: 0, ht: 0 }, pe: {}, obs: null, stop: null, note: '', keep: 0, api: null, apiNo: null, kw: null, ev: [], sv: [], pv: 1, al: [], mc: null };
+    tm: { p: 1, b: 0, r: 0, at: 0, ht: 0 }, pe: {}, obs: null, stop: null, note: '', qn: {}, qm: {}, keep: 0, api: null, apiNo: null, kw: null, ev: [], sv: [], pv: 1, al: [], mc: null };
 }
 const numOr = (v, d) => ok(v) ? v : d;
 function fixEv(e){
@@ -913,6 +988,11 @@ function fixMatch(m){
   m.obs = m.obs && PER[m.obs.p] ? { p: +m.obs.p, t: Math.max(0, numOr(m.obs.t, 0)) } : null;
   m.stop = m.stop && PER[m.stop.p] ? { p: +m.stop.p, t: Math.max(0, numOr(m.stop.t, 0)) } : null;
   m.note = String(m.note || ''); m.keep = m.keep ? 1 : 0;
+  // 两个问题：每张卡的备注（qn，键＝'0_q1'）、卡上选了现在还是潜能（qm，1＝潜能）
+  const qkeys = []; for (const i of [0, 1]) for (const q of QS) qkeys.push(i + '_' + q.f);
+  const qn = m.qn && typeof m.qn === 'object' ? m.qn : {}, qm = m.qm && typeof m.qm === 'object' ? m.qm : {};
+  m.qn = {}; m.qm = {};
+  for (const x of qkeys){ if (typeof qn[x] === 'string' && qn[x].trim()) m.qn[x] = qn[x].slice(0, 2000); if (qm[x]) m.qm[x] = 1; }
   m.api = m.api && typeof m.api === 'object' && isFinite(+m.api.id) ? Object.assign({}, m.api, { id: +m.api.id, sw: m.api.sw ? 1 : 0 }) : null;
   m.apiNo = typeof m.apiNo === 'string' ? m.apiNo : null; m.apiErr = null;
   m.kw = m.kw && typeof m.kw === 'object' ? m.kw : null;
@@ -1066,7 +1146,9 @@ function svPair(s){
   return null;
 }
 let SL = null, SB = null, rdPend = 0;   // 正在拖的拖动条、正在按的 −／＋；这时候先不重画画面
-const slBusy = () => !!((SL && SL.s === 'd') || SB);
+// 正在打备注：画面先不重画（不然键盘会收起来），放开以后再重画
+const typing = () => { const a = document.activeElement; return !!(a && a.classList && a.classList.contains('qnta')); };
+const slBusy = () => !!((SL && SL.s === 'd') || SB) || typing();
 const slBusyEl = () => SL && SL.s === 'd' ? SL.el : SB ? SB.el : null;
 const lastSvK = (i, f) => { let k = 0; for (const s of M.sv) if (s.i === i && s.f === f && s.k > k) k = s.k; return k; };
 /* 现在的选择：最后记的那一笔；某个时间点的选择：那个时间以前最后一笔 */
@@ -1276,6 +1358,8 @@ const MET = {
   cm: { n: '到禁区附近的场面', s: '场面', cat: 1, gp: 0 },
   q1: { n: '问题一：容不容易到禁区附近', s: '问题一', u: '%', gp: 1 },
   q2: { n: '问题二：喜不喜欢传中和远射', s: '问题二', u: '%', gp: 1 },
+  q1p: { n: '潜能一：有没有到禁区附近的潜能', s: '潜能一', u: '%', gp: 1 },
+  q2p: { n: '潜能二：有没有高频传中和远射的潜能', s: '潜能二', u: '%', gp: 1 },
   xl: { n: '传中＋远射 占三项', s: '传中＋远射占三项', u: '%', gp: 2, d: '（传中＋远射）÷（传中＋远射＋中路渗透）' },
   xin: { n: '传中在范围内的比例', s: '传中内', u: '%', gp: 2, d: '传中里“内”的比例' },
   lin: { n: '远射在范围内的比例', s: '远射内', u: '%', gp: 2, d: '远射里“内”的比例' },
@@ -1283,7 +1367,7 @@ const MET = {
   ar10: { n: '每 10 分钟到达', s: '每10分钟到达', u: '次', lo: 0, hi: 10, st: 0.1, gp: 2, d: '要看满 10 分钟才算' },
   dt: { n: '从到达到选择的平均秒数', s: '平均用时', u: '秒', lo: 0, hi: 15, st: 0.1, gp: 2, d: '越短越果断' }
 };
-const MORD = ['bq', 'nd', 'yy', 'cm', 'q1', 'q2', 'xl', 'xin', 'lin', 'bg', 'ar10', 'dt'];
+const MORD = ['bq', 'nd', 'yy', 'cm', 'q1', 'q2', 'q1p', 'q2p', 'xl', 'xin', 'lin', 'bg', 'ar10', 'dt'];
 const MGP = ['你的判断（第一部分）', '两个问题', '记下的到达和选择'];
 const OPS = { gt: '高于', ge: '至少', lt: '低于', le: '最多' };
 const OPK = ['gt', 'ge', 'lt', 'le'];
@@ -1523,6 +1607,7 @@ function renderMode(){
   document.body.classList.toggle('qmode', PREF.mode === 'q' || PREF.mode === 'g');
   document.body.classList.toggle('gmode', PREF.mode === 'g');
   $$('#mseg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === PREF.mode)));
+  renderTips();
 }
 
 /* ---------- 到达与选择：每队一栏 ---------- */
@@ -1573,17 +1658,29 @@ function recPadHTML(i, sc){
     + '<button class="k ckb" data-a="ck" data-i="' + i + '">' + FLAG + '<span class="l">其他角球</span><span class="c">' + r.cks.o + '</span></button></div>';
 }
 /* ---------- 两个问题、进球预测：每队一栏，字大，拖动条（百分比） ---------- */
+const QNOPEN = {};   // 哪些卡的备注栏打开了（只在画面上，默认都收起来）
 // 一个问题一张卡。进球预测每队三张：手机上说明那一行不显示，分档的字改放在值的旁边（qwh）；ab 是浮窗模式的短名字
 function qCardHTML(i, q){
-  const s = svCur(M, i, q.f), v = s ? s.v : null, x = i + '_' + q.f, g = q.pg === 'g';
-  let prev = null; for (const y of M.sv) if (y.i === i && y.f === q.f && s && y.k !== s.k && (!prev || y.k > prev.k)) prev = y;
+  // 两个问题的卡：q 是现在那一题；选了“潜能”就拖潜能那一条（半透明），另一条画成影子
+  const pq = QPOT[q.f], key = i + '_' + q.f, pm = !!(pq && M.qm && M.qm[key]), a = pm ? pq : q;
+  const s = svCur(M, i, a.f), v = s ? s.v : null, x = i + '_' + a.f, g = q.pg === 'g';
+  let prev = null; for (const y of M.sv) if (y.i === i && y.f === a.f && s && y.k !== s.k && (!prev || y.k > prev.k)) prev = y;
   const note = !s ? '还没设' : v == null ? fmtMin(s.p, s.t) + ' 清除' : fmtMin(s.p, s.t) + ' 设的' + (prev && prev.v != null && !hideNum() ? '（之前 ' + fp(prev.v) + '%）' : '');
-  return '<div class="qcard' + (g ? ' gcard' : '') + '"><div class="qh"><h3 class="qq">' + q.n + '</h3>' + (q.ab ? '<span class="qab" aria-hidden="true">' + q.ab + '</span>' : '')
-    + (g ? '<span class="qw qwh" id="qwh_' + x + '" aria-hidden="true">' + wordHTML(q.f, v) + '</span>' : '')
+  let gh = null, seg = '', nb = '', nw = '';
+  if (pq){
+    const o = svCur(M, i, pm ? q.f : pq.f); gh = o && o.v != null ? o.v : null;
+    const ch = (w, t) => '<button type="button" data-a="qsel" data-x="' + key + '" data-v="' + w + '" aria-pressed="' + (pm === !!w) + '"' + (w ? ' class="pt"' : '') + '>' + t + '</button>';
+    seg = '<span class="qseg" role="group" aria-label="回答哪一题">' + ch(0, '现在') + ch(1, '潜能') + '</span>';
+    const tx = (M.qn && M.qn[key]) || '', op = !!QNOPEN[key];
+    nb = '<button type="button" class="qnb' + (tx ? ' has' : '') + (op ? ' on' : '') + '" data-a="qnote" data-x="' + key + '" aria-expanded="' + op + '">备注</button>';
+    if (op) nw = '<div class="qnw"><textarea class="qnta" data-x="' + key + '" rows="2" maxlength="2000" placeholder="这一项的备注（只记在这场比赛里）" aria-label="' + esc(teamName(i) + ' ' + q.s) + ' 备注">' + esc(tx) + '</textarea></div>';
+  }
+  return '<div class="qcard' + (g ? ' gcard' : '') + (pm ? ' pot' : '') + (nw ? ' nopen' : '') + '"><div class="qh"><h3 class="qq">' + a.n + '</h3>' + (q.ab ? '<span class="qab" aria-hidden="true">' + q.ab + '</span>' : '')
+    + (g ? '<span class="qw qwh" id="qwh_' + x + '" aria-hidden="true">' + wordHTML(a.f, v) + '</span>' : '')
     + '<span class="qval' + (v == null ? ' na' : '') + '" id="qv_' + x + '">' + qValHTML(v) + '</span></div>'
-    + '<div class="qsub"><span class="qd">' + q.d + '</span><span class="qw" id="qw_' + x + '">' + wordHTML(q.f, v) + '</span></div>'
-    + slHTML('q', x, v, { cls: 'big lock ' + (i ? 'a' : 'h'), lab: q.n })
-    + '<div class="qends"><span>' + q.lo + '</span><span class="qnote">' + note + '</span><span>' + q.hi + '</span></div></div>';
+    + '<div class="qsub">' + seg + '<span class="qd">' + a.d + '</span><span class="qw" id="qw_' + x + '">' + wordHTML(a.f, v) + '</span>' + nb + '</div>'
+    + slHTML('q', x, v, { cls: 'big lock ' + (i ? 'a' : 'h') + (pm ? ' pot' : ''), lab: a.n, gh: gh })
+    + '<div class="qends"><span>' + a.lo + '</span><span class="qnote">' + note + '</span><span>' + a.hi + '</span></div>' + nw + '</div>';
 }
 const qHeadHTML = (i, badge, btn) => '<div class="pad-h"><i></i><b>' + esc(teamName(i)) + '</b>' + badge + '<span class="who">' + (i ? '客对主' : '主对客') + '</span><span class="sp"></span>' + btn + '</div>';
 function qPadHTML(i){
@@ -1793,6 +1890,7 @@ const ICS = {
   l: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3.5L5.5 8l4.5 4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   r: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3.5L10.5 8 6 12.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 };
+// o.gh：另一个值画成影子（两个问题：拖现在的时候影子是潜能，拖潜能的时候影子是现在）
 function slHTML(kind, x, v, o){
   o = o || {};
   const lo = o.lo == null ? 0 : o.lo, hi = o.hi == null ? 100 : o.hi, st = o.st || pctStep(), one = fp(st) + (o.u == null ? '%' : o.u);
@@ -1803,7 +1901,8 @@ function slHTML(kind, x, v, o){
   return '<div class="slw' + (o.cls && /(^| )big( |$)/.test(o.cls) ? ' big' : '') + '">' + btn(-1)
     + '<div class="sl' + (o.cls ? ' ' + o.cls : '') + (v == null ? ' na' : '') + '" data-sl="' + kind + '" data-x="' + esc(x) + '" data-lo="' + lo + '" data-hi="' + hi + '" data-st="' + st + '" data-v="' + (v == null ? '' : v) + '"'
     + ' role="slider" tabindex="0" aria-label="' + esc(o.lab || '') + '" aria-valuemin="' + lo + '" aria-valuemax="' + hi + '"' + (v == null ? ' aria-valuetext="还没设"' : ' aria-valuenow="' + v + '"') + '>'
-    + '<div class="sl-t"><i class="sl-f" style="width:' + w + '"></i><b class="sl-k" style="left:' + w + '"></b></div></div>' + btn(1) + '</div>';
+    + '<div class="sl-t">' + (o.gh != null ? '<i class="sl-g" style="width:' + ((clamp(o.gh, lo, hi) - lo) / (hi - lo) * 100).toFixed(1) + '%"></i>' : '')
+    + '<i class="sl-f" style="width:' + w + '"></i><b class="sl-k" style="left:' + w + '"></b></div></div>' + btn(1) + '</div>';
 }
 /* 手指或滑鼠的位置 → 值（对齐到格子） */
 function slVal(el, cx){
@@ -2003,6 +2102,76 @@ const SLK = {
 };
 let DEMO_V = 50;
 
+/* ================= 两个问题：每张卡的备注、页面上的心得 =================
+   备注：每张卡一个（每场比赛、每队、每题），平时收起来，点卡上的“备注”打开；打的字马上存（M.qn）。
+   心得：两个问题页面上方一个窗口，写你暂时的心得当指导；不属于哪一场，一直留着（localStorage）。
+   收起来时显示前两行，点一下展开就可以直接改。 */
+const TIPK = 'corner-reach-tips';
+let TIPS = LS.get(TIPK, null);
+if (!TIPS || typeof TIPS !== 'object') TIPS = { t: '', u: 0 };
+TIPS.t = String(TIPS.t || '');
+let tipsKey = '';
+function renderTips(){
+  const el = $('#tips'); if (!el) return;
+  const show = PREF.mode === 'q' && M.st !== 2, open = !!PREF.tx;
+  el.hidden = !show;
+  document.body.classList.toggle('tips-on', show);
+  if (!show) return;
+  const ta = $('#tipTa');
+  if (ta && document.activeElement === ta) return;   // 正在打字：不要动它
+  const k = (open ? 'o' : 'c') + '|' + TIPS.t;
+  if (k === tipsKey && el.innerHTML) return;
+  tipsKey = k;
+  el.classList.toggle('open', open);
+  if (!open){
+    el.innerHTML = '<button type="button" class="tipbar" data-a="tips" aria-expanded="false"><b>心得</b>'
+      + '<span class="tipt' + (TIPS.t.trim() ? '' : ' na') + '">' + (TIPS.t.trim() ? esc(TIPS.t.trim()) : '点这里写下你暂时的心得，当作判断的指导') + '</span>'
+      + '<span class="tipc">展开</span></button>';
+  } else {
+    el.innerHTML = '<div class="tiph"><b>心得</b><span class="tips-s">一直留着，每场都看得到</span><span class="sp"></span><button type="button" class="tipc" data-a="tips" aria-expanded="true">收起</button></div>'
+      + '<textarea id="tipTa" class="tipta" maxlength="5000" placeholder="例如：上半场前 15 分钟先别急着投；主队落后时传中会变多……" aria-label="心得">' + esc(TIPS.t) + '</textarea>';
+    tipGrow($('#tipTa'));
+  }
+}
+function tipGrow(ta){ if (!ta) return; ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight + 2, Math.round(window.innerHeight * (isPhone() ? 0.32 : 0.4))) + 'px'; }
+function toggleTips(){
+  PREF.tx = PREF.tx ? 0 : 1; savePref(); tipsKey = '';
+  renderTips();
+}
+function toggleQNote(x){
+  if (QNOPEN[x]) delete QNOPEN[x]; else QNOPEN[x] = 1;
+  renderPads();
+  if (QNOPEN[x]){
+    const ta = $$('.qnta').filter(t => t.dataset.x === x)[0];
+    if (ta){ ta.scrollIntoView({ block: 'nearest' }); if (!(M.qn && M.qn[x])) ta.focus(); }
+  }
+}
+function setQSel(x, w){
+  if (!M.qm) M.qm = {};
+  if (+w) M.qm[x] = 1; else delete M.qm[x];
+  save(); renderPads();
+}
+document.addEventListener('input', ev => {
+  const t = ev.target; if (!t || !t.classList) return;
+  if (t.classList.contains('qnta')){
+    const x = t.dataset.x, v = t.value;
+    if (!M.qn) M.qn = {};
+    if (v.trim()) M.qn[x] = v; else delete M.qn[x];
+    const b = $$('.qnb').filter(e => e.dataset.x === x)[0]; if (b) b.classList.toggle('has', !!v.trim());
+    save();
+  } else if (t.id === 'tipTa'){
+    TIPS = { t: t.value, u: nowSec() }; LS.set(TIPK, TIPS); tipsKey = (PREF.tx ? 'o' : 'c') + '|' + TIPS.t; tipGrow(t);
+  }
+});
+// 打完备注（离开那一格）：刚才没重画的现在补上（稍等一下，让刚按的按钮先收到点击）
+document.addEventListener('focusout', ev => {
+  if (ev.target && ev.target.classList && ev.target.classList.contains('qnta')){ saveNow(); setTimeout(() => { if (!typing()) slFlush(); }, 250); }
+});
+// 正在打备注时去碰拖动条或其他地方：先离开那一格（拖动条一按就开始，焦点不会自己移走）
+const offNote = ev => { if (typing() && !(ev.target && ev.target.closest && ev.target.closest('.qnw'))) document.activeElement.blur(); };
+document.addEventListener('touchstart', offNote, { capture: true, passive: true });
+document.addEventListener('mousedown', offNote, true);
+
 /* ================= 弹出视窗 ================= */
 const sheet = $('#sheet'), card = $('#card');
 let sheetKind = null, sheetData = {};
@@ -2019,7 +2188,7 @@ function openClock(){
 const HELP = {
   rec: ['到达与选择', '上方切换“到达与选择”', '左边记主对客（主队进攻）、右边记客对主（客队进攻）。球队到了对方禁区附近点“到达”，秒数开始走；做出选择时点传中、远射、中路渗透、回传或丢球，app 记下用了几秒。传中和远射接着选内或外；传中内再选禁区射门或解围/中途拦截；中路渗透选有没有禁区射门；最后选进球、角球或无角球。同一次进攻里又做了一次选择（例如传中被解围后再传中），就再按一次“到达”。点错了按“返回”，或球队名字旁边的“撤销”。'],
   p1: ['第一部分（主观）', '每队“到达”上方的四格', '球权、到禁区附近的难度、意愿是拖动条（百分比），场面是三个选项，由你主观判断，比赛中随时可以改。球权只有一条：主队拖多一点，客队就自动少一点（两队加起来 100%）。每次放开都会记下时间（20 秒内再调算改正），以后可以统计在每种状态下角球多还是少。'],
-  q: ['两个问题', '上方切换“两个问题”', '每队两个问题，都是拖动条（百分比）：一、他容不容易到对方禁区附近＝几次进攻里有百分之几能到对方禁区附近；二、他喜不喜欢传中和远射＝传中和远射的比例。随时可以改，每次放开都记下时间。上方的“角球 ＋1”可以顺便记角球。三个程序记在同一场比赛里，可以只用一个。'],
+  q: ['两个问题', '上方切换“两个问题”', '每队两个问题，都是拖动条（百分比）：一、他容不容易到对方禁区附近＝几次进攻里有百分之几能到对方禁区附近；二、他喜不喜欢传中和远射＝传中和远射的比例。随时可以改，每次放开都记下时间。每张卡可以选“现在”或“潜能”：潜能＝现在不明显，但你看得出他有常到禁区附近、多传中远射的潜能；选了潜能就拖半透明的那一条（分开记，另一条的值在条上画成影子）。卡上的“备注”打开这一项的备注栏（只记在这场）。上方的“心得”窗口写你暂时的心得，每场都看得到。上方的“角球 ＋1”可以顺便记角球。三个程序记在同一场比赛里，可以只用一个。'],
   g: ['进球预测', '上方切换“进球预测”', '每队三个问题，都是拖动条（百分比）：一、容不容易到对面禁区附近；二、对面球门前漏洞大不大；三、自己的进攻质量高不高（传中、射门、基本功、战术配合……）。用法跟两个问题一样，随时可以改，每次放开都记下时间。这队进球时点上方的“进球 ＋1”（记下时间），以后可以统计每种判断下进球多不多。暂时没有模型提醒。第一题跟两个问题的第一题分开记。'],
   sl: ['拖动条', '第一部分、两个问题、进球预测、简易模型的标准；每格多少在功能 → 拖动条', '手指左右拖，或点一下条上的位置；条两边的按钮（− ＋，球权是往左、往右）每按一下动一格，按住不放会一直动，放开才记下。每格默认 1%，可以改成 0.5% 或 0.1%（模型的标准也一样）。格子越小越难刚好停在整数上：先拖到附近，再用两边的按钮微调。改了每格多少，已经记下的数字不会变。'],
   hn: ['隐藏数字', '画面右上角的眼睛（iPad 上写着“隐藏数字”）、第一部分视窗上方、功能 → 拖动条', '把拖动条旁边的百分比藏起来，只看条的位置来判断，不受数字影响；隐藏中眼睛按钮会变成深色、划掉的眼睛。默认连分档的文字（例如“有难度但小”“很容易”）也一起藏起来，可以在功能 → 拖动条改成照样显示文字。再按一次眼睛（显示数字）就看得到。只影响画面：记录、统计、导出照样有数字，简易模型的标准也照样显示数字。'],
@@ -2044,7 +2213,7 @@ const DEFS = [
   ['用了几秒', '从按“到达”开始算，到你点第一个选择为止。没按“到达”直接点选择的，也算一次到达，但用时不详。超过 60 秒的不算进平均（多半是忘了点）。', null],
   ['其他角球', '不是从你记的那次到达直接来的角球（任意球、反击，或忘了记的那次）。到达链里选了“角球”的，不要再点，不然会多算。', null],
   ['第一部分', '对球队未来能到对面禁区附近次数与呆在对方禁区附近总时长的预测，由你主观判断。', ['球权：两队加起来 100%，主队拖多一点，客队就少一点', '到禁区附近的难度：0% 没难度 … 100% 难且进不去（中间是有难度但小、有难度但进得去、有很大难度但勉强进得去）', '意愿：0% 弱 … 100% 强', '场面：包饺子／包一会饺子然后转换球权／快速转换球权（还是选项）']],
-  ['两个问题', '都是百分比。', ['一、他容不容易到对方禁区附近：几次进攻里有百分之几能到对方禁区附近', '二、他喜不喜欢传中和远射：传中和远射的比例']],
+  ['两个问题', '都是百分比。', ['一、他容不容易到对方禁区附近：几次进攻里有百分之几能到对方禁区附近', '二、他喜不喜欢传中和远射：传中和远射的比例', '潜能（每题另一个问题，半透明的条）：现在不明显，但看得出他有没有到对方禁区附近、高频传中和远射的潜能。0% 没有 … 100% 很有，跟现在的值分开记']],
   ['进球预测', '每队三题，都是百分比，由你主观判断（暂时没有模型）。', ['一、容不容易到对面禁区附近：0% 很难 … 100% 很容易（跟两个问题的第一题分开记）', '二、对面球门前漏洞大不大：0% 很小 … 100% 很大', '三、自己的进攻质量高不高（传中、射门、基本功、战术配合……）：0% 很低 … 100% 很高', '进球 ＋1：这队进球时点一下，记下时间。到达链里选了“进球”的，不用再点']],
   ['简易模型', '你主观定的暂时标准，可以在功能 → 简易模型里改。默认：', ['到达与选择·大角：球权至少 30%、难度低于 50%、意愿高于 50%、传中＋远射占三项高于 50%，全部满足', '到达与选择·小角：球权最多 70%、难度高于 60%、意愿低于 50%、传中＋远射占三项低于 40%，全部满足；或者难度高于 80%、或者传中＋远射占三项低于 20%，任意一项满足', '三项＝传中、远射、中路渗透；这类比例要三项加起来满 4 次才算', '两个问题·大角：两个问题都高于 60%；小角：都低于 40%', '两队都大角→投大角；都小角→投小角；只有一队有提醒，或一队大角一队小角→投角球让球（投角球会比较多的那队）']]
 ];
@@ -2462,7 +2631,7 @@ function whStats(){
     if (!lines.length) return '';
     return '<div><h4>' + title + '</h4><table class="sts"><thead><tr><th>' + (x.pct ? '区间' : '选择') + '</th><th>分钟</th>' + (goal ? '<th>进球</th><th>进球/90分</th>' : '<th>到达/10分</th><th>角球/10分</th>') + '</tr></thead><tbody>' + lines.join('') + '</tbody></table></div>';
   };
-  const st = P1.map(x => stTab(x, '第一部分：' + x.n)).join('') + QS.map(x => stTab(x, '两个问题：' + x.s)).join('');
+  const st = P1.map(x => stTab(x, '第一部分：' + x.n)).join('') + QS.map(x => stTab(x, '两个问题：' + x.s)).join('') + QSP.map(x => stTab(x, '两个问题：' + x.s)).join('');
   const sg = GS.map(x => stTab(x, '进球预测：' + x.s, true)).join('');
   if (!st && !sg) h += '<p class="hint">还没有第一部分、两个问题或进球预测的记录。比赛中设了以后，这里会有每个区间下平均几个角球（进球预测是几个进球）。</p>';
   if (st) h += st + '<p class="hint">分钟＝这一队处在这个区间（或选项）的时间（所有比赛加起来），角球和到达都算这一队的。拖动条的值最多一位小数，所以区间写到 .9（例如 20–39.9%）。数据多了以后，可以导出给 Claude 建模型。</p>';
@@ -2495,24 +2664,24 @@ function startNew(){
 function askNew(){ if (M.st === 2 || !hasContent(M)){ startNew(); return; } openSheet('newq'); }
 
 /* ================= 导出与导入 ================= */
-const README = APPNAME + '导出档（fmt=2）。matches 是比赛阵列，每场：id、d 日期、lg 联赛、h 主队、a 客队、st 状态(1进行中/2已结束)、keep(1=结束时选了加入仓库)、pe 各半场结束时的比赛时钟秒数、obs 开始记录的位置{p 半场, t 比赛时钟秒数}、stop 结束记录的位置、note 备注、ev 事件、sv 主观选择、al 简易模型的提醒、mc 当时用的模型标准。只有 obs 到 stop 之间是实际看到的。'
+const README = APPNAME + '导出档（fmt=2）。matches 是比赛阵列，每场：id、d 日期、lg 联赛、h 主队、a 客队、st 状态(1进行中/2已结束)、keep(1=结束时选了加入仓库)、pe 各半场结束时的比赛时钟秒数、obs 开始记录的位置{p 半场, t 比赛时钟秒数}、stop 结束记录的位置、note 备注、qn 两个问题每张卡的备注（键＝队伍_题目，例如 0_q1 主队问题一、1_q2 客队问题二）、ev 事件、sv 主观选择、al 简易模型的提醒、mc 当时用的模型标准。只有 obs 到 stop 之间是实际看到的。'
   + 'ev 每笔 = {t 比赛时钟秒数（下半场从2700起算）, p 半场(1/2), i 进攻的队伍(0主队/1客队), c 类型}。c：ar 到达（本队在对方禁区附近控制住球）、ck 其他角球（不是从记下的那次到达直接来的）、gl 进球（不是从到达链来的：进球预测的“进球 ＋1”、补录、点球等）、rc 红牌；b=1 加入前补录、时间不详；a=1 联网同步补上的，时间是估计。'
   + 'ar 另有 pa 选择路径（一串字母，见 tree）和 dt 从按到达到第一个选择的秒数（没有＝不详）。路径第一个字母：x 传中、l 远射、m 中路渗透、b 回传、g 丢球；传中 x 后 i 内/o 外，xi 后 s 禁区射门/c 解围或中途拦截，再后 g 进球/c 角球/n 无角球；远射 l 后 i 内/o 外，li 后 g/c/n；中路渗透 m 后 s 禁区射门/n 无禁区射门，ms 后 g/c/n；回传、丢球没有后续。路径以 c 结果结束的（例如 xisc、xicc、lic、msc）＝这次到达直接得到角球。空字串＝到达后没选。'
-  + 'sv 每笔 = {t, p, i 进攻的队伍, f 项目, v 值(null=清除)}，从这个时间起一直有效到下一笔。拖动条的项目 v 是百分比 0–100，最多一位小数（v2 每格 5，v3 起默认每格 1，可以设成 0.5 或 0.1）：bq 球权（两队加起来 100，同一次调整的两笔有同一个 g）、nd 到禁区附近的难度(0 没难度…100 难且进不去)、yy 到禁区附近的意愿(0 弱…100 强)、q1 他容不容易到对方禁区附近（几次进攻里有百分之几能到对方禁区附近）、q2 他喜不喜欢传中和远射（传中和远射的比例）；进球预测（v5 起，暂时没有模型）：g1 容不容易到对面禁区附近(0 很难…100 很容易，跟 q1 分开记)、g2 对面球门前漏洞大不大(0 很小…100 很大)、g3 自己的进攻质量高不高（传中、射门、基本功、战术配合，0 很低…100 很高）。cm 到禁区附近的场面 v 是选第几个(0 包饺子/1 包一会饺子然后转换球权/2 快速转换球权)。'
+  + 'sv 每笔 = {t, p, i 进攻的队伍, f 项目, v 值(null=清除)}，从这个时间起一直有效到下一笔。拖动条的项目 v 是百分比 0–100，最多一位小数（v2 每格 5，v3 起默认每格 1，可以设成 0.5 或 0.1）：bq 球权（两队加起来 100，同一次调整的两笔有同一个 g）、nd 到禁区附近的难度(0 没难度…100 难且进不去)、yy 到禁区附近的意愿(0 弱…100 强)、q1 他容不容易到对方禁区附近（几次进攻里有百分之几能到对方禁区附近）、q2 他喜不喜欢传中和远射（传中和远射的比例）；两个问题的潜能（v6 起，跟现在的值分开记）：q1p 他有没有到对方禁区附近的潜能、q2p 他有没有高频传中和远射的潜能（0 没有…100 很有，现在不明显但你看得出来的潜能）；进球预测（v5 起，暂时没有模型）：g1 容不容易到对面禁区附近(0 很难…100 很容易，跟 q1 分开记)、g2 对面球门前漏洞大不大(0 很小…100 很大)、g3 自己的进攻质量高不高（传中、射门、基本功、战术配合，0 很低…100 很高）。cm 到禁区附近的场面 v 是选第几个(0 包饺子/1 包一会饺子然后转换球权/2 快速转换球权)。'
   + '旧版（v1，选项）记的会换成那一档中间的百分比，原来选第几个留在 o：bq 多/中/少→65/50/35、nd 五档→10/30/50/70/90、yy 强/中/弱→80/50/20、q1/q2 1–5 档→10/30/50/70/90。'
   + 'al 每笔 = {t, p, g 程序(r 到达与选择/q 两个问题), i 队伍, v 提醒(b 大角=角球高于平均/s 小角=角球低于平均/空字串=没有提醒)}：简易模型的提醒从这个时间起变成 v。两队合起来：都 b→投大角；都 s→投小角；只有一队有提醒、或一队 b 一队 s→投角球让球（投角球会比较多的那队）。model 是导出时的模型标准（mc 是这场最后一次提醒变化时的标准）：每个程序 b/s 两条规则，all=全部满足、any=满足任意一项；条件 {m 项目, op gt高于/ge至少/lt低于/le最多, v 标准} 或场面 {m:cm, in 选项}；xl=传中＋远射占三项（传中、远射、中路渗透），min=比例最少要几次才算，sc=half 本半场/ft 全场。'
   + 'api 是联网连上的比赛（API-Football fixture id、两队英文名、sw=1 主客相反，最后同步到的 st 状态、el 分钟、g 比分、ck 角球、ck1 上半场角球、sh 射门{t 全部, b 被挡, on 射正}、pos 控球%、rc 红牌、dl 你的画面比实时慢几秒）。';
 function treeObj(){ const o = {}; const go = (nd, pa) => { if (pa) o[pa] = paLabel(pa); if (nd.o) for (const c of nd.o) go(nd.k[c], pa + c); }; go(ROOT, ''); return o; }
 function openExport(list){
   const ds = new Date().toISOString().slice(0, 10);
-  const matches = list.map(m => ({ id: m.id, d: m.d, lg: m.lg, h: m.h, a: m.a, st: m.st, keep: m.keep ? 1 : undefined, pe: m.pe, obs: m.obs, stop: m.stop, note: m.note || undefined,
+  const matches = list.map(m => ({ id: m.id, d: m.d, lg: m.lg, h: m.h, a: m.a, st: m.st, keep: m.keep ? 1 : undefined, pe: m.pe, obs: m.obs, stop: m.stop, note: m.note || undefined, qn: m.qn && Object.keys(m.qn).length ? m.qn : undefined,
     api: m.api ? { id: m.api.id, h: m.api.h, a: m.api.a, lg: m.api.lg, sw: m.api.sw, st: m.api.st, el: m.api.el, g: m.api.g, ck: m.api.ck, ck1: m.api.ck1 || undefined, sh: m.api.sh, pos: m.api.pos, rc: m.api.rc, dl: m.api.dl } : undefined,
     ev: m.ev.map(e => { const x = { t: e.t, p: e.p, i: e.i, c: e.c }; if (e.c === 'ar'){ x.pa = e.pa; if (ok(e.dt)) x.dt = e.dt; } if (e.b) x.b = 1; if (e.a) x.a = 1; return x; }),
     sv: m.sv.map(s => { const x = { t: s.t, p: s.p, i: s.i, f: s.f, v: s.v }; if (s.g != null) x.g = s.g; if (s.o != null) x.o = s.o; return x; }),
     al: m.al.length ? m.al.map(a => ({ t: a.t, p: a.p, g: a.g, i: a.i, v: a.v })) : undefined, mc: m.mc || undefined, pv: 1 }));
   const obj = { app: APPNAME, fmt: 2, ver: APPVER, exported: new Date().toISOString().slice(0, 16), readme: README, tree: treeObj(),
     sv: SVL.reduce((o, x) => { o[x.f] = x.pct ? { n: x.n, u: '%', lo: x.lo, hi: x.hi, bk: x.bk.map(b => b[2] + ' ' + b[3]) } : { n: x.n, o: x.o }; return o; }, {}),
-    model: MODEL, matches: matches };
+    model: MODEL, tips: TIPS.t || undefined, matches: matches };
   const nm = s => (s || '').replace(/[\\/:*?"<>|\s]+/g, '');
   const name = list.length === 1 ? '角球到达_' + list[0].d + '_' + (nm(list[0].h) || '主队') + 'vs' + (nm(list[0].a) || '客队') + '.json' : '角球到达_全部' + list.length + '场_' + ds + '.json';
   openSheet('export', { text: JSON.stringify(obj), name: name, count: list.length, type: 'application/json' });
@@ -3292,6 +3461,9 @@ document.addEventListener('click', ev => {
     // 记录
     case 'mode': PREF.mode = b.dataset.v === 'q' || b.dataset.v === 'g' ? b.dataset.v : 'rec'; savePref(); setMid(false); renderAll(); break;
     case 'goal': tapGoal(+b.dataset.i); break;
+    case 'qsel': setQSel(b.dataset.x, b.dataset.v); break;
+    case 'qnote': toggleQNote(b.dataset.x); break;
+    case 'tips': toggleTips(); break;
     case 'ar': tapArrive(+b.dataset.i); break;
     case 'pick': pick(+b.dataset.i, b.dataset.v); break;
     case 'stb': stageBack(+b.dataset.i); break;

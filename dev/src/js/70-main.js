@@ -34,6 +34,9 @@ document.addEventListener('click', ev => {
     // 记录
     case 'mode': PREF.mode = b.dataset.v === 'q' || b.dataset.v === 'g' ? b.dataset.v : 'rec'; savePref(); setMid(false); renderAll(); break;
     case 'goal': tapGoal(+b.dataset.i); break;
+    case 'qsel': setQSel(b.dataset.x, b.dataset.v); break;
+    case 'qnote': toggleQNote(b.dataset.x); break;
+    case 'tips': toggleTips(); break;
     case 'ar': tapArrive(+b.dataset.i); break;
     case 'pick': pick(+b.dataset.i, b.dataset.v); break;
     case 'stb': stageBack(+b.dataset.i); break;

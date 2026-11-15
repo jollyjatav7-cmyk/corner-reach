@@ -112,6 +112,7 @@ function renderMode(){
   document.body.classList.toggle('qmode', PREF.mode === 'q' || PREF.mode === 'g');
   document.body.classList.toggle('gmode', PREF.mode === 'g');
   $$('#mseg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === PREF.mode)));
+  renderTips();
 }
 
 /* ---------- 到达与选择：每队一栏 ---------- */
@@ -162,17 +163,29 @@ function recPadHTML(i, sc){
     + '<button class="k ckb" data-a="ck" data-i="' + i + '">' + FLAG + '<span class="l">其他角球</span><span class="c">' + r.cks.o + '</span></button></div>';
 }
 /* ---------- 两个问题、进球预测：每队一栏，字大，拖动条（百分比） ---------- */
+const QNOPEN = {};   // 哪些卡的备注栏打开了（只在画面上，默认都收起来）
 // 一个问题一张卡。进球预测每队三张：手机上说明那一行不显示，分档的字改放在值的旁边（qwh）；ab 是浮窗模式的短名字
 function qCardHTML(i, q){
-  const s = svCur(M, i, q.f), v = s ? s.v : null, x = i + '_' + q.f, g = q.pg === 'g';
-  let prev = null; for (const y of M.sv) if (y.i === i && y.f === q.f && s && y.k !== s.k && (!prev || y.k > prev.k)) prev = y;
+  // 两个问题的卡：q 是现在那一题；选了“潜能”就拖潜能那一条（半透明），另一条画成影子
+  const pq = QPOT[q.f], key = i + '_' + q.f, pm = !!(pq && M.qm && M.qm[key]), a = pm ? pq : q;
+  const s = svCur(M, i, a.f), v = s ? s.v : null, x = i + '_' + a.f, g = q.pg === 'g';
+  let prev = null; for (const y of M.sv) if (y.i === i && y.f === a.f && s && y.k !== s.k && (!prev || y.k > prev.k)) prev = y;
   const note = !s ? '还没设' : v == null ? fmtMin(s.p, s.t) + ' 清除' : fmtMin(s.p, s.t) + ' 设的' + (prev && prev.v != null && !hideNum() ? '（之前 ' + fp(prev.v) + '%）' : '');
-  return '<div class="qcard' + (g ? ' gcard' : '') + '"><div class="qh"><h3 class="qq">' + q.n + '</h3>' + (q.ab ? '<span class="qab" aria-hidden="true">' + q.ab + '</span>' : '')
-    + (g ? '<span class="qw qwh" id="qwh_' + x + '" aria-hidden="true">' + wordHTML(q.f, v) + '</span>' : '')
+  let gh = null, seg = '', nb = '', nw = '';
+  if (pq){
+    const o = svCur(M, i, pm ? q.f : pq.f); gh = o && o.v != null ? o.v : null;
+    const ch = (w, t) => '<button type="button" data-a="qsel" data-x="' + key + '" data-v="' + w + '" aria-pressed="' + (pm === !!w) + '"' + (w ? ' class="pt"' : '') + '>' + t + '</button>';
+    seg = '<span class="qseg" role="group" aria-label="回答哪一题">' + ch(0, '现在') + ch(1, '潜能') + '</span>';
+    const tx = (M.qn && M.qn[key]) || '', op = !!QNOPEN[key];
+    nb = '<button type="button" class="qnb' + (tx ? ' has' : '') + (op ? ' on' : '') + '" data-a="qnote" data-x="' + key + '" aria-expanded="' + op + '">备注</button>';
+    if (op) nw = '<div class="qnw"><textarea class="qnta" data-x="' + key + '" rows="2" maxlength="2000" placeholder="这一项的备注（只记在这场比赛里）" aria-label="' + esc(teamName(i) + ' ' + q.s) + ' 备注">' + esc(tx) + '</textarea></div>';
+  }
+  return '<div class="qcard' + (g ? ' gcard' : '') + (pm ? ' pot' : '') + (nw ? ' nopen' : '') + '"><div class="qh"><h3 class="qq">' + a.n + '</h3>' + (q.ab ? '<span class="qab" aria-hidden="true">' + q.ab + '</span>' : '')
+    + (g ? '<span class="qw qwh" id="qwh_' + x + '" aria-hidden="true">' + wordHTML(a.f, v) + '</span>' : '')
     + '<span class="qval' + (v == null ? ' na' : '') + '" id="qv_' + x + '">' + qValHTML(v) + '</span></div>'
-    + '<div class="qsub"><span class="qd">' + q.d + '</span><span class="qw" id="qw_' + x + '">' + wordHTML(q.f, v) + '</span></div>'
-    + slHTML('q', x, v, { cls: 'big lock ' + (i ? 'a' : 'h'), lab: q.n })
-    + '<div class="qends"><span>' + q.lo + '</span><span class="qnote">' + note + '</span><span>' + q.hi + '</span></div></div>';
+    + '<div class="qsub">' + seg + '<span class="qd">' + a.d + '</span><span class="qw" id="qw_' + x + '">' + wordHTML(a.f, v) + '</span>' + nb + '</div>'
+    + slHTML('q', x, v, { cls: 'big lock ' + (i ? 'a' : 'h') + (pm ? ' pot' : ''), lab: a.n, gh: gh })
+    + '<div class="qends"><span>' + a.lo + '</span><span class="qnote">' + note + '</span><span>' + a.hi + '</span></div>' + nw + '</div>';
 }
 const qHeadHTML = (i, badge, btn) => '<div class="pad-h"><i></i><b>' + esc(teamName(i)) + '</b>' + badge + '<span class="who">' + (i ? '客对主' : '主对客') + '</span><span class="sp"></span>' + btn + '</div>';
 function qPadHTML(i){

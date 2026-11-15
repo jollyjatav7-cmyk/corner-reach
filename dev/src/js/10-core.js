@@ -75,6 +75,14 @@ const QS = [
   { f: 'q1', pct: 1, n: '他容不容易到对方禁区附近？', s: '容不容易到禁区附近', d: '几次进攻里有百分之几能到对方禁区附近', lo: '很难', hi: '很容易', bk: BK5(['很难', '难', '一般', '容易', '很容易']) },
   { f: 'q2', pct: 1, n: '他喜不喜欢传中和远射？', s: '喜不喜欢传中和远射', d: '传中和远射的比例', lo: '很不喜欢', hi: '很喜欢', bk: BK5(['很不喜欢', '不喜欢', '一般', '喜欢', '很喜欢']) }
 ];
+/* 两个问题的“潜能”：每张卡另一个问题——现在不明显，但你看得出他有这个潜能。
+   卡上选“现在”或“潜能”，拖对应的那一条；潜能的条是半透明的。分开记（q1p、q2p），跟现在的值互不影响。
+   b＝对应的现在那一题 */
+const QSP = [
+  { f: 'q1p', b: 'q1', pct: 1, pot: 1, n: '他有没有到对方禁区附近的潜能？', s: '潜能·容不容易到禁区附近', d: '现在不明显，但看得出他有能力常到对方禁区附近', lo: '没有', hi: '很有', bk: BK5(['没有', '不大', '一般', '有', '很有']) },
+  { f: 'q2p', b: 'q2', pct: 1, pot: 1, n: '他有没有高频传中和远射的潜能？', s: '潜能·喜不喜欢传中和远射', d: '现在不明显，但看得出他会多传中、多远射', lo: '没有', hi: '很有', bk: BK5(['没有', '不大', '一般', '有', '很有']) }
+];
+const QPOT = {}; QSP.forEach(x => { QPOT[x.b] = x; });
 /* 进球预测：每队三个问题，跟两个问题一样是拖动条（百分比），随时可以改。暂时没有模型。
    第一题跟两个问题的第一题一样，但分开记（三个程序可以只用一个）。
    pg＝程序（列表、表格的名字前面加“进球·”）；ab＝浮窗模式（手机）里的短名字 */
@@ -83,7 +91,7 @@ const GS = [
   { f: 'g2', pct: 1, pg: 'g', n: '对面球门前漏洞大不大？', s: '对面门前漏洞大不大', ab: '门前漏洞', d: '对方门前防守的空当和失误', lo: '很小', hi: '很大', bk: BK5(['很小', '小', '一般', '大', '很大']) },
   { f: 'g3', pct: 1, pg: 'g', n: '自己的进攻质量高不高？', s: '自己的进攻质量高不高', ab: '进攻质量', d: '传中、射门、基本功、战术配合……', lo: '很低', hi: '很高', bk: BK5(['很低', '低', '一般', '高', '很高']) }
 ];
-const SVL = P1.concat(QS, GS);   // 所有主观的项目（导出、统计都用这个顺序）
+const SVL = P1.concat(QS, QSP, GS);   // 所有主观的项目（导出、统计都用这个顺序）
 const SVF = {}; SVL.forEach(x => { SVF[x.f] = x; });
 const svName = f => (SVF[f].pg === 'g' ? '进球·' : '') + SVF[f].s;
 const bucketOf = (f, v) => { const b = SVF[f].bk; for (let j = 0; j < b.length; j++) if (v >= b[j][0] && v < b[j][1]) return j; return b.length - 1; };
@@ -102,7 +110,7 @@ function newMatch(prev){
   const d = new Date();
   return { id: 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), c: nowSec(), u: nowSec(),
     d: d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()), lg: prev ? prev.lg : '', h: '', a: '', st: 1,
-    tm: { p: 1, b: 0, r: 0, at: 0, ht: 0 }, pe: {}, obs: null, stop: null, note: '', keep: 0, api: null, apiNo: null, kw: null, ev: [], sv: [], pv: 1, al: [], mc: null };
+    tm: { p: 1, b: 0, r: 0, at: 0, ht: 0 }, pe: {}, obs: null, stop: null, note: '', qn: {}, qm: {}, keep: 0, api: null, apiNo: null, kw: null, ev: [], sv: [], pv: 1, al: [], mc: null };
 }
 const numOr = (v, d) => ok(v) ? v : d;
 function fixEv(e){
@@ -137,6 +145,11 @@ function fixMatch(m){
   m.obs = m.obs && PER[m.obs.p] ? { p: +m.obs.p, t: Math.max(0, numOr(m.obs.t, 0)) } : null;
   m.stop = m.stop && PER[m.stop.p] ? { p: +m.stop.p, t: Math.max(0, numOr(m.stop.t, 0)) } : null;
   m.note = String(m.note || ''); m.keep = m.keep ? 1 : 0;
+  // 两个问题：每张卡的备注（qn，键＝'0_q1'）、卡上选了现在还是潜能（qm，1＝潜能）
+  const qkeys = []; for (const i of [0, 1]) for (const q of QS) qkeys.push(i + '_' + q.f);
+  const qn = m.qn && typeof m.qn === 'object' ? m.qn : {}, qm = m.qm && typeof m.qm === 'object' ? m.qm : {};
+  m.qn = {}; m.qm = {};
+  for (const x of qkeys){ if (typeof qn[x] === 'string' && qn[x].trim()) m.qn[x] = qn[x].slice(0, 2000); if (qm[x]) m.qm[x] = 1; }
   m.api = m.api && typeof m.api === 'object' && isFinite(+m.api.id) ? Object.assign({}, m.api, { id: +m.api.id, sw: m.api.sw ? 1 : 0 }) : null;
   m.apiNo = typeof m.apiNo === 'string' ? m.apiNo : null; m.apiErr = null;
   m.kw = m.kw && typeof m.kw === 'object' ? m.kw : null;
@@ -290,7 +303,9 @@ function svPair(s){
   return null;
 }
 let SL = null, SB = null, rdPend = 0;   // 正在拖的拖动条、正在按的 −／＋；这时候先不重画画面
-const slBusy = () => !!((SL && SL.s === 'd') || SB);
+// 正在打备注：画面先不重画（不然键盘会收起来），放开以后再重画
+const typing = () => { const a = document.activeElement; return !!(a && a.classList && a.classList.contains('qnta')); };
+const slBusy = () => !!((SL && SL.s === 'd') || SB) || typing();
 const slBusyEl = () => SL && SL.s === 'd' ? SL.el : SB ? SB.el : null;
 const lastSvK = (i, f) => { let k = 0; for (const s of M.sv) if (s.i === i && s.f === f && s.k > k) k = s.k; return k; };
 /* 现在的选择：最后记的那一笔；某个时间点的选择：那个时间以前最后一笔 */

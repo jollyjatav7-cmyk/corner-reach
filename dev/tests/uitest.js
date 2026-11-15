@@ -349,7 +349,7 @@ async function layout(p, tag){
   await p.click('#card [data-a="close"]');
   await p.click('#qbArch'); await p.click('#card [data-a="wtab"][data-v="back"]'); await p.click('#card [data-a="expcsv"]');
   const csv = (await p.$eval('#expText', el => el.value)).replace(/^﻿/, '').split('\n');
-  check(csv.length === nEv + 1 && csv[0].indexOf('完整路径') >= 0 && csv[0].indexOf('球权%') >= 0 && csv[0].indexOf('进球·对面门前漏洞大不大%') >= 0 && csv.some(l => /,70,,包饺子,80,,60,75,$/.test(l)), 'CSV: one row per event with the part-one, two-question and goal percents at that time (' + (csv.length - 1) + ' rows, ' + nEv + ' events)');
+  check(csv.length === nEv + 1 && csv[0].indexOf('完整路径') >= 0 && csv[0].indexOf('球权%') >= 0 && csv[0].indexOf('进球·对面门前漏洞大不大%') >= 0 && csv.some(l => /,70,,包饺子,80,,,,60,75,$/.test(l)), 'CSV: one row per event with the part-one, two-question and goal percents at that time (' + (csv.length - 1) + ' rows, ' + nEv + ' events)');
   await p.click('#card [data-a="close"]');
   await p.click('#qbArch'); await p.click('#card [data-a="wtab"][data-v="back"]'); await p.click('#card [data-a="expcsvh"]');
   const csvh = (await p.$eval('#expText', el => el.value)).split('\n');
