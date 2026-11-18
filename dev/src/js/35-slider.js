@@ -206,11 +206,6 @@ const SLK = {
     input(x, v){ fInput(x, v); },
     commit(x, v){ const p = x.split('_'); fDragEnd(); pickQ(+p[0], p[1], v); }
   },
-  // 角球公式的联赛平均到达次数（视窗里）
-  fav: {
-    input(x, v){ favInput(x, v); },
-    commit(x, v){ favSet(x, v); }
-  },
   // 全部记录里改一笔：x＝那一笔的 k
   sve: {
     input(k, v){ const s = svByK(+k); if (s) setTx('svev', esc(svValText(s, v))); },

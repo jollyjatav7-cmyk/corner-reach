@@ -1,4 +1,4 @@
-// 角球公式: the formula, the single choice axis, both teams on one page, the league average line,
+// 角球公式: the formula, the single choice axis, both teams on one page, the comparison with the averages,
 // records, export and layouts. Usage: node uitest_formula.js <base_url> <out_dir>
 const { chromium } = require(process.env.PLAYWRIGHT || '/opt/node-tools/node_modules/playwright');
 const [base, out] = process.argv.slice(2);
@@ -7,6 +7,10 @@ const check = (c, m) => { console.log((c ? 'ok   ' : 'FAIL ') + m); if (!c) fail
 const txt = async (p, sel) => (await p.textContent(sel)).replace(/\s+/g, ' ').trim();
 // the formula written out again here, on purpose not using the app's own code
 const index = (x, y, h, a, b) => x * (y / 100 + (1 - y / 100 - h / 100) / (1 + 3 * a * b));
+const crossPart = (x, y) => x * y / 100;
+const centrePart = (x, y, h, a, b) => x * (1 - y / 100 - h / 100) / (1 + 3 * a * b);
+const AVG = { cross: 50 * 33 / 100, centre: 50 * 33 / 100 / 4 }; AVG.total = AVG.cross + AVG.centre;   // arrival 50%, cross 33%, central 33%, a = b = 1
+const chip = (v, avg) => { const r = (v / avg - 1) * 100, n = Math.round(Math.abs(r)), w = n >= 10 ? (r > 0 ? '高于平均' : '低于平均') : '接近平均'; return w + ' ' + (r < 0 && n ? '−' : '+') + n + '%'; };
 const MM = p => p.evaluate(() => JSON.parse(JSON.stringify(window.__reach.M)));
 const cur = (m, i, f) => { let b = null; for (const s of m.sv) if (s.i === i && s.f === f && (!b || s.k > b.k)) b = s; return b ? b.v : null; };
 const count = (m, f) => m.sv.filter(s => s.f === f).length;
@@ -21,7 +25,7 @@ async function open(b, w, h, mob, extra){
 }
 const sl = (i, f) => '.pad .sl[data-x="' + i + '_' + f + '"]';
 const TR = i => '.pad .tri[data-x="' + i + '"]';
-const RANGE = { fx: [0, 80], fa: [0, 2], fb: [0, 2] };
+const RANGE = { fx: [0, 100], fa: [0, 2], fb: [0, 2] };
 async function rect(p, sel){ return p.$eval(sel + ' .sl-t', el => { el.scrollIntoView({ block: 'nearest' }); const b = el.getBoundingClientRect(); return { x: b.left, y: b.top + b.height / 2, w: b.width }; }); }
 async function set(p, i, f, v){ const R = RANGE[f], r = await rect(p, sl(i, f)); await p.mouse.click(r.x + r.w * (v - R[0]) / (R[1] - R[0]), r.y); await p.waitForTimeout(40); }
 async function exact(p, i, f, v){
@@ -89,7 +93,8 @@ const segs = (p, sel) => p.$$eval(sel + ' .tri-s', a => a.map(e => e.textContent
     check((await txt(p, '#frv1')) === '6.2' && (await txt(p, '#frv0')) === '13.0', 'the opponent defence of the away block lowers only the away index: 6.24 shown as 6.2 (' + await txt(p, '#frv1') + ')');
     check((await txt(p, '#frr')).replace(/\s/g, '') === '2.08倍', 'the ratio of the two teams is 2.08 (' + await txt(p, '#frr') + ')');
     check((await txt(p, '#frj')).indexOf('判断：鹿岛鹿角 角球更多') >= 0, 'at 2 times or more it names the team (' + await txt(p, '#frj') + ')');
-    check((await txt(p, '#fcalc_0')).indexOf('传中远射 12.0 ＋ 中路打门 1.0 ＝ 13.0') >= 0 && (await txt(p, '#fcalc_0')).indexOf('25%') >= 0, 'the working of the sum is shown (' + await txt(p, '#fcalc_0') + ')');
+    check((await txt(p, '#frx0')) === '12.0' && (await txt(p, '#frz0')) === '1.0', 'the panel shows the two parts of the home result: 12.0 + 1.0');
+    check((await txt(p, '#frx1')) === '6.0' && (await txt(p, '#frz1')) === '0.2', 'and of the away result: 6.0 + 0.2 (' + await txt(p, '#frx1') + ' + ' + await txt(p, '#frz1') + ')');
     await p.screenshot({ path: `${out}/formula_ipad.png` });
 
     // the formula against an independent calculation
@@ -178,31 +183,51 @@ const segs = (p, sel) => p.$$eval(sel + ' .tri-s', a => a.map(e => e.textContent
     v = await tv(p, TR(0));
     check(v.na && (await txt(p, '#frv0')) === '—', 'bottom 撤销 puts the axis back to not set');
 
-    // ---- the league average line
-    await seed(p, row(0, { fx: 20, fy: 60, fh: 20 }).concat(row(1, { fx: 12, fy: 50, fh: 30, fa: 1.5 })).concat(row(1, { fb: 2 })));
-    check((await txt(p, '.fra')).indexOf('设联赛平均') >= 0 && !(await p.$('#frg0')), 'without a league average there is no above/below tag');
-    await p.click('.fra');
-    check((await p.$$('#card .sl')).length === 1 && (await p.$$('#card .tri')).length === 1, 'the league average also uses one axis for the choices');
-    const S = '#card .sl[data-x="x"]';
-    const box = await p.$eval(S + ' .sl-t', el => { const b = el.getBoundingClientRect(); return { x: b.left, y: b.top + b.height / 2, w: b.width }; });
-    await p.mouse.click(box.x + box.w * 15 / 80, box.y); await p.waitForTimeout(60);
-    for (let n = 0; n < 10; n++){ const now = +(await p.getAttribute(S, 'data-v')); if (now === 15) break; await p.focus(S); await p.keyboard.press(now < 15 ? 'ArrowRight' : 'ArrowLeft'); await p.waitForTimeout(40); }
-    await choice(p, '#card .tri', 50, 25);
-    check((await txt(p, '#favLine')).replace(/\s/g, '').indexOf('联赛平均线8.4') >= 0, 'league line 15 / 50% / 25% = 8.4 (' + await txt(p, '#favLine') + ')');
-    await p.screenshot({ path: `${out}/formula_ipad_avg.png` });
-    await p.click('#card [data-a="close"]');
-    check((await txt(p, '#frg0')) === '高于平均' && (await txt(p, '#frg1')) === '低于平均', '13.0 is above and 6.2 below the line of 8.4');
-    await seed(p, row(0, { fx: 15, fy: 50, fh: 25 }).concat(row(1, { fx: 17, fy: 50, fh: 25 })));
-    check((await txt(p, '#frg0')) === '接近平均' && (await txt(p, '#frg1')) === '高于平均', 'within 10% is near the average; beyond 10% is above (' + await txt(p, '#frv1') + ')');
+    // ---- the averages the user set: arrival 50%, cross 33%, central 33%, a = b = 1
+    await seed(p, row(0, { fx: 50, fy: 33, fh: 34 }).concat(row(1, { fx: 50, fy: 33, fh: 34, fa: 1, fb: 1 })));
+    check((await txt(p, '#frx0')) === '16.5' && (await txt(p, '#frz0')) === '4.1' && (await txt(p, '#frv0')) === '20.6', 'the reference inputs give 16.5 + 4.1 = 20.6');
+    check(await p.isVisible('#frv0d') && await p.isVisible('#frx0d') && await p.isVisible('#frz1d'), 'the near-average comparison is visible too');
+    const panelText = (await txt(p, '#fres')).replace(/\s/g, '');
+    check(panelText.indexOf('平均20.6') >= 0 && panelText.indexOf('平均16.5') >= 0 && panelText.indexOf('平均4.1') >= 0, 'the three averages are on the panel');
+    for (const i of [0, 1]) for (const id of ['frv', 'frx', 'frz']) check((await txt(p, '#' + id + i + 'd')).replace(/\s/g, '') === '接近平均+0%' || (await txt(p, '#' + id + i + 'd')).replace(/\s/g, '') === '接近平均近+0%', 'team ' + i + ' ' + id + ' equals its average (' + await txt(p, '#' + id + i + 'd') + ')');
+    bad = [];
+    const cmpCases = [[70, 45, 20, 1, 1], [40, 30, 30, 1.5, 1.2], [100, 100, 0, 1, 1], [100, 0, 0, 0, 0], [5, 10, 80, 2, 2], [62, 28, 41, 0.7, 1.4], [0, 40, 30, 1, 1], [55, 33, 34, 1, 1], [54, 33, 34, 1, 1], [45, 33, 34, 1, 1], [46, 33, 34, 1, 1]];
+    for (const c of cmpCases){
+      for (const i of [0, 1]){
+        await seed(p, row(i, { fx: c[0], fy: c[1], fh: c[2], fa: c[3], fb: c[4] }).concat(row(1 - i, { fx: 50, fy: 33, fh: 34 })));
+        const X = crossPart(c[0], c[1]), Z = centrePart(c[0], c[1], c[2], c[3], c[4]), S = X + Z;
+        for (const [id, v, avg] of [['frx', X, AVG.cross], ['frz', Z, AVG.centre], ['frv', S, AVG.total]]){
+          const num = await txt(p, '#' + id + i), got = (await p.$eval('#' + id + i + 'd', e => e.querySelector('.frdl').textContent + ' ' + e.textContent.replace(/^.*?([+−]\d+%)$/, '$1'))).replace(/\s+/g, ' ');
+          if (Math.abs(+num - v) > 0.0501 || got !== chip(v, avg)) bad.push(c.join('/') + ' ' + id + i + ' got ' + num + ' ' + got + ' want ' + v.toFixed(1) + ' ' + chip(v, avg));
+        }
+      }
+    }
+    check(!bad.length, 'the three values and their comparison match an independent calculation in ' + cmpCases.length + ' cases for both teams ' + bad.slice(0, 3).join('; '));
+    await seed(p, row(0, { fx: 55, fy: 33, fh: 67 }).concat(row(1, { fx: 45, fy: 33, fh: 67 })));
+    check((await p.$eval('#frx0d', e => e.classList.contains('fhi'))) && (await p.$eval('#frx1d', e => e.classList.contains('flo'))), '10% above is above the average and 10% below is below it');
+    await seed(p, row(0, { fx: 54, fy: 33, fh: 67 }).concat(row(1, { fx: 46, fy: 33, fh: 67 })));
+    check((await p.$eval('#frx0d', e => e.classList.contains('feq'))) && (await p.isVisible('#frx0d')) && (await p.$eval('#frx1d', e => e.classList.contains('feq'))) && (await p.isVisible('#frx1d')), 'within 10% is near the average');
+    await seed(p, row(0, { fx: 20 }));
+    check((await txt(p, '#fres')).indexOf('还差 1 项') >= 0 && (await txt(p, '#fres')).indexOf('还差 2 项') >= 0 && (await txt(p, '#frx0')) === '—', 'a team with missing items shows how many are left');
+    check(!(await p.$('.fra')) && !(await p.$('[data-a="favg"]')), 'the average is fixed, there is no setting for it on the page');
+    await p.click('#qbMenu');
+    check((await txt(p, '#card')).indexOf('联赛平均线') < 0, 'nor in the menu');
+    await p.keyboard.press('Escape');
+    const sliderX = await p.$eval(sl(0, 'fx'), e => [e.dataset.lo, e.dataset.hi, e.dataset.st].join('/'));
+    check(sliderX === '0/100/1', 'arrival is a percentage from 0 to 100 (' + sliderX + ')');
+    await exact(p, 0, 'fx', 95);
+    check((await txt(p, '#fv_0_fx')) === '95%' && (await txt(p, '#fw_0_fx')) === '包饺子', 'near 100% reads as 包饺子 (' + await txt(p, '#fw_0_fx') + ')');
+    await seed(p, row(0, { fx: 70, fy: 45, fh: 20 }).concat(row(1, { fx: 40, fy: 30, fh: 30, fa: 1.5, fb: 1.2 })));
+    await p.screenshot({ path: `${out}/formula_ipad_panel.png` });
 
     // records: list, edit
     await seed(p, []);
     await p.waitForTimeout(40);
     await exact(p, 0, 'fx', 24);
     await p.click('#qbList');
-    check((await txt(p, '#card .list')).indexOf('公式·到达次数 → 24 次') >= 0, 'the record list shows the value with its unit (24 次)');
+    check((await txt(p, '#card .list')).indexOf('公式·到达频率 → 24%') >= 0, 'the record list shows the value with its unit (24%)');
     await p.click('#card .list button');
-    check((await p.getAttribute('#card .sl', 'data-hi')) === '80' && (await p.getAttribute('#card .sl', 'data-st')) === '1', 'editing a record keeps the slider range of that item (0–80, step 1)');
+    check((await p.getAttribute('#card .sl', 'data-hi')) === '100' && (await p.getAttribute('#card .sl', 'data-st')) === '1', 'editing a record keeps the slider range of that item (0–100%)');
     await p.keyboard.press('Escape');
     await p.click('#qbUndo'); await p.waitForTimeout(40);
     check(cur(await MM(p), 0, 'fx') === null && (await txt(p, '#fv_0_fx')) === '未设', 'bottom 撤销 removes the last bar');
@@ -216,14 +241,13 @@ const segs = (p, sel) => p.$$eval(sel + ' .tri-s', a => a.map(e => e.textContent
     // saved across a reload
     await p.waitForTimeout(450); await p.reload(); await p.waitForTimeout(150);
     check(await p.isVisible('#fres') && (await txt(p, '#frv0')) === '13.0', 'the program and its values survive a reload');
-    check(await p.evaluate(() => JSON.stringify(window.__reach.FAVG)) === '{"x":15,"y":50,"h":25}' && (await txt(p, '.fra')).indexOf('8.4') >= 0, 'the league average stays for every match');
 
     // export
     await p.click('#qbMenu'); await p.click('#card [data-a="exp1"]'); await p.waitForTimeout(100);
     const js = await p.evaluate(() => { const t = document.querySelector('#card textarea'); return t ? t.value : null; });
     if (js){ const o = JSON.parse(js);
-      check(o.ver === 'v9' && o.sv.fx.u === '次' && o.sv.fy.u === '%' && o.sv.fa.u === '' && o.favg.x === 15 && o.matches[0].sv.some(s => s.f === 'fx' && s.v === 20), 'JSON export carries the values, their units and the league average');
-      check(o.readme.indexOf('fx 到达次数') >= 0 && o.readme.indexOf('z＝1÷(1+3×a×b)') >= 0, 'the export explains the formula');
+      check(o.ver === 'v10' && o.sv.fx.u === '%' && o.sv.fy.u === '%' && o.sv.fa.u === '' && JSON.stringify(o.favg) === '{"x":50,"y":33,"m":33,"a":1,"b":1}' && o.matches[0].sv.some(s => s.f === 'fx' && s.v === 20), 'JSON export carries the values, their units and the average settings');
+      check(o.readme.indexOf('fx 到达频率') >= 0 && o.readme.indexOf('z＝1÷(1+3×a×b)') >= 0, 'the export explains the formula');
     } else check(false, 'export text not found');
     await p.keyboard.press('Escape');
     check(!p.errs.length, 'iPad: no errors ' + p.errs.join(' | '));
@@ -263,7 +287,7 @@ const segs = (p, sel) => p.$$eval(sel + ' .tri-s', a => a.map(e => e.textContent
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: Math.round(bar.x + bar.w * .5), y: Math.round(bar.y) }] });
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
     await cdp.detach(); await p.waitForTimeout(120);
-    check(cur(await MM(p), 1, 'fx') === 40, 'the normal bars work by finger next to the axis');
+    check(cur(await MM(p), 1, 'fx') === 50, 'the normal bars work by finger next to the axis');
     await p.screenshot({ path: `${out}/formula_phone.png` });
     await p.tap('.ftm.a [data-a="ck"]'); await p.waitForTimeout(80);
     await p.tap('.ftm.h [data-a="ck"]'); await p.waitForTimeout(80);
@@ -284,18 +308,15 @@ const segs = (p, sel) => p.$$eval(sel + ' .tri-s', a => a.map(e => e.textContent
   for (const [w, h, mob, pip] of SZ){
     const ctx = await b.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: 1, isMobile: !!mob, hasTouch: !!mob, serviceWorkers: 'block' });
     if (pip) await ctx.addInitScript(() => localStorage.setItem('corner-reach-pip', JSON.stringify({ pos: 'top', h: 190 })));
-    await ctx.addInitScript(() => localStorage.setItem('corner-reach-favg', JSON.stringify({ x: 15, y: 50, h: 25 })));
     const p = await ctx.newPage(); await p.goto(base + '/index.html');
     await p.fill('#fH', '名字很长的鹿岛鹿角足球俱乐部'); await p.fill('#fA', '名字很长的横滨水手足球俱乐部'); await p.click('#mseg [data-v="f"]');
     await seed(p, row(0, { fx: 80, fy: 60, fh: 20, fa: 1.2, fb: 0.8 }).concat(row(1, { fx: 33, fy: 50, fh: 30, fa: 1.5, fb: 2 })));
     await p.waitForTimeout(60);
     const r = await p.evaluate(() => {
       const de = document.documentElement, pad = document.querySelector('.pad[data-i="0"]'), bad = [];
-      for (const el of document.querySelectorAll('.frg,.frj,.fra,.frr,.frv,.fval,.fw,.fll,.fls,.tri-s b,.tri-n,#mseg button')){ if (el.offsetParent && el.scrollWidth > el.clientWidth + 1 && getComputedStyle(el).textOverflow !== 'ellipsis') bad.push(el.className + ':' + el.textContent.slice(0, 8)); }
+      for (const el of document.querySelectorAll('.frd,.frj,.frr,.frv,.frm,.fval,.fw,.fll,.fls,.tri-s b,.tri-n,#mseg button')){ if (el.offsetParent && el.scrollWidth > el.clientWidth + 1 && getComputedStyle(el).textOverflow !== 'ellipsis') bad.push(el.className + ':' + el.textContent.slice(0, 8)); }
       const box = el => el.getBoundingClientRect();
-      const a = box(document.querySelector('.frs.h')), m = document.querySelector('#frr') ? box(document.querySelector('#frr')) : null, c = box(document.querySelector('.frs.a'));
-      for (const s of document.querySelectorAll('.frs')){ const inner = s.querySelector('.frx'); if (inner.scrollWidth > inner.clientWidth + 1) bad.push('result overflows ' + inner.textContent.slice(0, 12)); }
-      if (m && (a.right > m.left + 1 || c.left < m.right - 1)) bad.push('result overlaps the ratio');
+      for (const w of document.querySelectorAll('.frw')){ const [l, m, r] = w.children, ends = e => [...e.children].map(box); if (ends(l).some(b => b.right > box(m).left + 1) || ends(r).some(b => b.left < box(m).right - 1) || ends(l).concat(ends(r)).some(b => b.left < box(w).left - 1 || b.right > box(w).right + 1)) bad.push('panel row overlaps: ' + w.textContent.slice(0, 18)); }
       for (const l of document.querySelectorAll('.fl')){ const v = l.querySelector('.flv'), n = v.querySelector('.fval'); if (n && box(n).right > box(l.children[1]).left + 1) bad.push('value runs into the bar ' + n.textContent); }
       const strip = box(document.querySelector('#strip')).top;
       const ax = [...document.querySelectorAll('.pad .sl,.pad .tri')].filter(e => e.offsetParent);
@@ -305,6 +326,14 @@ const segs = (p, sel) => p.$$eval(sel + ' .tri-s', a => a.map(e => e.textContent
       return { side: de.scrollWidth - de.clientWidth, bad, tr: Math.round(tr), minH: Math.round(Math.min(...ax.map(e => box(e).height))), n: ax.length, low, resTop: Math.round(res.top), resBot: Math.round(res.bottom) };
     });
     const tag = w + 'x' + h + (pip ? ' floating video' : '');
+    // the widest numbers the panel can ever show
+    const wide = [];
+    for (const st of [[{ fx: 100, fy: 100, fh: 0 }, { fx: 99, fy: 100, fh: 0 }], [{ fx: 100, fy: 0, fh: 0, fa: 0, fb: 0 }, { fx: 99, fy: 0, fh: 0, fa: 0, fb: 0 }], [{ fx: 0, fy: 50, fh: 50 }, { fx: 88, fy: 77, fh: 3, fa: 2, fb: 2 }]]){
+      await seed(p, row(0, st[0]).concat(row(1, st[1]))); await p.waitForTimeout(30);
+      wide.push(...await p.evaluate(() => { const box = e => e.getBoundingClientRect(), out = []; for (const w of document.querySelectorAll('.frw')){ const [l, m, r] = w.children; for (const e of [...l.children]) if (box(e).right > box(l).right + .5) out.push('left ' + e.textContent); for (const e of [...r.children]) if (box(e).left < box(r).left - .5) out.push('right ' + e.textContent); if (![...l.children, ...r.children].every(e => box(e).width > 0)) out.push('hidden in ' + w.textContent.slice(0, 16)); } return out; }));
+    }
+    check(!wide.length, tag + ': the widest possible numbers still fit ' + JSON.stringify(wide.slice(0, 4)));
+    await seed(p, row(0, { fx: 80, fy: 60, fh: 20, fa: 1.2, fb: 0.8 }).concat(row(1, { fx: 33, fy: 50, fh: 30, fa: 1.5, fb: 2 })));
     check(r.side <= 0, tag + ': no sideways scroll');
     check(!r.bad.length, tag + ': all labels and results fit ' + JSON.stringify(r.bad.slice(0, 5)));
     check(r.minH >= 30 && r.tr >= 80, tag + ': sliders are usable (track ' + r.tr + 'px, height ' + r.minH + 'px)');

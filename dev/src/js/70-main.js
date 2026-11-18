@@ -33,8 +33,6 @@ document.addEventListener('click', ev => {
     case 'close': closeSheet(); break;
     // 记录
     case 'mode': PREF.mode = ['q', 'g', 'f'].indexOf(b.dataset.v) >= 0 ? b.dataset.v : 'rec'; savePref(); setMid(false); renderAll(); break;
-    case 'favg': setMid(false); openSheet('favg'); break;
-    case 'favclr': favClear(); renderAll(); renderSheet(); break;
     case 'goal': tapGoal(+b.dataset.i); break;
     case 'qsel': setQSel(b.dataset.x, b.dataset.v); break;
     case 'qnote': toggleQNote(b.dataset.x); break;
@@ -279,4 +277,4 @@ if ('serviceWorker' in navigator && window.isSecureContext && location.protocol 
 }
 renderAll();
 window.__reach = { get M(){ return M; }, store: () => store, statOf: statOf, stateSplit: stateSplit, walk: walk, paLabel: paLabel, OC: OC, minsOf: minsOf,
-  get MODEL(){ return MODEL; }, mAll: mAll, get MN(){ return MN; }, render: () => renderAll(), fmtMV: fmtMV, bucketOf: bucketOf, PREF: PREF, fCalc: fCalc, fTeam: fTeam, fLine: fLine, pickQ: pickQ, get FAVG(){ return FAVG; } };
+  get MODEL(){ return MODEL; }, mAll: mAll, get MN(){ return MN; }, render: () => renderAll(), fmtMV: fmtMV, bucketOf: bucketOf, PREF: PREF, fCalc: fCalc, fTeam: fTeam, FAV: FAV, pickQ: pickQ };

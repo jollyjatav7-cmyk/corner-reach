@@ -1,23 +1,17 @@
 /* ================= 角球公式 =================
-   角球指数 = x × [ y + (1 − y − h) × z ]，z = 1 ÷ (1 + 3 × a × b)
-   x 到达次数、y 传中和远射占比、h 回传占比、a 打门门槛、b 对方禁区内防守（a、b 的 1 是联赛平均，没设时按 1 算）。
+   最终结果 = 传中远射频率 + 中路渗透射门频率
+   传中远射频率 = x × y；中路渗透射门频率 = x × (1 − y − h) × z，z = 1 ÷ (1 + 3 × a × b)
+   x 到达频率（0–100%，接近 100% 是一直包饺子）、y 传中和远射占比、h 回传占比、a 打门门槛、b 对方禁区内防守（a、b 的 1 是联赛平均，没设时按 1 算）。
    画面上主队一块在上、客队一块在下，都在同一页；y、h 在同一条轴上（两个滑块分成传中远射、中路渗透、回传三段）。
-   跟两个问题一样每次放开都记下时间；拖的时候上方的结果跟着算。
-   两队对比：大的是小的 2 倍以上才下判断。高于／低于平均：比联赛平均线高或低 10% 以上。
-   联赛平均（FAVG）不属于哪一场，一直留着。指数只用来比较高低，不是角球数。 */
-const FK = 3, FRATIO = 2, FNEAR = 0.1;
-const FAVK = 'corner-reach-favg';
-function fixFavg(o){
-  const n = (v, hi) => v == null || v === '' || !isFinite(+v) ? null : clamp(r1(+v), 0, hi);
-  o = o && typeof o === 'object' ? o : {};
-  const r = { x: n(o.x, 80), y: n(o.y, 100), h: n(o.h, 100) };
-  if (r.y != null && r.h != null && r.y + r.h > 100) r.h = r1(100 - r.y);
-  return r;
-}
-let FAVG = fixFavg(LS.get(FAVK, null));
+   跟两个问题一样每次放开都记下时间；拖的时候上方的面板跟着算。
+   平均值（FAV）：到达 50%、传中远射 33%、中路渗透 33%、a 和 b 都是 1。比平均值高或低 10% 以上算高于或低于平均。
+   两队对比：最终结果大的是小的 2 倍以上才下判断。这些数只用来比较高低，不是角球数。 */
+const FK = 3, FRATIO = 2, FNEAR = 10;
+const FAV = { x: 50, y: 33, m: 33, a: 1, b: 1 };
+FAV.cross = FAV.x * FAV.y / 100;
+FAV.centre = FAV.x * FAV.m / 100 / (1 + FK * FAV.a * FAV.b);
+FAV.s = FAV.cross + FAV.centre;
 let FDRAG = null;   // 正在拖的那一条：{ x 哪一条, v 拖到哪里 }（还没记下）
-let FAVD = null;    // 联赛平均的到达次数正在拖到哪里
-const favOn = () => FAVG.x != null && FAVG.y != null && FAVG.h != null;
 
 /* 公式本身：y、h 是百分比 */
 function fCalc(x, y, h, a, b){
@@ -34,25 +28,19 @@ function fVals(i){
   if (TRI && TRI.on && TRI.kind === 'f' && +TRI.x === i){ out.fy = TRI.y; out.fh = TRI.h; }
   return out;
 }
-/* ok＝到达次数和选择都设了才算。选择的轴拖过一个滑块就算设了（另一段是 0）；a、b 没设时按 1 */
+/* ok＝到达频率和选择都设了才算。选择的轴拖过一个滑块就算设了（另一段是 0）；a、b 没设时按 1 */
 function fTeam(i){
   const v = fVals(i), miss = [];
-  if (v.fx == null) miss.push('到达次数');
+  if (v.fx == null) miss.push('到达频率');
   if (v.fy == null && v.fh == null) miss.push('到达后的选择');
   if (miss.length) return { ok: false, v: v, miss: miss };
   const a = v.fa == null ? 1 : v.fa, b = v.fb == null ? 1 : v.fb;
   return Object.assign({ ok: true, v: v, a: a, b: b, miss: [] }, fCalc(v.fx, v.fy || 0, v.fh || 0, a, b));
 }
-/* 联赛平均线：平均的到达次数和选择，a、b 都是 1 */
-function fLine(){
-  const d = TRI && TRI.on && TRI.kind === 'fav' ? TRI : null;
-  const x = FAVD && slBusy() ? FAVD.v : FAVG.x, y = d ? d.y : FAVG.y, h = d ? d.h : FAVG.h;
-  return x == null || y == null || h == null ? null : fCalc(x, y, h, 1, 1).s;
-}
-function fTag(s, line){
-  if (line == null || !(line > 0)) return null;
-  const r = s / line;
-  return r >= 1 + FNEAR - 1e-9 ? { k: 'up', t: '高于平均' } : r <= 1 - FNEAR + 1e-9 ? { k: 'dn', t: '低于平均' } : { k: 'mid', t: '接近平均' };
+/* 跟平均值比：n＝高或低百分之几（画面上的数字），差 10% 以上才算高于或低于平均 */
+function fCmp(v, avg){
+  const r = (v / avg - 1) * 100, n = Math.round(Math.abs(r)), k = n >= FNEAR ? (r > 0 ? 'fhi' : 'flo') : 'feq';
+  return { k: k, t: k === 'fhi' ? '高于平均' : k === 'flo' ? '低于平均' : '接近平均', s: k === 'fhi' ? '高' : k === 'flo' ? '低' : '近', n: (r < 0 && n ? '−' : '+') + n + '%' };
 }
 /* 两队对比：i＝指数大的那队；r＝倍数（对方是 0 时是 Infinity）；clear＝到了 2 倍 */
 function fJudge(a, b){
@@ -70,12 +58,8 @@ function fJudge(a, b){
    按在滑块上是接着它现在的位置拖（不会跳）；按在轴的其他地方，比较近的滑块移过来。放开才记下（TRK[种类].commit）。 */
 const TRK = {
   f: {
-    live(x){ setTx('fcalc_' + x, fCalcHTML(fTeam(+x))); renderFres(); },
+    live(){ renderFres(); },
     commit(x, T){ if (T.y !== T.y0) pickQ(+x, 'fy', T.y); if (T.h !== T.h0) pickQ(+x, 'fh', T.h); }
-  },
-  fav: {
-    live(){ setTx('favLine', favLineHTML()); renderFres(); },
-    commit(x, T){ FAVG.y = T.y; FAVG.h = T.h; LS.set(FAVK, FAVG); }
   }
 };
 function triParts(y, h){
@@ -187,10 +171,9 @@ function fValHTML(q, v){
   if (hideNum()) return '<span class="nh" title="数字已隐藏">' + ICE.off + '</span>';
   return fNum(q, v) + (fUnit(q) ? '<small>' + fUnit(q) + '</small>' : '');
 }
-const FLEG = '<span><i class="c-x"></i>传中远射</span><span><i class="c-m"></i>中路渗透</span><span><i class="c-b"></i>回传</span>';
 /* 每队的四项：t 全名（iPad）、s 短名（手机） */
 const FITEMS = [
-  { f: 'fx', t: '到达次数', s: '到达', sym: 'x' },
+  { f: 'fx', t: '到达频率', s: '到达', sym: 'x' },
   { choice: 1, t: '到达后的选择', s: '选择' },
   { f: 'fa', t: '打门门槛', s: '门槛', sym: 'a' },
   { f: 'fb', t: '对方禁区内防守', s: '对方防守', sym: 'b' }
@@ -202,46 +185,38 @@ function fItemHTML(g, i, v){
   return '<div class="fl"><div class="flv">' + name + '<span class="flx"><span class="fval' + (val == null ? ' na' : '') + '" id="fv_' + x + '">' + fValHTML(q, val) + '</span><span class="fw" id="fw_' + x + '">' + wordHTML(q.f, val) + '</span></span></div>'
     + slHTML('f', x, val, { lo: q.min, hi: q.max, st: q.step, u: q.u, cls: 'big lock ' + c, lab: teamName(i) + ' ' + g.t }) + '</div>';
 }
-/* 这一队的算式 */
-function fCalcHTML(t){
-  if (!t.ok) return '<span class="fcm">还差：' + esc(t.miss.join('、')) + '</span>';
-  return '<span>打门比例 z <b>' + Math.round(t.z * 100) + '%</b></span><span class="fcs">传中远射 ' + t.cross.toFixed(1) + ' ＋ 中路打门 ' + t.centre.toFixed(1) + ' ＝ <b>' + t.s.toFixed(1) + '</b></span>';
-}
 function fTeamHTML(i){
   const t = fTeam(i);
-  return '<section class="ftm ' + (i ? 'a' : 'h') + '" aria-label="' + esc(teamName(i)) + '"><div class="ftmh"><b>' + esc(teamName(i)) + '</b><div class="fcalc" id="fcalc_' + i + '">' + fCalcHTML(t) + '</div>'
+  return '<section class="ftm ' + (i ? 'a' : 'h') + '" aria-label="' + esc(teamName(i)) + '"><div class="ftmh"><b>' + esc(teamName(i)) + '</b>'
     + '<button class="qck" data-a="ck" data-i="' + i + '" aria-label="' + esc(teamName(i)) + ' 角球加一">' + FLAG + '<span>角球</span><b>' + statOf(M, i, 'ft').ck + '</b><small>＋1</small></button></div>'
     + '<div class="ftmb">' + FITEMS.map(g => fItemHTML(g, i, t.v)).join('') + '</div></section>';
 }
 const fBoardHTML = () => '<div class="ftms">' + fTeamHTML(0) + fTeamHTML(1) + '</div>';
-/* 拖的时候：这一条的数字、算式和上方的结果跟着变，整个画面放开以后才重画 */
+/* 拖的时候：这一条的数字和上方的面板跟着变，整个画面放开以后才重画 */
 function fInput(x, v){
-  const p = x.split('_'), i = +p[0], q = SVF[p[1]];
+  const q = SVF[x.split('_')[1]];
   FDRAG = { x: x, v: v };
   setTx('fv_' + x, fValHTML(q, v)); setTx('fw_' + x, wordHTML(q.f, v));
   const fv = document.getElementById('fv_' + x); if (fv) fv.classList.remove('na');
-  setTx('fcalc_' + i, fCalcHTML(fTeam(i)));
   renderFres();
 }
 const fDragEnd = () => { FDRAG = null; };
 
-/* ---------- 上方的结果：两队的指数、谁多、高于还是低于平均 ---------- */
+/* ---------- 上方的面板：每队的最终结果和内部两部分，每一项都跟平均值比 ---------- */
 function renderFres(){
   const el = $('#fres'); if (!el) return;
   const show = PREF.mode === 'f' && M.st !== 2;
   el.hidden = !show;
   if (!show) return;
-  const T = [fTeam(0), fTeam(1)], J = fJudge(T[0], T[1]), line = fLine();
-  const side = i => {
-    const t = T[i];
-    return '<div class="frs ' + (i ? 'a' : 'h') + '"><span class="frn">' + esc(teamName(i)) + '</span>'
-      + '<div class="frx"><b class="frv' + (t.ok ? '' : ' na') + '" id="frv' + i + '">' + (t.ok ? t.s.toFixed(1) : '—') + '</b></div></div>';
+  const T = [fTeam(0), fTeam(1)], J = fJudge(T[0], T[1]);
+  const cell = (i, key, id, big) => {
+    const t = T[i], c = t.ok ? fCmp(t[key], FAV[key]) : null, tx = t.ok ? t[key].toFixed(1) : '—';
+    const num = '<b class="frv' + (t.ok ? '' : ' na') + (tx.length > 4 ? ' l' : '') + '" id="' + id + i + '">' + tx + '</b>';
+    const chip = c ? '<span class="frd ' + c.k + '" id="' + id + i + 'd"><span class="frdl">' + c.t + '</span><span class="frds">' + c.s + '</span> ' + c.n + '</span>' : big ? '<span class="frd miss">还差 ' + t.miss.length + ' 项</span>' : '';
+    return '<div class="frc ' + (i ? 'a' : 'h') + '">' + (i ? chip + num : num + chip) + '</div>';
   };
-  // 高于／低于平均：iPad 在指数旁边，手机在指数下面、判断的两边
-  const tag = i => {
-    const t = T[i], g = t.ok ? fTag(t.s, line) : null;
-    return g ? '<span class="frg t' + i + ' ' + g.k + '" id="frg' + i + '">' + g.t + '</span>' : !t.ok ? '<span class="frg t' + i + ' miss">还差 ' + t.miss.length + ' 项</span>' : '<span class="frg t' + i + ' none"></span>';
-  };
+  const row = (key, id, name, short, big) => '<div class="frw' + (big ? ' big' : '') + '">' + cell(0, key, id, big)
+    + '<div class="frm"><span class="frml">' + name + '</span><span class="frms">' + short + '</span><span class="frma"><span class="frmw">平均 </span><b>' + FAV[key].toFixed(1) + '</b></span></div>' + cell(1, key, id, big) + '</div>';
   let rt = '', jt, jc = '';
   if (!T[0].ok && !T[1].ok) jt = '拖动下面的条，结果自动算出';
   else if (!J) jt = '等另一队的数据';
@@ -251,37 +226,12 @@ function renderFres(){
     if (J.clear){ jt = '判断：' + esc(teamName(J.i)) + ' 角球更多'; jc = ' c' + J.i; }
     else jt = '相差不到 ' + FRATIO + ' 倍，不下结论';
   }
-  const sum = J ? T[0].s + T[1].s : 0;
-  const bar = J && sum > 0 ? '<div class="frb" aria-hidden="true"><i class="h" style="width:' + (T[0].s / sum * 100).toFixed(1) + '%"></i><i class="a" style="width:' + (T[1].s / sum * 100).toFixed(1) + '%"></i></div>' : '<div class="frb" aria-hidden="true"></div>';
-  const avg = line == null ? '设联赛平均，判断高于还是低于平均' : '联赛平均线 <b>' + line.toFixed(1) + '</b>　高于 ' + (line * (1 + FNEAR)).toFixed(1) + '　低于 ' + (line * (1 - FNEAR)).toFixed(1);
-  const nt = !(T[0].ok && fTag(T[0].s, line)) && !(T[1].ok && fTag(T[1].s, line)) && T[0].ok && T[1].ok;
-  el.innerHTML = '<div class="frt' + (nt ? ' notag' : '') + '">' + side(0) + tag(0) + '<div class="frm">' + (rt ? '<b class="frr" id="frr">' + rt + '</b>' : '') + '<span class="frj' + jc + '" id="frj">' + jt + '</span></div>' + tag(1) + side(1) + '</div>'
-    + bar + '<button type="button" class="fra" data-a="favg">' + avg + '<span class="frc">' + (line == null ? '设定' : '调整') + '</span></button>';
+  el.innerHTML = '<div class="frhd"><span class="frn h">' + esc(teamName(0)) + '</span><b class="frr" id="frr">' + rt + '</b><span class="frn a">' + esc(teamName(1)) + '</span></div>'
+    + row('s', 'frv', '最终结果', '最终结果', 1) + row('cross', 'frx', '传中远射频率', '传中远射') + row('centre', 'frz', '中路渗透射门频率', '中路射门')
+    + '<div class="frjr"><span class="frj' + jc + '" id="frj">' + jt + '</span></div>';
+  // 手机的字体比预想的宽、一格放不下时，先省掉“高／低／近”这个字，靠颜色和正负号看
+  el.querySelectorAll('.frc').forEach(c => {
+    const gap = parseFloat(getComputedStyle(c).columnGap) || 0;
+    if ([...c.children].reduce((w, e) => w + e.getBoundingClientRect().width + gap, -gap) > c.clientWidth) c.classList.add('tight');
+  });
 }
-
-/* ---------- 联赛平均（视窗） ---------- */
-const FAVX = { k: 'x', n: '平均到达次数', d: '时间长度要跟比赛里读的一样（例如都是一个半场）', hi: 80, st: 1, u: ' 次' };
-const favTxt = v => v == null ? '未设' : fp(v) + FAVX.u;
-function favLineHTML(){
-  const L = fLine();
-  return L == null ? '两项都设好以后，这里显示联赛平均线' : '联赛平均线 <b>' + L.toFixed(1) + '</b>：指数高于 <b>' + (L * (1 + FNEAR)).toFixed(1) + '</b> 算高于平均，低于 <b>' + (L * (1 - FNEAR)).toFixed(1) + '</b> 算低于平均';
-}
-function favSheetHTML(){
-  return '<div class="card-h"><h3>联赛平均线</h3><button class="pill dark" data-a="close">完成</button></div>'
-    + '<p class="hint">用来判断一队的角球高于还是低于平均。设一次就一直留着，每场都用。平均线按 a、b 都是 1 计算。</p>'
-    + '<div class="p1g"><h4>' + FAVX.n + '</h4><div class="p1val"><b id="favv_x">' + favTxt(FAVG.x) + '</b><span>' + FAVX.d + '</span></div>'
-    + slHTML('fav', 'x', FAVG.x, { hi: FAVX.hi, st: FAVX.st, u: FAVX.u, cls: 'h', lab: FAVX.n })
-    + '<div class="slends"><span>0 次</span><span>80 次</span></div></div>'
-    + '<div class="p1g favm"><h4>平均的选择</h4><div class="favl">' + FLEG + '</div>'
-    + triHTML('fav', 'avg', FAVG.y, FAVG.h, { cls: 'n', lab: '联赛平均' }) + '</div>'
-    + '<p class="netnote" id="favLine">' + favLineHTML() + '</p>'
-    + '<button class="pill" data-a="favclr"' + (FAVG.x == null && FAVG.y == null && FAVG.h == null ? ' disabled' : '') + '>清除联赛平均</button>';
-}
-function favInput(x, v){
-  FAVD = { v: v };
-  setTx('favv_x', favTxt(v));
-  setTx('favLine', favLineHTML());
-  renderFres();
-}
-function favSet(x, v){ FAVD = null; FAVG.x = v; LS.set(FAVK, FAVG); }
-function favClear(){ FAVD = null; FAVG = fixFavg(null); LS.set(FAVK, FAVG); }

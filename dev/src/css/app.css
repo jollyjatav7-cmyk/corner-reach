@@ -772,35 +772,36 @@ textarea.fi{height:140px;padding:10px 12px;font:12px/1.4 ui-monospace,Menlo,mono
   body.qmode:not(.gmode) .slw.big .slb{width:36px;height:36px;border-radius:18px}
 }
 
-/* ---------- 角球公式：上方是两队的结果，下面同一项的两队拖动条上下排在一起 ---------- */
-.fres{margin:0 20px 8px;padding:10px 16px 6px;background:var(--card);border:1px solid var(--line2);border-radius:18px;flex:none}
+/* ---------- 角球公式：上方的面板是每队的最终结果和内部两部分，每一项都跟平均值比 ---------- */
+.fres{margin:0 20px 8px;padding:6px 16px 8px;background:var(--card);border:1px solid var(--line2);border-radius:18px;flex:none}
 .fres[hidden]{display:none}
-.frt{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1.3fr) auto minmax(0,1fr);align-items:center;gap:10px}
-.frs{display:flex;flex-direction:column;gap:2px;min-width:0}
-.frs.a{align-items:flex-end;text-align:right}
-.frn{max-width:100%;font-size:15px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.frs.h .frn,.frs.h .frv{color:var(--home)} .frs.a .frn,.frs.a .frv{color:var(--away)}
-.frx{display:flex;align-items:center;gap:10px;min-width:0}
-.frs.a .frx{flex-direction:row-reverse}
-.frv{font:700 56px/1 var(--f-num);font-variant-numeric:tabular-nums;white-space:nowrap}
+.frhd,.frw{display:grid;grid-template-columns:minmax(0,1fr) 17em minmax(0,1fr);align-items:center;gap:10px}
+.frhd{min-height:30px}
+.frn{min-width:0;font-size:16px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.frn.h{color:var(--home)} .frn.a{color:var(--away);text-align:right}
+.frr{justify-self:center;font:700 26px/1 var(--f-num);font-variant-numeric:tabular-nums;white-space:nowrap}
+.frr small{font:700 13px var(--f-ui);margin-left:2px}
+.frw{min-height:34px;border-top:1px solid var(--line2)}
+.frw.big{min-height:56px;border-top:0}
+.frc{display:flex;align-items:center;gap:10px;min-width:0}
+.frc.a{justify-content:flex-end}
+.frv{flex:none;font:700 24px/1 var(--f-num);font-variant-numeric:tabular-nums;white-space:nowrap}
+.frw.big .frv{font-size:50px}
+.frc.h .frv{color:var(--home)} .frc.a .frv{color:var(--away)}
 .frv.na{color:var(--muted)!important}
-.frg{flex:none;height:26px;padding:0 10px;border-radius:13px;display:inline-flex;align-items:center;font-size:13.5px;font-weight:800;white-space:nowrap}
-.frg.up{background:var(--big);color:var(--on-big)}
-.frg.dn{background:var(--small);color:var(--on-small)}
-.frg.mid,.frg.miss{background:var(--paper);color:var(--ink2);font-weight:600;box-shadow:inset 0 0 0 1px var(--rule)}
-.frg.none{width:0;padding:0;visibility:hidden}
-.frm{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0;text-align:center}
-.frr{font:700 34px/1 var(--f-num);font-variant-numeric:tabular-nums;white-space:nowrap}
-.frr small{font:700 15px var(--f-ui);margin-left:2px}
-.frj{max-width:100%;min-height:28px;padding:3px 12px;border-radius:14px;font-size:15px;line-height:22px;font-weight:700;color:var(--ink2)}
+.frd{flex:none;height:25px;padding:0 10px;border-radius:13px;display:inline-flex;align-items:center;gap:5px;font-size:13px;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
+.frd.fhi{background:var(--big);color:var(--on-big)}
+.frd.flo{background:var(--small);color:var(--on-small)}
+.frd.feq,.frd.miss{background:var(--paper);color:var(--ink2);font-weight:700;box-shadow:inset 0 0 0 1px var(--rule)}
+.frds,.frms{display:none}
+.frm{display:flex;align-items:baseline;justify-content:center;gap:10px;min-width:0;font-size:14px;font-weight:700;color:var(--ink2);white-space:nowrap}
+.frw.big .frm{font-size:16px;font-weight:800;color:var(--ink)}
+.frma{font-size:13px;font-weight:600;color:var(--muted)}
+.frma b{font:700 15px/1 var(--f-num);color:var(--ink)}
+.frjr{display:flex;justify-content:center;margin-top:4px}
+.frj{max-width:100%;min-height:28px;padding:3px 14px;border-radius:14px;font-size:15px;line-height:22px;font-weight:700;color:var(--ink2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .frj.c0{background:var(--hc0);color:var(--on-hc0)}
 .frj.c1{background:var(--hc1);color:var(--on-hc1)}
-.frb{display:flex;height:8px;margin-top:8px;border-radius:4px;overflow:hidden;background:var(--trk)}
-.frb i{display:block;height:100%}
-.frb .h{background:var(--hm)} .frb .a{background:var(--am)}
-.fra{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:30px;margin-top:2px;padding:0;border:0;background:none;font-size:13px;color:var(--ink2)}
-.fra b{font:700 16px/1 var(--f-num);color:var(--ink)}
-.frc{color:var(--ink);font-weight:700;text-decoration:underline;text-underline-offset:3px}
 
 /* 两队放在同一页：主队一块在上，客队一块在下 */
 body.fmode .main{grid-template-columns:minmax(0,1fr);grid-template-areas:"home";grid-template-rows:auto}
@@ -809,7 +810,7 @@ body.fmode .pad[data-i="1"]{display:none}
 .ftm{min-width:0;padding:4px 14px 6px 20px;background:var(--card);border:1px solid var(--line2);border-radius:16px}
 .ftm.h{box-shadow:inset 5px 0 0 var(--hm)} .ftm.a{box-shadow:inset 5px 0 0 var(--am)}
 .ftmh{display:flex;align-items:center;gap:12px;min-width:0;height:40px}
-.ftmh>b{flex:none;max-width:36%;font-size:18px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ftmh>b{flex:1;min-width:0;font-size:18px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ftm.h .ftmh>b,.ftm.h .fval{color:var(--home)} .ftm.a .ftmh>b,.ftm.a .fval{color:var(--away)}
 .ftmh .qck{flex:none}
 .ftmb{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 28px}
@@ -828,10 +829,6 @@ body.fmode:not(.gmode) .sl.big{height:50px}
 body.fmode:not(.gmode) .sl.big .sl-t{height:10px;border-radius:5px}
 body.fmode:not(.gmode) .sl.big .sl-k{width:34px;height:34px;margin:-17px 0 0 -17px}
 body.fmode:not(.gmode) .slw.big .slb{width:38px;height:38px;border-radius:19px}
-.fcalc{flex:1;display:flex;justify-content:flex-end;align-items:baseline;gap:16px;min-width:0;font-size:13px;color:var(--ink2);white-space:nowrap}
-.fcalc b{color:var(--ink);font-weight:800}
-.fcs{min-width:0;overflow:hidden;text-overflow:ellipsis}
-.fcm{color:var(--muted)}
 
 /* 三种选择：一条轴、两个滑块，分成传中远射、中路渗透、回传三段 */
 .tri{position:relative;height:50px;padding:0 13px;cursor:pointer;touch-action:pan-y;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
@@ -848,17 +845,12 @@ body.fmode:not(.gmode) .slw.big .slb{width:38px;height:38px;border-radius:19px}
 .tri-hint{position:absolute;left:0;right:0;top:0;bottom:0;display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--muted);white-space:nowrap}
 .tri-k{position:absolute;top:50%;width:20px;height:40px;margin:-20px 0 0 -10px;border-radius:9px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.3),inset 0 0 0 2.5px var(--hm);outline:none}
 .tri.a .tri-k{box-shadow:0 1px 4px rgba(0,0,0,.3),inset 0 0 0 2.5px var(--am)}
-.tri.n .tri-k{box-shadow:0 1px 4px rgba(0,0,0,.3),inset 0 0 0 2.5px var(--ink2)}
 .tri.na .tri-k{box-shadow:0 1px 3px rgba(0,0,0,.2),inset 0 0 0 2px var(--muted)}
 .tri-k::after{content:"";position:absolute;left:50%;top:50%;width:6px;height:14px;margin:-7px 0 0 -3px;border-left:2px solid var(--rule);border-right:2px solid var(--rule);box-sizing:border-box}
 .tri-k:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 .tri-k.top{z-index:2}
 .tri-tip{display:none;position:absolute;left:50%;bottom:calc(100% - 2px);transform:translateX(-50%);padding:3px 9px;border-radius:9px;background:var(--ink);color:var(--paper);font-size:12px;line-height:17px;font-weight:700;white-space:nowrap;z-index:5;pointer-events:none}
 .tri.drag .tri-tip{display:block}
-.favm{margin:2px 0 8px}
-.favl{display:flex;justify-content:space-between;gap:8px;margin:0 0 2px;font-size:12.5px;color:var(--ink2);white-space:nowrap}
-.favl span{display:inline-flex;align-items:center;gap:4px}
-.favl i{width:10px;height:10px;border-radius:3px;flex:none}
 
 @media (min-width:600px){
   body.fmode .fres{position:sticky;top:env(safe-area-inset-top);z-index:6}
@@ -866,24 +858,31 @@ body.fmode:not(.gmode) .slw.big .slb{width:38px;height:38px;border-radius:19px}
 /* iPad 直放：每项一整行，条比较长 */
 @media (min-width:600px) and (max-width:899px){
   .ftmb{grid-template-columns:minmax(0,1fr)}
-  .frv{font-size:44px}
-  .frg{height:24px;padding:0 8px;font-size:12.5px}
-  .frt{gap:8px}
-  .fcalc{font-size:12px;gap:10px}
+  .frhd,.frw{grid-template-columns:minmax(0,1fr) 14em minmax(0,1fr);gap:8px}
+  .frw.big .frv{font-size:40px}
+  .frc{gap:6px}
+  .frd{height:23px;padding:0 7px;font-size:12px}
+  .frdl{display:none}
+  .frds{display:inline}
+  .frm{gap:7px;font-size:13px}
 }
 /* iPad 横放：高度不够时压缩，结果和两队的拖动条放得下一个画面 */
 @media (min-width:600px) and (max-height:900px){
-  .fres{padding:6px 14px 2px;margin-bottom:6px}
-  .frv{font-size:44px}
-  .frr{font-size:28px}
-  .frb{margin-top:5px;height:6px}
-  .fra{min-height:24px}
+  .fres{padding:3px 14px 5px;margin-bottom:6px}
+  .frhd{min-height:26px}
+  .frr{font-size:22px}
+  .frw{min-height:29px}
+  .frw.big{min-height:46px}
+  .frw.big .frv{font-size:40px}
+  .frv{font-size:21px}
+  .frjr{margin-top:2px}
+  .frj{min-height:24px;padding:1px 12px;font-size:14px}
   body.fmode .qck{height:30px}
   .ftmh{height:36px}
   .fl{min-height:68px}
 }
 @media (min-width:600px) and (max-height:800px){
-  .frv{font-size:40px}
+  .frw.big .frv{font-size:36px}
   .fl{min-height:62px}
   .fval{font-size:24px}
   body.fmode:not(.gmode) .sl.big{height:44px}
@@ -892,24 +891,26 @@ body.fmode:not(.gmode) .slw.big .slb{width:38px;height:38px;border-radius:19px}
   .tri-k{height:38px;margin-top:-19px}
 }
 @media (max-width:599px){
-  .fres{margin:2px 10px 4px;padding:6px 10px 2px;border-radius:14px}
-  .frt{grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:1px 6px;align-items:center}
+  .fres{margin:2px 10px 4px;padding:1px 9px 4px;border-radius:14px}
+  .frhd{grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:6px;min-height:20px}
+  .frw{grid-template-columns:minmax(0,1fr) 100px minmax(0,1fr);gap:4px;min-height:21px}
+  .frw.big{min-height:33px}
   .frn{font-size:13px}
-  .frv{font-size:36px}
-  .frx{gap:6px}
-  .frg{height:20px;padding:0 6px;font-size:11.5px}
-  .frr{font-size:26px}
-  .frr small{font-size:12px}
-  .frs.h{grid-area:1 / 1} .frs.a{grid-area:1 / 3}
-  .frm{display:contents}
-  .frr{grid-area:1 / 2;align-self:center;padding-top:14px}
-  /* 判断占整行（不会把两队的数字挤窄），两边留位置给“高于平均” */
-  .frj{grid-area:2 / 1 / 3 / 4;justify-self:center;min-height:0;max-width:calc(100% - 136px);padding:1px 8px;font-size:12.5px;line-height:18px;border-radius:9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .frt.notag .frj{max-width:100%}
-  .frg.t0{grid-area:2 / 1;justify-self:start} .frg.t1{grid-area:2 / 3;justify-self:end}
-  .frb{height:6px;margin-top:4px}
-  .fra{min-height:22px;margin-top:0;font-size:11.5px;gap:6px}
-  .fra b{font-size:14px}
+  .frr{font-size:16px}
+  .frr small{font-size:11px}
+  .frc{gap:4px}
+  .frv{font-size:15px}
+  .frw.big .frv{font-size:min(28px,6.15vw)}
+  .frw.big .frv.l{font-size:min(23px,5vw)}
+  .frc.tight .frds{display:none}
+  .frd{height:17px;padding:0 5px;gap:2px;border-radius:9px;font-size:10.5px}
+  .frdl,.frml{display:none}
+  .frds,.frms{display:inline}
+  .frm,.frw.big .frm{justify-content:space-between;gap:3px;font-size:11px;font-weight:700}
+  .frma{font-size:10.5px}
+  .frma b{font-size:11.5px}
+  .frjr{margin-top:2px}
+  .frj{min-height:0;padding:0 9px;font-size:12px;line-height:18px;border-radius:9px}
   /* 手机：主队一块在上，客队一块在下，每项一行 */
   body.fmode .main{grid-template-rows:minmax(0,1fr)}
   body.fmode .main .pad{overflow-y:auto;-webkit-overflow-scrolling:touch}
@@ -917,8 +918,7 @@ body.fmode:not(.gmode) .slw.big .slb{width:38px;height:38px;border-radius:19px}
   .ftm{padding:0 8px 1px 11px;border-radius:12px}
   .ftm.h{box-shadow:inset 3px 0 0 var(--hm)} .ftm.a{box-shadow:inset 3px 0 0 var(--am)}
   .ftmh{height:27px;gap:6px}
-  .ftmh>b{flex:1;max-width:none;font-size:13.5px}
-  .ftmh .fcalc{display:none}
+  .ftmh>b{font-size:13.5px}
   body.fmode .ftmh .qck{height:24px;padding:0 7px 0 6px;gap:3px;font-size:12px}
   body.fmode .ftmh .qck svg{width:12px;height:12px}
   body.fmode .ftmh .qck b{font-size:15px}
@@ -953,7 +953,12 @@ body.fmode:not(.gmode) .slw.big .slb{width:38px;height:38px;border-radius:19px}
 }
 /* 比较矮的手机和浮窗模式：每条再矮一点 */
 @media (max-width:599px) and (max-height:700px){
-  .frv{font-size:30px}
+  .frhd{min-height:17px}
+  .frw{min-height:18px}
+  .frw.big{min-height:28px}
+  .frw.big .frv{font-size:min(24px,6.15vw)}
+  .frv{font-size:14px}
+  .frj{line-height:16px}
   .ftmh{height:21px}
   .fl{min-height:34px}
   .fln{font-size:10.5px;line-height:1.1}
@@ -968,31 +973,35 @@ body.fmode:not(.gmode) .slw.big .slb{width:38px;height:38px;border-radius:19px}
   .tri-k{height:30px;margin-top:-15px}
 }
 @media (max-width:599px){
-  body.pip-on.fmode .fres{padding:3px 8px 2px}
-  body.pip-on.fmode .frv{font-size:26px}
-  body.pip-on.fmode .frr{font-size:20px;padding-top:12px}
-  body.pip-on.fmode .frb,body.pip-on.fmode .fra{display:none}
-  body.pip-on.fmode .ftmh{height:21px}
-  body.pip-on.fmode .fl{min-height:34px}
+  body.pip-on.fmode .frhd{min-height:17px}
+  body.pip-on.fmode .frw{min-height:18px}
+  body.pip-on.fmode .frw.big{min-height:28px}
+  body.pip-on.fmode .frw.big .frv{font-size:min(24px,6.15vw)}
+  body.pip-on.fmode .frv{font-size:14px}
+  body.pip-on.fmode .frj{line-height:16px}
+  body.pip-on.fmode .ftmh{height:19px}
+  body.pip-on.fmode .ftmh .qck{height:19px}
+  body.pip-on.fmode .fl{min-height:32px}
   body.pip-on.fmode .fln{font-size:10.5px;line-height:1.1}
   body.pip-on.fmode .fval{font-size:15px}
   body.pip-on.fmode .fval small{font-size:10px}
   body.pip-on.fmode .fval.na{font-size:11px}
-  body.pip-on.fmode:not(.gmode) .sl.big{height:33px}
+  body.pip-on.fmode:not(.gmode) .sl.big{height:31px}
   body.pip-on.fmode:not(.gmode) .sl.big .sl-k{width:26px;height:26px;margin:-13px 0 0 -13px}
   body.pip-on.fmode:not(.gmode) .slw.big .slb{width:28px;height:28px;border-radius:14px}
-  body.pip-on.fmode .tri{height:33px}
+  body.pip-on.fmode .tri{height:31px}
   body.pip-on.fmode .tri-t{height:24px;margin-top:-12px}
   body.pip-on.fmode .tri-k{height:30px;margin-top:-15px}
 }
-@media (max-width:599px) and (max-height:620px){
-  .frv{font-size:26px}
-  .frb{display:none}
-}
 /* 比较窄的手机 */
 @media (max-width:389px){
-  .frv{font-size:32px}
-  .frg{padding:0 5px;font-size:11px}
-  .frr{font-size:22px}
-  .frj{font-size:12px;padding:1px 6px;max-width:calc(100% - 116px)}
+  .frw{grid-template-columns:minmax(0,1fr) 96px minmax(0,1fr);gap:3px}
+  .frc{gap:3px}
+  .frd{padding:0 4px;font-size:10px}
+  .frm,.frw.big .frm{font-size:10.5px}
+  .frma{font-size:10px}
+}
+@media (max-width:340px){
+  .frw{grid-template-columns:minmax(0,1fr) 76px minmax(0,1fr)}
+  .frds,.frmw{display:none}
 }
