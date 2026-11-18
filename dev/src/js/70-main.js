@@ -32,7 +32,10 @@ document.addEventListener('click', ev => {
   switch (a){
     case 'close': closeSheet(); break;
     // 记录
-    case 'mode': PREF.mode = b.dataset.v === 'q' || b.dataset.v === 'g' ? b.dataset.v : 'rec'; savePref(); setMid(false); renderAll(); break;
+    case 'mode': PREF.mode = ['q', 'g', 'f'].indexOf(b.dataset.v) >= 0 ? b.dataset.v : 'rec'; savePref(); setMid(false); renderAll(); break;
+    case 'fside': FSIDE = +b.dataset.v ? 1 : 0; renderPads(); renderFres(); break;
+    case 'favg': setMid(false); openSheet('favg'); break;
+    case 'favclr': favClear(); renderAll(); renderSheet(); break;
     case 'goal': tapGoal(+b.dataset.i); break;
     case 'qsel': setQSel(b.dataset.x, b.dataset.v); break;
     case 'qnote': toggleQNote(b.dataset.x); break;
@@ -255,7 +258,7 @@ $('#runBtn').addEventListener('click', () => {
 for (const [id, key] of [['#fH', 'h'], ['#fA', 'a'], ['#fLg', 'lg']]){
   const el = $(id);
   el.addEventListener('focus', () => { if (M.st === 2){ el.blur(); endedToast(); } });
-  el.addEventListener('input', () => { if (M.st === 2){ el.value = M[key]; return; } M[key] = el.value; save(); renderPads(); renderStats(); if (key !== 'lg'){ if (M.api && !M.ev.length){ M.api = null; } scheduleFind(); renderNet(); } });
+  el.addEventListener('input', () => { if (M.st === 2){ el.value = M[key]; return; } M[key] = el.value; save(); renderPads(); renderFres(); renderStats(); if (key !== 'lg'){ if (M.api && !M.ev.length){ M.api = null; } scheduleFind(); renderNet(); } });
   el.addEventListener('keydown', e => { if (e.key === 'Enter') el.blur(); });
 }
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !sheet.hidden) closeSheet(); });
@@ -277,4 +280,4 @@ if ('serviceWorker' in navigator && window.isSecureContext && location.protocol 
 }
 renderAll();
 window.__reach = { get M(){ return M; }, store: () => store, statOf: statOf, stateSplit: stateSplit, walk: walk, paLabel: paLabel, OC: OC, minsOf: minsOf,
-  get MODEL(){ return MODEL; }, mAll: mAll, get MN(){ return MN; }, render: () => renderAll(), fmtMV: fmtMV, bucketOf: bucketOf, PREF: PREF };
+  get MODEL(){ return MODEL; }, mAll: mAll, get MN(){ return MN; }, render: () => renderAll(), fmtMV: fmtMV, bucketOf: bucketOf, PREF: PREF, fCalc: fCalc, fTeam: fTeam, fLine: fLine, pickQ: pickQ, get FAVG(){ return FAVG; } };

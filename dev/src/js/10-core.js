@@ -91,9 +91,21 @@ const GS = [
   { f: 'g2', pct: 1, pg: 'g', n: '对面球门前漏洞大不大？', s: '对面门前漏洞大不大', ab: '门前漏洞', d: '对方门前防守的空当和失误', lo: '很小', hi: '很大', bk: BK5(['很小', '小', '一般', '大', '很大']) },
   { f: 'g3', pct: 1, pg: 'g', n: '自己的进攻质量高不高？', s: '自己的进攻质量高不高', ab: '进攻质量', d: '传中、射门、基本功、战术配合……', lo: '很低', hi: '很高', bk: BK5(['很低', '低', '一般', '高', '很高']) }
 ];
-const SVL = P1.concat(QS, QSP, GS);   // 所有主观的项目（导出、统计都用这个顺序）
+/* 角球公式：每队五条拖动条（公式在 37-formula.js）。
+   min、max、step＝条的范围和每格多少（没写的是 0–100%，每格跟着“功能 → 拖动条”）；u＝单位（没写的是 %）；
+   sym＝公式里的符号；def＝没设时按这个值算（a、b 没设就当联赛平均 1）；ab＝浮窗模式里的短名字 */
+const BKF = w => [[0, 0.55, '0–0.5', w[0]], [0.55, 0.85, '0.6–0.8', w[1]], [0.85, 1.15, '0.9–1.1', w[2]], [1.15, 1.55, '1.2–1.5', w[3]], [1.55, 2.01, '1.6–2', w[4]]];
+const FS = [
+  { f: 'fx', pct: 1, pg: 'f', sym: 'x', n: '到达次数', s: '到达次数', ab: '到达', d: '这段时间到对方禁区附近几次', lo: '0 次', hi: '80 次', min: 0, max: 80, step: 1, u: ' 次',
+    bk: [[0, 10, '0–9 次', ''], [10, 20, '10–19 次', ''], [20, 30, '20–29 次', ''], [30, 40, '30–39 次', ''], [40, 81, '40 次以上', '']] },
+  { f: 'fy', pct: 1, pg: 'f', sym: 'y', n: '传中和远射占比', s: '传中远射占比', ab: '传中远射', d: '到达以后选择传中或远射的比例', lo: '0%', hi: '100%', bk: BK5(['很少', '少', '一般', '多', '很多']) },
+  { f: 'fh', pct: 1, pg: 'f', sym: 'h', n: '回传占比', s: '回传占比', ab: '回传', d: '到达以后选择回传的比例', lo: '0%', hi: '100%', bk: BK5(['很少', '少', '一般', '多', '很多']) },
+  { f: 'fa', pct: 1, pg: 'f', sym: 'a', n: '打门门槛', s: '打门门槛', ab: '门槛', d: '中路渗透后要多大的机会才打门，1 是联赛平均', lo: '不挑剔', hi: '很挑剔', min: 0, max: 2, step: 0.1, u: '', def: 1, bk: BKF(['很不挑剔', '不挑剔', '一般', '挑剔', '很挑剔']) },
+  { f: 'fb', pct: 1, pg: 'f', sym: 'b', n: '对方禁区内防守', s: '对方禁区内防守', ab: '对方防守', d: '对方在禁区内的防守能力，1 是联赛平均', lo: '很弱', hi: '很强', min: 0, max: 2, step: 0.1, u: '', def: 1, bk: BKF(['很弱', '弱', '一般', '强', '很强']) }
+];
+const SVL = P1.concat(QS, QSP, GS, FS);   // 所有主观的项目（导出、统计都用这个顺序）
 const SVF = {}; SVL.forEach(x => { SVF[x.f] = x; });
-const svName = f => (SVF[f].pg === 'g' ? '进球·' : '') + SVF[f].s;
+const svName = f => (SVF[f].pg === 'g' ? '进球·' : SVF[f].pg === 'f' ? '公式·' : '') + SVF[f].s;
 const bucketOf = (f, v) => { const b = SVF[f].bk; for (let j = 0; j < b.length; j++) if (v >= b[j][0] && v < b[j][1]) return j; return b.length - 1; };
 const wordOf = (f, v) => v == null ? '' : SVF[f].bk[bucketOf(f, v)][3];
 const svText = (f, v) => { const x = SVF[f]; if (v == null) return '清除'; return x.pct ? pctText(f, v) : x.o[v]; };
@@ -127,7 +139,7 @@ function fixSv(s, old){
   if (v != null && !isFinite(v)) return null;
   if (x.pct && v != null){
     if (old){ v = Math.round(v); const mp = OLDPCT[s.f]; if (!mp || !(v >= 0 && v < mp.length)) return null; o = v; v = mp[v]; }
-    else { v = clamp(r1(v), 0, 100); if (s.o != null && isFinite(+s.o)) o = +s.o; }   // 百分比留一位小数
+    else { v = clamp(r1(v), x.min == null ? 0 : x.min, x.max == null ? 100 : x.max); if (s.o != null && isFinite(+s.o)) o = +s.o; }   // 百分比留一位小数
   } else if (v != null){ v = Math.round(v); if (!(v >= 0 && v < x.o.length)) return null; }
   const r = { t: Math.max(0, Math.round(numOr(+s.t, 0))), p: +s.p, i: s.i, f: s.f, v: v, k: ++seq };
   if (o != null) r.o = o;
@@ -189,7 +201,7 @@ const pctStep = () => SLSTEPS.indexOf(+PREF.st) >= 0 ? +PREF.st : 1;
 const hideNum = () => !!PREF.hn;
 const hideWord = () => !!PREF.hn && PREF.hw !== 0;
 // 一个拖动条的值写成字：62.5%；隐藏数字时是分档的文字，或“已设”
-const pctText = (f, v) => !hideNum() ? fp(v) + '%' : hideWord() ? '已设' : wordOf(f, v);
+const pctText = (f, v) => !hideNum() ? fp(v) + (SVF[f].u == null ? '%' : SVF[f].u) : hideWord() ? '已设' : wordOf(f, v) || '已设';
 
 /* ================= 计时（跟“角球数据记录”一样） ================= */
 const clockOf = m => m.tm.r ? m.tm.b + (Date.now() - m.tm.at) / 1000 : m.tm.b;

@@ -12,6 +12,7 @@ const ICS = {
   r: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3.5L10.5 8 6 12.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 };
 // o.gh：另一个值画成影子（两个问题：拖现在的时候影子是潜能，拖潜能的时候影子是现在）
+// o.cap：拖不到的地方从这个值开始画斜线（角球公式：传中远射＋回传不能超过 100%）
 function slHTML(kind, x, v, o){
   o = o || {};
   const lo = o.lo == null ? 0 : o.lo, hi = o.hi == null ? 100 : o.hi, st = o.st || pctStep(), one = fp(st) + (o.u == null ? '%' : o.u);
@@ -22,7 +23,7 @@ function slHTML(kind, x, v, o){
   return '<div class="slw' + (o.cls && /(^| )big( |$)/.test(o.cls) ? ' big' : '') + '">' + btn(-1)
     + '<div class="sl' + (o.cls ? ' ' + o.cls : '') + (v == null ? ' na' : '') + '" data-sl="' + kind + '" data-x="' + esc(x) + '" data-lo="' + lo + '" data-hi="' + hi + '" data-st="' + st + '" data-v="' + (v == null ? '' : v) + '"'
     + ' role="slider" tabindex="0" aria-label="' + esc(o.lab || '') + '" aria-valuemin="' + lo + '" aria-valuemax="' + hi + '"' + (v == null ? ' aria-valuetext="还没设"' : ' aria-valuenow="' + v + '"') + '>'
-    + '<div class="sl-t">' + (o.gh != null ? '<i class="sl-g" style="width:' + ((clamp(o.gh, lo, hi) - lo) / (hi - lo) * 100).toFixed(1) + '%"></i>' : '')
+    + '<div class="sl-t">' + (o.cap != null ? '<i class="sl-c" style="left:' + ((clamp(o.cap, lo, hi) - lo) / (hi - lo) * 100).toFixed(1) + '%"></i>' : '') + (o.gh != null ? '<i class="sl-g" style="width:' + ((clamp(o.gh, lo, hi) - lo) / (hi - lo) * 100).toFixed(1) + '%"></i>' : '')
     + '<i class="sl-f" style="width:' + w + '"></i><b class="sl-k" style="left:' + w + '"></b></div></div>' + btn(1) + '</div>';
 }
 /* 手指或滑鼠的位置 → 值（对齐到格子） */
@@ -41,6 +42,7 @@ function slNext(el, d, big){
   return clamp(+(n * inc).toFixed(2), lo, hi);
 }
 function slShow(el, v){
+  const kc = SLK[el.dataset.sl]; if (kc && kc.cap) v = kc.cap(el.dataset.x, v);   // 有上限的（角球公式的两个占比）：拖不过去
   const lo = +el.dataset.lo, hi = +el.dataset.hi, w = ((v - lo) / (hi - lo) * 100).toFixed(1) + '%';
   el.classList.remove('na');
   el.querySelector('.sl-f').style.width = w; el.querySelector('.sl-k').style.left = w;
@@ -200,6 +202,18 @@ const SLK = {
   q: {
     input(x, v){ const p = x.split('_'); setTx('qv_' + x, qValHTML(v)); setTx('qw_' + x, wordHTML(p[1], v)); setTx('qwh_' + x, wordHTML(p[1], v)); },
     commit(x, v){ const p = x.split('_'); pickQ(+p[0], p[1], v); }
+  },
+  // 角球公式（画面上）：x＝'0_fy'；拖的时候上方的结果跟着算
+  f: {
+    cap: (x, v) => fCap(x, v),
+    input(x, v){ fInput(x, v); },
+    commit(x, v){ const p = x.split('_'); fDragEnd(); pickQ(+p[0], p[1], fCap(x, v)); }
+  },
+  // 角球公式的联赛平均（视窗里）：x＝x、y、h
+  fav: {
+    cap: (x, v) => favCap(x, v),
+    input(x, v){ favInput(x, v); },
+    commit(x, v){ favSet(x, favCap(x, v)); }
   },
   // 全部记录里改一笔：x＝那一笔的 k
   sve: {

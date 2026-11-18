@@ -65,9 +65,9 @@ input,textarea{font:inherit;color:inherit}
 .nh{display:inline-flex;align-items:center;gap:6px;color:var(--muted);font:600 14px/1.2 var(--f-ui);white-space:nowrap}
 .nh svg{width:22px;height:22px;flex:none}
 .qval .nh svg{width:26px;height:26px}
-/* 三个程序的切换；右边是简易模型的提示（不会把下面的按键挤下去） */
-.modebar{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,420px) minmax(0,1fr);align-items:center;gap:12px;padding:0 20px 6px;flex:none}
-.mseg{grid-column:2;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:100%;background:var(--card);border:1px solid var(--line2);border-radius:12px;padding:3px}
+/* 四个程序的切换；右边是简易模型的提示（不会把下面的按键挤下去） */
+.modebar{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,480px) minmax(0,1fr);align-items:center;gap:12px;padding:0 20px 6px;flex:none}
+.mseg{grid-column:2;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));width:100%;background:var(--card);border:1px solid var(--line2);border-radius:12px;padding:3px}
 .mseg button{height:32px;border:0;border-radius:9px;background:none;font-size:14px;font-weight:600;color:var(--ink2);white-space:nowrap}
 .mseg button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
 .mbn{grid-column:3;justify-self:start;height:40px;max-width:100%;min-width:0;border:0;border-radius:12px;padding:0 12px 0 10px;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;overflow:hidden;color:var(--muted);background:var(--card);box-shadow:inset 0 0 0 1px var(--line2)}
@@ -548,7 +548,7 @@ textarea.fi{height:140px;padding:10px 12px;font:12px/1.4 ui-monospace,Menlo,mono
   .modebar{padding:0 10px 4px;grid-template-columns:minmax(0,1fr) minmax(0,46%);gap:6px}
   .mseg{grid-column:1}
   .mseg button{height:30px;font-size:13.5px}
-  .mseg .mx{display:none}   /* 手机：“到达选择”（三个按钮放得下） */
+  .mseg .mx{display:none}   /* 手机：到达、问题、进球、公式（四个按钮放得下） */
   .mbn{grid-column:2;width:100%;height:36px;padding:0 9px 0 7px;gap:6px}
   .mbn svg{width:17px;height:17px}
   .mbn .t1{font-size:9.5px} .mbn .t2{font-size:13.5px} .mbn.none .t2{font-size:12px}
@@ -770,4 +770,197 @@ textarea.fi{height:140px;padding:10px 12px;font:12px/1.4 ui-monospace,Menlo,mono
   body.qmode:not(.gmode) .sl.big{height:36px}
   body.qmode:not(.gmode) .sl.big .sl-k{width:32px;height:32px;margin:-16px 0 0 -16px}
   body.qmode:not(.gmode) .slw.big .slb{width:36px;height:36px;border-radius:18px}
+}
+
+/* ---------- 角球公式：上方是两队的结果，下面每队五条拖动条 ---------- */
+.fres{margin:0 20px 8px;padding:10px 16px 6px;background:var(--card);border:1px solid var(--line2);border-radius:18px;flex:none}
+.fres[hidden]{display:none}
+.frt{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1.3fr) auto minmax(0,1fr);align-items:center;gap:10px}
+.frs{display:flex;flex-direction:column;gap:2px;min-width:0}
+.frs.a{align-items:flex-end;text-align:right}
+.frn{max-width:100%;font-size:15px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.frs.h .frn,.frs.h .frv{color:var(--home)} .frs.a .frn,.frs.a .frv{color:var(--away)}
+.frx{display:flex;align-items:center;gap:10px;min-width:0}
+.frs.a .frx{flex-direction:row-reverse}
+.frv{font:700 56px/1 var(--f-num);font-variant-numeric:tabular-nums;white-space:nowrap}
+.frv.na{color:var(--muted)!important}
+.frg{flex:none;height:26px;padding:0 10px;border-radius:13px;display:inline-flex;align-items:center;font-size:13.5px;font-weight:800;white-space:nowrap}
+.frg.up{background:var(--big);color:var(--on-big)}
+.frg.dn{background:var(--small);color:var(--on-small)}
+.frg.mid,.frg.miss{background:var(--paper);color:var(--ink2);font-weight:600;box-shadow:inset 0 0 0 1px var(--rule)}
+.frg.none{width:0;padding:0;visibility:hidden}
+.frm{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0;text-align:center}
+.frr{font:700 34px/1 var(--f-num);font-variant-numeric:tabular-nums;white-space:nowrap}
+.frr small{font:700 15px var(--f-ui);margin-left:2px}
+.frj{max-width:100%;min-height:28px;padding:3px 12px;border-radius:14px;font-size:15px;line-height:22px;font-weight:700;color:var(--ink2)}
+.frj.c0{background:var(--hc0);color:var(--on-hc0)}
+.frj.c1{background:var(--hc1);color:var(--on-hc1)}
+.frb{display:flex;height:8px;margin-top:8px;border-radius:4px;overflow:hidden;background:var(--trk)}
+.frb i{display:block;height:100%}
+.frb .h{background:var(--hm)} .frb .a{background:var(--am)}
+.fra{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:30px;margin-top:2px;padding:0;border:0;background:none;font-size:13px;color:var(--ink2)}
+.fra b{font:700 16px/1 var(--f-num);color:var(--ink)}
+.frc{color:var(--ink);font-weight:700;text-decoration:underline;text-underline-offset:3px}
+.fsw{display:none}
+.fab{display:none}
+.fcard{background:var(--card);border:1px solid var(--line2);border-radius:18px;padding:4px 14px 8px}
+.frow{padding:7px 0 2px;border-bottom:1px solid var(--line2)}
+.frow:last-of-type{border-bottom:0}
+.frh{display:flex;align-items:center;gap:8px;height:36px}
+.frl{flex:1;min-width:0;margin:0;font-size:18px;line-height:1.3;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.frl em{margin-left:6px;font:italic 600 14px var(--f-ui);color:var(--muted)}
+.fw{flex:none;font-size:13.5px;font-weight:700;color:var(--ink2);white-space:nowrap}
+.fval{flex:none;font:700 32px/1 var(--f-num);font-variant-numeric:tabular-nums;white-space:nowrap}
+.fval small{font:700 15px var(--f-ui);margin-left:2px}
+.fval.na{font:600 14px/1.2 var(--f-ui);color:var(--muted)}
+.fval .nh svg{width:24px;height:24px}
+.fd{font-size:12.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+body.fmode .sl.big{height:46px}
+body.fmode .sl.big .sl-t{height:10px;border-radius:5px}
+body.fmode .sl.big .sl-k{width:34px;height:34px;margin:-17px 0 0 -17px}
+body.fmode .slw.big .slb{width:36px;height:36px;border-radius:18px}
+.sl-c{position:absolute;top:0;bottom:0;right:0;border-radius:0 6px 6px 0;background:repeating-linear-gradient(135deg,var(--rule) 0 3px,var(--card) 3px 6px)}
+.fmix{padding:7px 0;border-bottom:1px solid var(--line2)}
+.fmb{display:flex;height:8px;border-radius:4px;overflow:hidden;background:var(--trk)}
+.fmb i{display:block;height:100%}
+.fmb .c-x{background:var(--cx)} .fmb .c-m{background:var(--cm)} .fmb .c-b{background:var(--cb)}
+.fmt{display:flex;justify-content:space-between;gap:8px;margin-top:4px;font-size:12.5px;color:var(--ink2);white-space:nowrap}
+.fmt span{display:inline-flex;align-items:center;gap:4px;min-width:0}
+.fmt i{width:9px;height:9px;border-radius:3px;flex:none}
+.fmt b{font-weight:700;color:var(--ink)}
+.fcalc{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding-top:6px;font-size:13px;color:var(--ink2);white-space:nowrap}
+.fcalc b{color:var(--ink);font-weight:800}
+.fcs{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.fcm{color:var(--muted);white-space:normal}
+@media (min-width:600px){
+  body.fmode .fres{position:sticky;top:env(safe-area-inset-top);z-index:6}
+}
+/* iPad 横放：高度不够时压缩，结果和五条拖动条放得下一个画面 */
+@media (min-width:600px) and (max-height:900px){
+  .fres{padding:6px 14px 2px;margin-bottom:6px}
+  .frv{font-size:44px}
+  .frr{font-size:28px}
+  .frb{margin-top:5px;height:6px}
+  .fra{min-height:24px}
+  body.fmode .pad-h{padding-bottom:4px}
+  body.fmode .qck{height:30px}
+  .fcard{padding:1px 14px 5px}
+  .frow{padding:2px 0 0}
+  .frh{height:30px}
+  .fd{display:none}
+  .fval{font-size:26px}
+  .fval small{font-size:13px}
+  body.fmode .sl.big{height:38px}
+  body.fmode .sl.big .sl-k{width:30px;height:30px;margin:-15px 0 0 -15px}
+  body.fmode .slw.big .slb{width:32px;height:32px;border-radius:16px}
+  .fmix{padding:4px 0}
+  .fcalc{padding-top:4px}
+}
+@media (min-width:600px) and (max-height:800px){
+  .frv{font-size:40px}
+  .frh{height:27px}
+  .frow{padding:1px 0 0}
+  body.fmode .sl.big{height:35px}
+  .fmix{padding:3px 0}
+  .fmt{margin-top:2px}
+}
+@media (min-width:600px) and (max-width:899px){
+  .frv{font-size:44px}
+  .frg{height:24px;padding:0 8px;font-size:12.5px}
+  .frt{gap:8px}
+  .frl{font-size:16px}
+  .fcs{font-size:12px}
+}
+@media (max-width:599px){
+  .fres{margin:2px 10px 4px;padding:6px 10px 2px;border-radius:14px}
+  .frt{grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:1px 6px;align-items:center}
+  .frn{font-size:13px}
+  .frv{font-size:36px}
+  .frx{gap:6px}
+  .frg{height:20px;padding:0 6px;font-size:11.5px}
+  .frr{font-size:26px}
+  .frr small{font-size:12px}
+  .frs.h{grid-area:1 / 1} .frs.a{grid-area:1 / 3}
+  .frm{display:contents}
+  .frr{grid-area:1 / 2;align-self:center;padding-top:14px}
+  /* 判断占整行（不会把两队的数字挤窄），两边留位置给“高于平均” */
+  .frj{grid-area:2 / 1 / 3 / 4;justify-self:center;min-height:0;max-width:calc(100% - 136px);padding:1px 8px;font-size:12.5px;line-height:18px;border-radius:9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .frt.notag .frj{max-width:100%}
+  .frg.t0{grid-area:2 / 1;justify-self:start} .frg.t1{grid-area:2 / 3;justify-self:end}
+  .frb{height:6px;margin-top:4px}
+  .fra{min-height:24px;margin-top:0;font-size:11.5px;gap:6px}
+  .fra b{font-size:14px}
+  /* 手机：一次调整一队，点球队名字切换 */
+  body.fmode .main{grid-template-areas:"home";grid-template-rows:minmax(0,1fr)}
+  body.fmode:not(.ended) .pad{grid-area:home}
+  body.fmode:not(.ended):not(.fs1) .pad[data-i="1"]{display:none}
+  body.fmode.fs1:not(.ended) .pad[data-i="0"]{display:none}
+  body.fmode .main .pad{overflow-y:auto;-webkit-overflow-scrolling:touch}
+  body.fmode .pad-h{padding:0 0 4px;gap:6px}
+  body.fmode .pad-h>i,body.fmode .pad-h>b,body.fmode .pad-h .who,body.fmode .pad-h .sp{display:none}
+  .fsw{flex:1;min-width:0;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);padding:2px;border-radius:12px;background:var(--card);border:1px solid var(--line2)}
+  .fsw button{min-width:0;height:30px;padding:0 6px;border:0;border-radius:9px;background:none;display:flex;align-items:center;justify-content:center;gap:5px;font-size:13.5px;font-weight:700;color:var(--ink2)}
+  .fsw button span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .fsw i{width:8px;height:8px;border-radius:50%;flex:none}
+  .fsw .h i{background:var(--hm)} .fsw .a i{background:var(--am)}
+  .fsw .h[aria-pressed="true"]{background:var(--hm);color:#fff}
+  .fsw .a[aria-pressed="true"]{background:var(--am);color:#fff}
+  .fsw button[aria-pressed="true"] i{background:#fff}
+  .fcard{padding:0 10px 3px;border-radius:14px}
+  .frow{padding:2px 0 0}
+  .frh{height:24px}
+  .frl{font-size:15.5px}
+  .frl em{font-size:12.5px;margin-left:4px}
+  .fw{font-size:12px}
+  .fval{font-size:24px}
+  .fval small{font-size:12px}
+  .fval.na{font-size:12.5px}
+  .fd{display:none}
+  body.fmode .sl.big{height:38px}
+  .fmix{padding:3px 0}
+  .fmb{height:6px}
+  .fmt{margin-top:2px;font-size:11.5px}
+  .fcalc{padding-top:3px;font-size:11.5px;gap:6px}
+  /* 浮窗模式：每条一行（短名字和值在左边，拖动条在右边），只留结果和拖动条 */
+  body.pip-on.fmode .fres{padding:3px 8px 3px}
+  body.pip-on.fmode .frv{font-size:26px}
+  body.pip-on.fmode .frr{font-size:20px;padding-top:12px}
+  body.pip-on.fmode .frb,body.pip-on.fmode .fra,body.pip-on.fmode .fmix,body.pip-on.fmode .fcalc{display:none}
+  body.pip-on.fmode .frow{display:grid;grid-template-columns:5em minmax(0,1fr);align-items:center;gap:0 4px;padding:1px 0}
+  body.pip-on.fmode .frh{flex-direction:column;align-items:flex-start;justify-content:center;gap:0;height:auto;min-width:0}
+  body.pip-on.fmode .frl,body.pip-on.fmode .fw{display:none}
+  body.pip-on.fmode .fab{display:block;font-size:12px;font-weight:700;line-height:1.2;white-space:nowrap}
+  body.pip-on.fmode .fval{font-size:17px} body.pip-on.fmode .fval small{font-size:10.5px} body.pip-on.fmode .fval.na{font-size:11px}
+  body.pip-on.fmode .sl.big{height:34px}
+  body.pip-on.fmode .sl.big .sl-k{width:28px;height:28px;margin:-14px 0 0 -14px}
+  body.pip-on.fmode .slw.big .slb{width:30px;height:30px;border-radius:15px}
+  body.pip-on.fmode .fsw button{height:24px;font-size:12.5px}
+  body.pip-on.fmode .pad-h{padding-bottom:2px}
+}
+/* 比较矮的手机（iPhone SE 这类）：每条一行（短名字和值在左边，拖动条在右边），一个画面放得下 */
+@media (max-width:599px) and (max-height:700px){
+  .frv{font-size:30px}
+  .frow{display:grid;grid-template-columns:5em minmax(0,1fr);align-items:center;gap:0 4px;padding:1px 0}
+  .frh{flex-direction:column;align-items:flex-start;justify-content:center;gap:0;height:auto;min-width:0}
+  .frl,.fw{display:none}
+  .fab{display:block;font-size:12.5px;font-weight:700;line-height:1.2;white-space:nowrap}
+  .fval{font-size:19px} .fval small{font-size:11px} .fval.na{font-size:11.5px}
+  body.fmode .sl.big{height:38px}
+  body.fmode .sl.big .sl-k{width:30px;height:30px;margin:-15px 0 0 -15px}
+  body.fmode .slw.big .slb{width:32px;height:32px;border-radius:16px}
+}
+@media (max-width:599px) and (max-height:620px){
+  .frv{font-size:26px}
+  .frb,.fmix,.fcalc{display:none}
+  body.fmode .sl.big{height:34px}
+  body.fmode .sl.big .sl-k{width:28px;height:28px;margin:-14px 0 0 -14px}
+  body.fmode .slw.big .slb{width:30px;height:30px;border-radius:15px}
+  .fsw button{height:26px;font-size:12.5px}
+}
+/* 比较窄的手机：数字和“高于平均”放得下一行 */
+@media (max-width:389px){
+  .frv{font-size:32px}
+  .frg{padding:0 5px;font-size:11px}
+  .frr{font-size:22px}
+  .frj{font-size:12px;padding:1px 6px;max-width:calc(100% - 116px)}
 }

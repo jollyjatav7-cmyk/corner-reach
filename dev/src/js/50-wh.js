@@ -13,11 +13,11 @@ function whListHTML(d){
   if (!list.length) return '<p class="hint">' + (whAll().length ? '没有符合的比赛。' : '还没有比赛。结束一场比赛时选“加入仓库”，就会保存在这里。') + '</p>';
   return list.map(m => {
     const sc = score(m), c1 = cornersOf(m, 'h1'), c2 = cornersOf(m, 'h2');
-    const nar = m.ev.filter(e => e.c === 'ar').length, nq = m.sv.filter(s => s.f[0] === 'q').length, ng = m.sv.filter(s => SVF[s.f].pg === 'g').length;
+    const nar = m.ev.filter(e => e.c === 'ar').length, nq = m.sv.filter(s => s.f[0] === 'q').length, ng = m.sv.filter(s => SVF[s.f].pg === 'g').length, nf = m.sv.filter(s => SVF[s.f].pg === 'f').length;
     const cur = m.id === M.id, open = d.open === m.id;
     const act = open ? '<div class="wact"><div class="row">' + (cur ? '' : '<button class="pill dark" data-a="mopen" data-id="' + esc(m.id) + '">打开</button>') + '<button class="pill" data-a="mexp" data-id="' + esc(m.id) + '">导出</button><button class="pill' + (d.del === m.id ? ' danger' : '') + '" data-a="mdel" data-id="' + esc(m.id) + '">' + (d.del === m.id ? '确定删除' : '删除') + '</button></div></div>' : '';
     return '<div class="wrow"><button data-a="wopen" data-id="' + esc(m.id) + '" aria-expanded="' + open + '"><span class="w1">' + esc(m.h || '主队') + ' ' + sc[0] + '–' + sc[1] + ' ' + esc(m.a || '客队') + (cur ? ' <i class="wtag live">目前这场</i>' : '') + (m.st !== 2 ? ' <i class="wtag">未结束</i>' : '') + '</span>'
-      + '<span class="w2">' + esc(m.d) + (m.lg ? ' · ' + esc(m.lg) : '') + ' · 角球 ' + (c1[0] + c2[0]) + '–' + (c1[1] + c2[1]) + '（上半场 ' + c1[0] + '–' + c1[1] + '） · 到达 ' + nar + ' 次' + (nq ? ' · 两个问题' : '') + (ng ? ' · 进球预测' : '') + '</span></button>' + act + '</div>';
+      + '<span class="w2">' + esc(m.d) + (m.lg ? ' · ' + esc(m.lg) : '') + ' · 角球 ' + (c1[0] + c2[0]) + '–' + (c1[1] + c2[1]) + '（上半场 ' + c1[0] + '–' + c1[1] + '） · 到达 ' + nar + ' 次' + (nq ? ' · 两个问题' : '') + (ng ? ' · 进球预测' : '') + (nf ? ' · 角球公式' : '') + '</span></button>' + act + '</div>';
   }).join('');
 }
 /* 统计：以后建模型用。每队每半场一笔（看了 20 分钟以上的半场） */
@@ -119,7 +119,7 @@ function askNew(){ if (M.st === 2 || !hasContent(M)){ startNew(); return; } open
 const README = APPNAME + '导出档（fmt=2）。matches 是比赛阵列，每场：id、d 日期、lg 联赛、h 主队、a 客队、st 状态(1进行中/2已结束)、keep(1=结束时选了加入仓库)、pe 各半场结束时的比赛时钟秒数、obs 开始记录的位置{p 半场, t 比赛时钟秒数}、stop 结束记录的位置、note 备注、qn 两个问题每张卡的备注（键＝队伍_题目，例如 0_q1 主队问题一、1_q2 客队问题二）、ev 事件、sv 主观选择、al 简易模型的提醒、mc 当时用的模型标准。只有 obs 到 stop 之间是实际看到的。'
   + 'ev 每笔 = {t 比赛时钟秒数（下半场从2700起算）, p 半场(1/2), i 进攻的队伍(0主队/1客队), c 类型}。c：ar 到达（本队在对方禁区附近控制住球）、ck 其他角球（不是从记下的那次到达直接来的）、gl 进球（不是从到达链来的：进球预测的“进球 ＋1”、补录、点球等）、rc 红牌；b=1 加入前补录、时间不详；a=1 联网同步补上的，时间是估计。'
   + 'ar 另有 pa 选择路径（一串字母，见 tree）和 dt 从按到达到第一个选择的秒数（没有＝不详）。路径第一个字母：x 传中、l 远射、m 中路渗透、b 回传、g 丢球；传中 x 后 i 内/o 外，xi 后 s 禁区射门/c 解围或中途拦截，再后 g 进球/c 角球/n 无角球；远射 l 后 i 内/o 外，li 后 g/c/n；中路渗透 m 后 s 禁区射门/n 无禁区射门，ms 后 g/c/n；回传、丢球没有后续。路径以 c 结果结束的（例如 xisc、xicc、lic、msc）＝这次到达直接得到角球。空字串＝到达后没选。'
-  + 'sv 每笔 = {t, p, i 进攻的队伍, f 项目, v 值(null=清除)}，从这个时间起一直有效到下一笔。拖动条的项目 v 是百分比 0–100，最多一位小数（v2 每格 5，v3 起默认每格 1，可以设成 0.5 或 0.1）：bq 球权（两队加起来 100，同一次调整的两笔有同一个 g）、nd 到禁区附近的难度(0 没难度…100 难且进不去)、yy 到禁区附近的意愿(0 弱…100 强)、q1 他容不容易到对方禁区附近（几次进攻里有百分之几能到对方禁区附近）、q2 他喜不喜欢传中和远射（传中和远射的比例）；两个问题的潜能（v6 起，跟现在的值分开记）：q1p 他有没有到对方禁区附近的潜能、q2p 他有没有高频传中和远射的潜能（0 没有…100 很有，现在不明显但你看得出来的潜能）；进球预测（v5 起，暂时没有模型）：g1 容不容易到对面禁区附近(0 很难…100 很容易，跟 q1 分开记)、g2 对面球门前漏洞大不大(0 很小…100 很大)、g3 自己的进攻质量高不高（传中、射门、基本功、战术配合，0 很低…100 很高）。cm 到禁区附近的场面 v 是选第几个(0 包饺子/1 包一会饺子然后转换球权/2 快速转换球权)。'
+  + 'sv 每笔 = {t, p, i 进攻的队伍, f 项目, v 值(null=清除)}，从这个时间起一直有效到下一笔。拖动条的项目 v 是百分比 0–100，最多一位小数（v2 每格 5，v3 起默认每格 1，可以设成 0.5 或 0.1）：bq 球权（两队加起来 100，同一次调整的两笔有同一个 g）、nd 到禁区附近的难度(0 没难度…100 难且进不去)、yy 到禁区附近的意愿(0 弱…100 强)、q1 他容不容易到对方禁区附近（几次进攻里有百分之几能到对方禁区附近）、q2 他喜不喜欢传中和远射（传中和远射的比例）；两个问题的潜能（v6 起，跟现在的值分开记）：q1p 他有没有到对方禁区附近的潜能、q2p 他有没有高频传中和远射的潜能（0 没有…100 很有，现在不明显但你看得出来的潜能）；进球预测（v5 起，暂时没有模型）：g1 容不容易到对面禁区附近(0 很难…100 很容易，跟 q1 分开记)、g2 对面球门前漏洞大不大(0 很小…100 很大)、g3 自己的进攻质量高不高（传中、射门、基本功、战术配合，0 很低…100 很高）；角球公式（v7 起，这几项的单位不一样）：fx 到达次数（0–80 次）、fy 传中和远射占比（%）、fh 回传占比（%）、fa 打门门槛 a（0–2，1＝联赛平均，越大越挑剔）、fb 对方禁区内防守 b（0–2，1＝联赛平均，越大越强），角球指数＝x×[y+(1−y−h)×z]，z＝1÷(1+3×a×b)，a、b 没设时按 1 算；最外层的 favg 是你设的联赛平均（x 到达次数，y、h 百分比）。cm 到禁区附近的场面 v 是选第几个(0 包饺子/1 包一会饺子然后转换球权/2 快速转换球权)。'
   + '旧版（v1，选项）记的会换成那一档中间的百分比，原来选第几个留在 o：bq 多/中/少→65/50/35、nd 五档→10/30/50/70/90、yy 强/中/弱→80/50/20、q1/q2 1–5 档→10/30/50/70/90。'
   + 'al 每笔 = {t, p, g 程序(r 到达与选择/q 两个问题), i 队伍, v 提醒(b 大角=角球高于平均/s 小角=角球低于平均/空字串=没有提醒)}：简易模型的提醒从这个时间起变成 v。两队合起来：都 b→投大角；都 s→投小角；只有一队有提醒、或一队 b 一队 s→投角球让球（投角球会比较多的那队）。model 是导出时的模型标准（mc 是这场最后一次提醒变化时的标准）：每个程序 b/s 两条规则，all=全部满足、any=满足任意一项；条件 {m 项目, op gt高于/ge至少/lt低于/le最多, v 标准} 或场面 {m:cm, in 选项}；xl=传中＋远射占三项（传中、远射、中路渗透），min=比例最少要几次才算，sc=half 本半场/ft 全场。'
   + 'api 是联网连上的比赛（API-Football fixture id、两队英文名、sw=1 主客相反，最后同步到的 st 状态、el 分钟、g 比分、ck 角球、ck1 上半场角球、sh 射门{t 全部, b 被挡, on 射正}、pos 控球%、rc 红牌、dl 你的画面比实时慢几秒）。';
@@ -132,19 +132,19 @@ function openExport(list){
     sv: m.sv.map(s => { const x = { t: s.t, p: s.p, i: s.i, f: s.f, v: s.v }; if (s.g != null) x.g = s.g; if (s.o != null) x.o = s.o; return x; }),
     al: m.al.length ? m.al.map(a => ({ t: a.t, p: a.p, g: a.g, i: a.i, v: a.v })) : undefined, mc: m.mc || undefined, pv: 1 }));
   const obj = { app: APPNAME, fmt: 2, ver: APPVER, exported: new Date().toISOString().slice(0, 16), readme: README, tree: treeObj(),
-    sv: SVL.reduce((o, x) => { o[x.f] = x.pct ? { n: x.n, u: '%', lo: x.lo, hi: x.hi, bk: x.bk.map(b => b[2] + ' ' + b[3]) } : { n: x.n, o: x.o }; return o; }, {}),
-    model: MODEL, tips: TIPS.t || undefined, matches: matches };
+    sv: SVL.reduce((o, x) => { o[x.f] = x.pct ? { n: x.n, u: x.u == null ? '%' : x.u.trim(), lo: x.lo, hi: x.hi, bk: x.bk.map(b => b[2] + ' ' + b[3]) } : { n: x.n, o: x.o }; return o; }, {}),
+    model: MODEL, favg: favOn() ? FAVG : undefined, tips: TIPS.t || undefined, matches: matches };
   const nm = s => (s || '').replace(/[\\/:*?"<>|\s]+/g, '');
   const name = list.length === 1 ? '角球到达_' + list[0].d + '_' + (nm(list[0].h) || '主队') + 'vs' + (nm(list[0].a) || '客队') + '.json' : '角球到达_全部' + list.length + '场_' + ds + '.json';
   openSheet('export', { text: JSON.stringify(obj), name: name, count: list.length, type: 'application/json' });
 }
 const csvOf = rows => '﻿' + rows.map(r => r.map(v => { const s = String(v == null ? '' : v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }).join(',')).join('\n');
 const svCols = (m, i, p, t) => SVL.map(x => { const s = svAt(m, i, x.f, p, t); return s && s.v != null ? (x.pct ? s.v : x.o[s.v]) : ''; });
-// 表格里每个主观项目的栏名：第一部分用全名，两个问题用短名，进球预测前面加“进球·”
-const svCol = x => x.pg === 'g' ? svName(x.f) : x.f[0] === 'q' ? x.s : x.n;
+// 表格里每个主观项目的栏名：第一部分用全名，两个问题用短名，进球预测、角球公式前面加“进球·”“公式·”
+const svCol = x => x.pg ? svName(x.f) : x.f[0] === 'q' ? x.s : x.n;
 function openCsv(list){
   const head = ['日期', '联赛', '主队', '客队', '进攻方', '进攻球队', '半场', '时间', '比赛钟秒数', '类型', '选择', '用时秒', '内外', '下一步', '结果', '路径', '完整路径', '禁区射门', '角球', '进球', '补录', '联网补上'];
-  SVL.forEach(x => head.push(svCol(x) + (x.pct ? '%' : '')));
+  SVL.forEach(x => head.push(svCol(x) + (x.pct && x.u == null ? '%' : '')));
   const rows = [head];
   for (const m of list){
     for (const e of m.ev){
@@ -163,7 +163,7 @@ function openCsv(list){
 }
 function openCsvHalf(list){
   const head = ['日期', '联赛', '主队', '客队', '进攻方', '进攻球队', '半场', '看到分钟', '完整半场', '到达', '传中', '远射', '中路渗透', '回传', '丢球', '没选', '传中内', '传中外', '远射内', '远射外', '禁区射门', '角球', '其中到达链', '其他角球', '加入前角球', '进球', '平均用时秒', '传中远射占比', '传中远射占三项'];
-  SVL.forEach(x => head.push(svCol(x) + (x.pct ? '（按时间平均%）' : '（停留最久）')));
+  SVL.forEach(x => head.push(svCol(x) + (x.pct ? '（按时间平均' + (x.u == null ? '%' : '') + '）' : '（停留最久）')));
   head.push('简易模型·到达与选择', '简易模型·两个问题', '备注');
   const rows = [head];
   for (const m of list){

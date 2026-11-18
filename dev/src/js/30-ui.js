@@ -71,7 +71,7 @@ function betText(b){
 let banNew = 0;
 function renderBanner(){
   const el = $('#mBan'); if (!el) return;
-  if (!MODEL.on || M.st === 2 || !MN || PREF.mode === 'g'){ el.hidden = true; return; }   // 进球预测暂时没有模型
+  if (!MODEL.on || M.st === 2 || !MN || PREF.mode === 'g' || PREF.mode === 'f'){ el.hidden = true; return; }   // 进球预测暂时没有模型；角球公式有自己的结果
   el.hidden = false;
   const g = PREF.mode === 'q' ? 'q' : 'r', b = MN[g].bet;
   const sig = g + betCls(b);
@@ -108,9 +108,10 @@ function tickClock(){
   rb.setAttribute('aria-label', run ? '暂停计时' : (M.tm.ht ? '下半场开球' : '开始计时'));
 }
 function renderMode(){
-  // qmode＝问题式的画面（两个问题、进球预测都用）；gmode＝进球预测（每队三题）
-  document.body.classList.toggle('qmode', PREF.mode === 'q' || PREF.mode === 'g');
+  // qmode＝问题式的画面（两个问题、进球预测、角球公式都用）；gmode＝进球预测（每队三题）；fmode＝角球公式
+  document.body.classList.toggle('qmode', PREF.mode === 'q' || PREF.mode === 'g' || PREF.mode === 'f');
   document.body.classList.toggle('gmode', PREF.mode === 'g');
+  document.body.classList.toggle('fmode', PREF.mode === 'f');
   $$('#mseg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === PREF.mode)));
   renderTips();
 }
@@ -211,7 +212,7 @@ function renderPads(){
     return;
   }
   const sc = 'h' + curP();
-  for (const i of [0, 1]) $('.pad[data-i="' + i + '"]').innerHTML = PREF.mode === 'q' ? qPadHTML(i) : PREF.mode === 'g' ? gPadHTML(i) : recPadHTML(i, sc);
+  for (const i of [0, 1]) $('.pad[data-i="' + i + '"]').innerHTML = PREF.mode === 'q' ? qPadHTML(i) : PREF.mode === 'g' ? gPadHTML(i) : PREF.mode === 'f' ? fPadHTML(i) : recPadHTML(i, sc);
 }
 /* 最近的一笔（事件或主观选择） */
 function lastAny(){
@@ -236,7 +237,7 @@ function renderStrip(){
 function renderAll(){
   if (slBusy()){ rdPend = 1; return; }   // 正在拖或按着 −／＋：放开以后再重画
   mAll();
-  renderMode(); renderHeader(); renderPads(); renderStats(); renderStrip(); renderNet(); renderBanner();
+  renderMode(); renderHeader(); renderPads(); renderFres(); renderStats(); renderStrip(); renderNet(); renderBanner();
   mLog();
 }
 /* 计时器每秒更新时间；统计每 15 秒更新（时间在走，每 10 分钟的次数会变） */
