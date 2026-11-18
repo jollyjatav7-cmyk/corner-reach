@@ -87,6 +87,12 @@ document.addEventListener('click', ev => {
       showToast('已删除：' + condText(c), () => { L.splice(Math.min(j, L.length), 0, c); saveModel(); renderAll(); if (sheetKind === 'mset') renderSheet(); });
       break;
     }
+    case 'frec': setMid(false); openSheet('frec'); break;
+    case 'frecr': {
+      const old = clone(FREC); FREC = fixFrec(null); saveFrec(); renderAll(); renderSheet();
+      showToast('已恢复初始值', () => { FREC = old; saveFrec(); renderAll(); if (sheetKind === 'frec') renderSheet(); });
+      break;
+    }
     case 'mreset': {
       const old = clone(MODEL); MODEL = fixModel(clone(MDEF)); MODEL.on = old.on; saveModel(); d.add = null; renderAll(); renderSheet();
       showToast('已恢复默认标准', () => { MODEL = fixModel(old); saveModel(); renderAll(); if (sheetKind === 'mset') renderSheet(); });
@@ -277,4 +283,4 @@ if ('serviceWorker' in navigator && window.isSecureContext && location.protocol 
 }
 renderAll();
 window.__reach = { get M(){ return M; }, store: () => store, statOf: statOf, stateSplit: stateSplit, walk: walk, paLabel: paLabel, OC: OC, minsOf: minsOf,
-  get MODEL(){ return MODEL; }, mAll: mAll, get MN(){ return MN; }, render: () => renderAll(), fmtMV: fmtMV, bucketOf: bucketOf, PREF: PREF, fCalc: fCalc, fTeam: fTeam, FAV: FAV, pickQ: pickQ };
+  get MODEL(){ return MODEL; }, mAll: mAll, get MN(){ return MN; }, render: () => renderAll(), fmtMV: fmtMV, bucketOf: bucketOf, PREF: PREF, fCalc: fCalc, fTeam: fTeam, fRec: fRec, FAV: FAV, get FREC(){ return FREC; }, pickQ: pickQ };

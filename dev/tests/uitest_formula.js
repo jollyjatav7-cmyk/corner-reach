@@ -10,7 +10,23 @@ const index = (x, y, h, a, b) => x * (y / 100 + (1 - y / 100 - h / 100) / (1 + 3
 const crossPart = (x, y) => x * y / 100;
 const centrePart = (x, y, h, a, b) => x * (1 - y / 100 - h / 100) / (1 + 3 * a * b);
 const AVG = { cross: 50 * 33 / 100, centre: 50 * 33 / 100 / 4 }; AVG.total = AVG.cross + AVG.centre;   // arrival 50%, cross 33%, central 33%, a = b = 1
-const chip = (v, avg) => { const r = (v / avg - 1) * 100, n = Math.round(Math.abs(r)), w = n >= 10 ? (r > 0 ? '高于平均' : '低于平均') : '接近平均'; return w + ' ' + (r < 0 && n ? '−' : '+') + n + '%'; };
+const pctOf = (v, avg) => { const r = (v / avg - 1) * 100, n = Math.round(Math.abs(r)); return { r, n, tx: (r < 0 && n ? '−' : '+') + n + '%' }; };
+const TH0 = { hi: 25, lo: 30, gap: 2 };
+const chip = (v, avg, th) => { const q = pctOf(v, avg), t = th || TH0, w = q.r > 0 && q.n >= t.hi ? '高于平均' : q.r < 0 && q.n >= t.lo ? '低于平均' : '接近平均'; return w + ' ' + q.tx; };
+const levelOf = (s, th) => { const q = pctOf(s, AVG.total); return q.r > 0 && q.n >= th.hi ? 'b' : q.r < 0 && q.n >= th.lo ? 's' : 'm'; };
+const finalChip = (s, th) => ({ b: '大角', s: '小角', m: '平均水平' })[levelOf(s, th || TH0)] + ' ' + pctOf(s, AVG.total).tx;
+// the user's rules, written out again here on purpose (H and A are { fx, fy, fh, fa, fb })
+const wantRec = (H, A, th) => {
+  const sh = index(H.fx, H.fy, H.fh, H.fa, H.fb), sa = index(A.fx, A.fy, A.fh, A.fa, A.fb), x = levelOf(sh, th), y = levelOf(sa, th), w = { b: '大角', s: '小角' };
+  const top = sh > sa ? '鹿岛鹿角' : '横滨水手';
+  if (x === 'b' && y === 'b') return '推荐大角';
+  if (x === 's' && y === 's') return '推荐小角';
+  if (x !== 'm' && y !== 'm') return '推荐让球' + top;
+  if (x === 'm' && y === 'm') return '不推荐：两队都在平均水平';
+  const one = x === 'm' ? y : x, lo = Math.min(sh, sa), ratio = lo > 0 ? Math.max(sh, sa) / lo : Infinity;
+  if (+ratio.toFixed(2) >= th.gap) return '推荐让球' + top + '＋' + w[one];
+  return '不推荐：一队' + w[one] + '、一队平均水平，差距不到' + (+th.gap.toFixed(1)) + '倍';
+};
 const MM = p => p.evaluate(() => JSON.parse(JSON.stringify(window.__reach.M)));
 const cur = (m, i, f) => { let b = null; for (const s of m.sv) if (s.i === i && s.f === f && (!b || s.k > b.k)) b = s; return b ? b.v : null; };
 const count = (m, f) => m.sv.filter(s => s.f === f).length;
@@ -92,7 +108,7 @@ const segs = (p, sel) => p.$$eval(sel + ' .tri-s', a => a.map(e => e.textContent
     check(await p.$eval(sl(1, 'fb'), e => e.closest('.ftm').classList.contains('a')), 'the opponent defence is set inside the block of the attacking team');
     check((await txt(p, '#frv1')) === '6.2' && (await txt(p, '#frv0')) === '13.0', 'the opponent defence of the away block lowers only the away index: 6.24 shown as 6.2 (' + await txt(p, '#frv1') + ')');
     check((await txt(p, '#frr')).replace(/\s/g, '') === '2.08倍', 'the ratio of the two teams is 2.08 (' + await txt(p, '#frr') + ')');
-    check((await txt(p, '#frj')).indexOf('判断：鹿岛鹿角 角球更多') >= 0, 'at 2 times or more it names the team (' + await txt(p, '#frj') + ')');
+    check((await txt(p, '#frj')).replace(/\s/g, '') === '推荐小角', 'both teams far below the average: the small-corners call (' + await txt(p, '#frj') + ')');
     check((await txt(p, '#frx0')) === '12.0' && (await txt(p, '#frz0')) === '1.0', 'the panel shows the two parts of the home result: 12.0 + 1.0');
     check((await txt(p, '#frx1')) === '6.0' && (await txt(p, '#frz1')) === '0.2', 'and of the away result: 6.0 + 0.2 (' + await txt(p, '#frx1') + ' + ' + await txt(p, '#frz1') + ')');
     await p.screenshot({ path: `${out}/formula_ipad.png` });
@@ -107,14 +123,92 @@ const segs = (p, sel) => p.$$eval(sel + ' .tri-s', a => a.map(e => e.textContent
     }
     check(!bad.length, 'the index equals the formula in ' + cases.length + ' independent cases ' + bad.join('; '));
 
-    // the verdict
-    const verdict = async (h, a) => { await seed(p, row(0, h).concat(row(1, a))); return txt(p, '#frj'); };
-    check((await verdict({ fx: 20, fy: 100, fh: 0 }, { fx: 10, fy: 100, fh: 0 })).indexOf('判断：鹿岛鹿角') >= 0, 'exactly 2 times counts');
-    check((await verdict({ fx: 19, fy: 100, fh: 0 }, { fx: 10, fy: 100, fh: 0 })).indexOf('相差不到 2 倍') >= 0, '1.9 times: no call');
-    check((await verdict({ fx: 10, fy: 100, fh: 0 }, { fx: 30, fy: 100, fh: 0 })).indexOf('判断：横滨水手') >= 0, 'the away team can be named too');
-    check((await verdict({ fx: 10, fy: 100, fh: 0 }, { fx: 10, fy: 100, fh: 0 })).indexOf('两队一样') >= 0, 'level: no call');
-    check((await verdict({ fx: 0, fy: 50, fh: 0 }, { fx: 0, fy: 50, fh: 0 })).indexOf('两队一样') >= 0, 'both zero: no call and no error');
-    check((await verdict({ fx: 10, fy: 50, fh: 0 }, { fx: 0, fy: 50, fh: 0 })).indexOf('判断：鹿岛鹿角') >= 0 && (await txt(p, '#fres')).indexOf('Infinity') < 0, 'the other team at zero: names the team without a broken number');
+    // ---- the recommendation: every rule, for both teams
+    const recText = async (h, a) => { await seed(p, row(0, h).concat(row(1, a))); return (await txt(p, '#frj')).replace(/\s/g, ''); };
+    const T = v => ({ fx: v, fy: 100, fh: 0 });   // final result = v
+    const RULES = [
+      [T(40), T(30), '推荐大角', 'both big → big corners'],
+      [T(10), T(14), '推荐小角', 'both small → small corners'],
+      [T(40), T(10), '推荐让球鹿岛鹿角', 'big against small → handicap on the home team'],
+      [T(10), T(40), '推荐让球横滨水手', 'small against big → handicap on the away team'],
+      [T(40), T(20), '推荐让球鹿岛鹿角＋大角', 'big against average with a wide gap → handicap and big corners'],
+      [T(20), T(40), '推荐让球横滨水手＋大角', 'the same with the teams swapped'],
+      [T(10), T(20), '推荐让球横滨水手＋小角', 'small against average with a wide gap → handicap on the average team and small corners'],
+      [T(20), T(10), '推荐让球鹿岛鹿角＋小角', 'the same with the teams swapped'],
+      [T(30), T(20), '不推荐：一队大角、一队平均水平，差距不到2倍', 'big against average with a small gap → no call'],
+      [T(14), T(20), '不推荐：一队小角、一队平均水平，差距不到2倍', 'small against average with a small gap → no call'],
+      [T(20), T(24), '不推荐：两队都在平均水平', 'both average → no call']
+    ];
+    for (const [h, a, want, name] of RULES){ const got = await recText(h, a); check(got === want, name + ' (' + got + ')'); }
+    await recText(T(40), T(20));
+    check(await p.isVisible('#frj .frp.p0') && await p.isVisible('#frj .frp.pb'), 'the handicap and the corners are two separate marks');
+    check((await txt(p, '#frv0d')).indexOf('大角') === 0 && (await txt(p, '#frv1d')).indexOf('平均水平') === 0, 'each team shows its own level on the final-result row');
+    check((await recText(T(40), T(0))) === '推荐让球鹿岛鹿角' && (await txt(p, '#fres')).indexOf('Infinity') < 0, 'a team at zero: no broken number');
+    check((await recText(T(20), T(0))) === '推荐让球鹿岛鹿角＋小角' && (await txt(p, '#fres')).indexOf('Infinity') < 0, 'average against zero counts as a wide gap');
+    check((await recText(T(0), T(0))) === '推荐小角' && !p.errs.length, 'both at zero: small corners, no errors');
+    // the edges use the same whole percent that is on the screen
+    await recText(T(25.7), T(20)); check((await txt(p, '#frv0d')).indexOf('大角') === 0, '+25% on the screen is big (' + await txt(p, '#frv0d') + ')');
+    await recText(T(25.6), T(20)); check((await txt(p, '#frv0d')).indexOf('平均水平') === 0, '+24% on the screen is average (' + await txt(p, '#frv0d') + ')');
+    await recText(T(14.5), T(20)); check((await txt(p, '#frv0d')).indexOf('小角') === 0, '−30% on the screen is small (' + await txt(p, '#frv0d') + ')');
+    await recText(T(14.6), T(20)); check((await txt(p, '#frv0d')).indexOf('平均水平') === 0, '−29% on the screen is average (' + await txt(p, '#frv0d') + ')');
+    check((await recText(T(40), T(20))).indexOf('让球') >= 0, 'exactly 2.00 times is a wide gap');
+    check((await recText(T(39.8), T(20))).indexOf('不推荐') === 0, '1.99 times is not');
+
+    // random matches against the rules written out above, with three sets of standards
+    let rnd = 20261119; const R = n => { rnd = (rnd * 16807) % 2147483647; return rnd % n; };
+    const team = () => { const fy = R(71), fh = R(101 - fy); return { fx: 5 + R(91), fy, fh, fa: R(21) / 10, fb: R(21) / 10 }; };
+    const seen = {}; bad = [];
+    for (const th of [TH0, { hi: 10, lo: 15, gap: 1.5 }, { hi: 60, lo: 50, gap: 3.2 }]){
+      await p.evaluate(t => localStorage.setItem('corner-reach-frec', JSON.stringify(t)), th); await p.reload(); await p.waitForTimeout(120);
+      for (let n = 0; n < 70; n++){
+        const H = team(), A = team(); await seed(p, row(0, H).concat(row(1, A)));
+        const got = (await txt(p, '#frj')).replace(/\s/g, ''), want = wantRec(H, A, th);
+        seen[want.replace(/鹿岛鹿角|横滨水手/, '').replace(/，差距不到.*$/, '')] = 1;
+        const c0 = await p.$eval('#frv0d', e => e.querySelector('.frdl').textContent + ' ' + e.textContent.replace(/^.*?([+−]\d+%)$/, '$1')), w0 = finalChip(index(H.fx, H.fy, H.fh, H.fa, H.fb), th);
+        const x1 = await p.$eval('#frx1d', e => e.querySelector('.frdl').textContent + ' ' + e.textContent.replace(/^.*?([+−]\d+%)$/, '$1')), w1 = chip(crossPart(A.fx, A.fy), AVG.cross, th);
+        if (got !== want || c0 !== w0 || x1 !== w1) bad.push(JSON.stringify([H, A, th.hi]) + ' got ' + got + ' / ' + c0 + ' / ' + x1 + ' want ' + want + ' / ' + w0 + ' / ' + w1);
+      }
+    }
+    check(!bad.length, 'the recommendation and the comparisons match the rules in 210 random matches ' + bad.slice(0, 2).join(' ;; '));
+    check(Object.keys(seen).length >= 8, 'those matches covered the kinds of recommendation: ' + Object.keys(seen).join(' | '));
+    await p.evaluate(() => localStorage.removeItem('corner-reach-frec')); await p.reload(); await p.waitForTimeout(120);
+
+    // ---- fine-tuning
+    await seed(p, row(0, T(40)).concat(row(1, T(20))));
+    const svOf = async () => JSON.stringify((await MM(p)).sv.map(x => [x.t, x.p, x.i, x.f, x.v])), svBefore = await svOf();
+    check(await p.isVisible('#fres [data-a="frec"]'), 'the panel has a 微调 button');
+    await p.click('#qbMenu');
+    check((await txt(p, '#card [data-a="frec"]')).indexOf('大角 +25%、小角 −30%、差距 2 倍') >= 0, 'the menu has the entry too, with the standards in use (' + await txt(p, '#card [data-a="frec"]') + ')');
+    await p.click('#card [data-a="frec"]'); await p.waitForTimeout(60);
+    const FS_ = k => '#card .sl[data-sl="frec"][data-x="' + k + '"]';
+    check((await p.$$('#card .sl[data-sl="frec"]')).length === 3, 'three standards can be tuned');
+    const vals = await p.$$eval('#card .sl[data-sl="frec"]', a => a.map(e => e.dataset.x + '=' + e.dataset.v).join(' '));
+    check(vals === 'hi=25 lo=30 gap=2', 'they start from the agreed values (' + vals + ')');
+    check((await txt(p, '#frs_hi')) === '+25%' && (await txt(p, '#frs_lo')) === '−30%' && (await txt(p, '#frs_gap')) === '2.0 倍', 'each standard shows its value');
+    check((await txt(p, '#frn_hi')).indexOf('25.8') >= 0 && (await txt(p, '#frn_lo')).indexOf('14.4') >= 0, 'and what that means for the final result');
+    check(await p.$eval('#card [data-a="frecr"]', e => e.disabled), 'nothing to reset yet');
+    check((await txt(p, '#frecNow')).replace(/\s/g, '') === '推荐让球鹿岛鹿角＋大角', 'the sheet shows the recommendation right now');
+    const walk = async (k, want) => { for (let n = 0; n < 120; n++){ const v = +(await p.getAttribute(FS_(k), 'data-v')); if (Math.abs(v - want) < 1e-6) return; await p.focus(FS_(k)); await p.keyboard.press(v < want ? 'ArrowRight' : 'ArrowLeft'); await p.waitForTimeout(8); } };
+    await walk('gap', 2.5);
+    check((await txt(p, '#frs_gap')) === '2.5 倍' && (await txt(p, '#frecNow')).indexOf('不推荐') === 0 && (await txt(p, '#frecNow')).replace(/\s/g, '').indexOf('差距不到2.5倍') >= 0, 'a wider gap takes the handicap away at once (' + await txt(p, '#frecNow') + ')');
+    await walk('gap', 2); await walk('hi', 100);
+    check((await txt(p, '#frs_hi')) === '+100%' && (await txt(p, '#frecNow')).replace(/\s/g, '') === '不推荐：两队都在平均水平', 'raising the big-corners bar changes the recommendation at once');
+    check((await txt(p, '#frv0d')).indexOf('平均水平') === 0, 'and the panel behind the sheet follows');
+    await walk('lo', 45);
+    const saved = await p.evaluate(() => JSON.parse(localStorage.getItem('corner-reach-frec')));
+    check(saved.hi === 100 && saved.lo === 45 && saved.gap === 2, 'the standards are saved ' + JSON.stringify(saved));
+    await p.click('#card [data-a="close"]'); await p.reload(); await p.waitForTimeout(150);
+    check((await txt(p, '#frv0d')).indexOf('平均水平') === 0 && await p.evaluate(() => window.__reach.FREC.lo === 45), 'they survive a reload');
+    await p.click('#fres [data-a="frec"]'); await p.waitForTimeout(60);
+    check(await p.isVisible('#card .sl[data-sl="frec"]'), 'the 微调 button on the panel opens the same sheet');
+    await p.click('#card [data-a="frecr"]'); await p.waitForTimeout(60);
+    check(JSON.stringify(await p.evaluate(() => window.__reach.FREC)) === JSON.stringify(TH0) && (await txt(p, '#frs_hi')) === '+25%', 'reset brings back the first values');
+    check(JSON.stringify(await p.evaluate(() => JSON.parse(localStorage.getItem('corner-reach-frec')))) === JSON.stringify(TH0), 'and saves them');
+    await p.click('#card [data-a="close"]');
+    const svAfter = await svOf(); check(svAfter === svBefore, 'tuning writes nothing into the match' + (svAfter === svBefore ? '' : ' ' + svBefore + ' → ' + svAfter));
+    await p.evaluate(() => localStorage.setItem('corner-reach-frec', JSON.stringify({ hi: 'x', lo: -5, gap: 99 }))); await p.reload(); await p.waitForTimeout(120);
+    check(JSON.stringify(await p.evaluate(() => window.__reach.FREC)) === '{"hi":25,"lo":5,"gap":4}', 'broken saved values are repaired ' + JSON.stringify(await p.evaluate(() => window.__reach.FREC)));
+    await p.evaluate(() => localStorage.removeItem('corner-reach-frec')); await p.reload(); await p.waitForTimeout(120);
 
     // ---- the axis
     await seed(p, row(0, { fx: 20, fy: 70, fh: 10 }));
@@ -189,7 +283,7 @@ const segs = (p, sel) => p.$$eval(sel + ' .tri-s', a => a.map(e => e.textContent
     check(await p.isVisible('#frv0d') && await p.isVisible('#frx0d') && await p.isVisible('#frz1d'), 'the near-average comparison is visible too');
     const panelText = (await txt(p, '#fres')).replace(/\s/g, '');
     check(panelText.indexOf('平均20.6') >= 0 && panelText.indexOf('平均16.5') >= 0 && panelText.indexOf('平均4.1') >= 0, 'the three averages are on the panel');
-    for (const i of [0, 1]) for (const id of ['frv', 'frx', 'frz']) check((await txt(p, '#' + id + i + 'd')).replace(/\s/g, '') === '接近平均+0%' || (await txt(p, '#' + id + i + 'd')).replace(/\s/g, '') === '接近平均近+0%', 'team ' + i + ' ' + id + ' equals its average (' + await txt(p, '#' + id + i + 'd') + ')');
+    for (const i of [0, 1]) for (const id of ['frv', 'frx', 'frz']) check((await p.$eval('#' + id + i + 'd', e => e.querySelector('.frdl').textContent + e.textContent.replace(/^.*?([+−]\d+%)$/, '$1'))) === (id === 'frv' ? '平均水平+0%' : '接近平均+0%'), 'team ' + i + ' ' + id + ' equals its average (' + await txt(p, '#' + id + i + 'd') + ')');
     bad = [];
     const cmpCases = [[70, 45, 20, 1, 1], [40, 30, 30, 1.5, 1.2], [100, 100, 0, 1, 1], [100, 0, 0, 0, 0], [5, 10, 80, 2, 2], [62, 28, 41, 0.7, 1.4], [0, 40, 30, 1, 1], [55, 33, 34, 1, 1], [54, 33, 34, 1, 1], [45, 33, 34, 1, 1], [46, 33, 34, 1, 1]];
     for (const c of cmpCases){
@@ -198,15 +292,16 @@ const segs = (p, sel) => p.$$eval(sel + ' .tri-s', a => a.map(e => e.textContent
         const X = crossPart(c[0], c[1]), Z = centrePart(c[0], c[1], c[2], c[3], c[4]), S = X + Z;
         for (const [id, v, avg] of [['frx', X, AVG.cross], ['frz', Z, AVG.centre], ['frv', S, AVG.total]]){
           const num = await txt(p, '#' + id + i), got = (await p.$eval('#' + id + i + 'd', e => e.querySelector('.frdl').textContent + ' ' + e.textContent.replace(/^.*?([+−]\d+%)$/, '$1'))).replace(/\s+/g, ' ');
-          if (Math.abs(+num - v) > 0.0501 || got !== chip(v, avg)) bad.push(c.join('/') + ' ' + id + i + ' got ' + num + ' ' + got + ' want ' + v.toFixed(1) + ' ' + chip(v, avg));
+          const wantC = id === 'frv' ? finalChip(v) : chip(v, avg);
+          if (Math.abs(+num - v) > 0.0501 || got !== wantC) bad.push(c.join('/') + ' ' + id + i + ' got ' + num + ' ' + got + ' want ' + v.toFixed(1) + ' ' + wantC);
         }
       }
     }
     check(!bad.length, 'the three values and their comparison match an independent calculation in ' + cmpCases.length + ' cases for both teams ' + bad.slice(0, 3).join('; '));
-    await seed(p, row(0, { fx: 55, fy: 33, fh: 67 }).concat(row(1, { fx: 45, fy: 33, fh: 67 })));
-    check((await p.$eval('#frx0d', e => e.classList.contains('fhi'))) && (await p.$eval('#frx1d', e => e.classList.contains('flo'))), '10% above is above the average and 10% below is below it');
-    await seed(p, row(0, { fx: 54, fy: 33, fh: 67 }).concat(row(1, { fx: 46, fy: 33, fh: 67 })));
-    check((await p.$eval('#frx0d', e => e.classList.contains('feq'))) && (await p.isVisible('#frx0d')) && (await p.$eval('#frx1d', e => e.classList.contains('feq'))) && (await p.isVisible('#frx1d')), 'within 10% is near the average');
+    await seed(p, row(0, { fx: 63, fy: 33, fh: 67 }).concat(row(1, { fx: 35, fy: 33, fh: 67 })));
+    check((await p.$eval('#frx0d', e => e.classList.contains('fhi'))) && (await p.$eval('#frx1d', e => e.classList.contains('flo'))), 'the two parts use the same standards: +26% is above the average and −30% is below it');
+    await seed(p, row(0, { fx: 62, fy: 33, fh: 67 }).concat(row(1, { fx: 36, fy: 33, fh: 67 })));
+    check((await p.$eval('#frx0d', e => e.classList.contains('feq'))) && (await p.isVisible('#frx0d')) && (await p.$eval('#frx1d', e => e.classList.contains('feq'))) && (await p.isVisible('#frx1d')), '+24% and −28% are near the average');
     await seed(p, row(0, { fx: 20 }));
     check((await txt(p, '#fres')).indexOf('还差 1 项') >= 0 && (await txt(p, '#fres')).indexOf('还差 2 项') >= 0 && (await txt(p, '#frx0')) === '—', 'a team with missing items shows how many are left');
     check(!(await p.$('.fra')) && !(await p.$('[data-a="favg"]')), 'the average is fixed, there is no setting for it on the page');
@@ -246,7 +341,7 @@ const segs = (p, sel) => p.$$eval(sel + ' .tri-s', a => a.map(e => e.textContent
     await p.click('#qbMenu'); await p.click('#card [data-a="exp1"]'); await p.waitForTimeout(100);
     const js = await p.evaluate(() => { const t = document.querySelector('#card textarea'); return t ? t.value : null; });
     if (js){ const o = JSON.parse(js);
-      check(o.ver === 'v10' && o.sv.fx.u === '%' && o.sv.fy.u === '%' && o.sv.fa.u === '' && JSON.stringify(o.favg) === '{"x":50,"y":33,"m":33,"a":1,"b":1}' && o.matches[0].sv.some(s => s.f === 'fx' && s.v === 20), 'JSON export carries the values, their units and the average settings');
+      check(o.ver === 'v11' && o.sv.fx.u === '%' && o.sv.fy.u === '%' && o.sv.fa.u === '' && JSON.stringify(o.favg) === '{"x":50,"y":33,"m":33,"a":1,"b":1}' && JSON.stringify(o.frec) === JSON.stringify(TH0) && o.matches[0].sv.some(s => s.f === 'fx' && s.v === 20), 'JSON export carries the values, their units and the average settings');
       check(o.readme.indexOf('fx 到达频率') >= 0 && o.readme.indexOf('z＝1÷(1+3×a×b)') >= 0, 'the export explains the formula');
     } else check(false, 'export text not found');
     await p.keyboard.press('Escape');
@@ -292,6 +387,20 @@ const segs = (p, sel) => p.$$eval(sel + ' .tri-s', a => a.map(e => e.textContent
     await p.tap('.ftm.a [data-a="ck"]'); await p.waitForTimeout(80);
     await p.tap('.ftm.h [data-a="ck"]'); await p.waitForTimeout(80);
     check((await txt(p, '#ckA')) === '角球 1' && (await txt(p, '#ckH')) === '角球 1', 'the corner pills of both teams work here');
+    check(await p.$eval('#sheet', e => e.hidden), 'tapping the corner pill right under the panel does not open the tuning sheet');
+    const tb = await (await p.$('#fres [data-a="frec"]')).boundingBox();
+    await p.touchscreen.tap(tb.x + tb.width / 2, tb.y - 8); await p.waitForTimeout(80);
+    check(!(await p.$eval('#sheet', e => e.hidden)) && (await p.$$('#card .sl[data-sl="frec"]')).length === 3, 'the small 微调 button is easy to hit: a finger just above it still opens the sheet');
+    const sw = await p.evaluate(() => { const c = document.querySelector('#card'); return c.scrollWidth - c.clientWidth; });
+    check(sw <= 0, 'the tuning sheet fits the phone width');
+    await p.screenshot({ path: `${out}/formula_phone_tune.png` });
+    const hb = await p.$eval('#card .sl[data-x="hi"] .sl-t', e => { e.scrollIntoView({ block: 'center' }); const r = e.getBoundingClientRect(); return { x: r.left, y: r.top + r.height / 2, w: r.width }; });
+    const cdpT = await ctx.newCDPSession(p);
+    await cdpT.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: hb.x + hb.w * .2, y: hb.y }] });
+    for (let k = 1; k <= 6; k++) await cdpT.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: hb.x + hb.w * (.2 + k * .05), y: hb.y }] });
+    await cdpT.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] }); await cdpT.detach(); await p.waitForTimeout(80);
+    check(await p.evaluate(() => window.__reach.FREC.hi) !== 25, 'the standards can be dragged by finger (' + await txt(p, '#frs_hi') + ')');
+    await p.click('#card [data-a="frecr"]'); await p.waitForTimeout(60); await p.click('#card [data-a="close"]'); await p.waitForTimeout(60);
     await p.click('#mseg [data-v="q"]');
     check(await p.isVisible('.pad[data-i="0"] .qcard') && await p.isVisible('.pad[data-i="1"] .qcard') && !(await p.isVisible('#fres')), 'two questions is untouched: both teams on screen, no formula panel');
     const m = await MM(p);
@@ -333,6 +442,10 @@ const segs = (p, sel) => p.$$eval(sel + ' .tri-s', a => a.map(e => e.textContent
       wide.push(...await p.evaluate(() => { const box = e => e.getBoundingClientRect(), out = []; for (const w of document.querySelectorAll('.frw')){ const [l, m, r] = w.children; for (const e of [...l.children]) if (box(e).right > box(l).right + .5) out.push('left ' + e.textContent); for (const e of [...r.children]) if (box(e).left < box(r).left - .5) out.push('right ' + e.textContent); if (![...l.children, ...r.children].every(e => box(e).width > 0)) out.push('hidden in ' + w.textContent.slice(0, 16)); } return out; }));
     }
     check(!wide.length, tag + ': the widest possible numbers still fit ' + JSON.stringify(wide.slice(0, 4)));
+    await seed(p, row(0, { fx: 40, fy: 100, fh: 0 }).concat(row(1, { fx: 20, fy: 100, fh: 0 }))); await p.waitForTimeout(30);
+    const rw = await p.evaluate(() => { const box = e => e.getBoundingClientRect(), j = document.querySelector('#frj'), t = document.querySelector('#fres .frtn'), add = j.querySelector('.frp.pb'), hc = j.querySelector('.frp.p0'); return { inJ: [...j.children].every(e => box(e).left >= box(j).left - 1 && box(e).right <= box(j).right + 1), clear: box(j).right <= box(t).left + 1, add: box(add).width > 30, hc: box(hc).width > 40, panel: box(document.querySelector('#fres')).right <= innerWidth }; });
+    check(rw.inJ && rw.clear && rw.add && rw.hc && rw.panel, tag + ': handicap, corners and 微调 all fit even with long team names ' + JSON.stringify(rw));
+    if (w === 390 && !pip) await p.screenshot({ path: `${out}/formula_phone_rec.png` });
     await seed(p, row(0, { fx: 80, fy: 60, fh: 20, fa: 1.2, fb: 0.8 }).concat(row(1, { fx: 33, fy: 50, fh: 30, fa: 1.5, fb: 2 })));
     check(r.side <= 0, tag + ': no sideways scroll');
     check(!r.bad.length, tag + ': all labels and results fit ' + JSON.stringify(r.bad.slice(0, 5)));

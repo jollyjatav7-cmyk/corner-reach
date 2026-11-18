@@ -4,13 +4,30 @@
    x 到达频率（0–100%，接近 100% 是一直包饺子）、y 传中和远射占比、h 回传占比、a 打门门槛、b 对方禁区内防守（a、b 的 1 是联赛平均，没设时按 1 算）。
    画面上主队一块在上、客队一块在下，都在同一页；y、h 在同一条轴上（两个滑块分成传中远射、中路渗透、回传三段）。
    跟两个问题一样每次放开都记下时间；拖的时候上方的面板跟着算。
-   平均值（FAV）：到达 50%、传中远射 33%、中路渗透 33%、a 和 b 都是 1。比平均值高或低 10% 以上算高于或低于平均。
-   两队对比：最终结果大的是小的 2 倍以上才下判断。这些数只用来比较高低，不是角球数。 */
-const FK = 3, FRATIO = 2, FNEAR = 10;
+   平均值（FAV）：到达 50%、传中远射 33%、中路渗透 33%、a 和 b 都是 1。这些数只用来比较高低，不是角球数。
+   推荐：最终结果高出标准算大角、低出标准算小角，其他是平均水平。两队都大角 → 大角；两队都小角 → 小角；一大一小 → 让球；
+   一队大角或小角、一队平均水平，而且差距偏大 → 让球＋对应的大角或小角；其他情况不推荐。让球投最终结果大的那队。 */
+const FK = 3;
 const FAV = { x: 50, y: 33, m: 33, a: 1, b: 1 };
 FAV.cross = FAV.x * FAV.y / 100;
 FAV.centre = FAV.x * FAV.m / 100 / (1 + FK * FAV.a * FAV.b);
 FAV.s = FAV.cross + FAV.centre;
+/* 推荐的标准（面板上的“微调”、功能 → 角球公式的推荐标准，存在这台设备上）：
+   hi 大角＝高于平均至少百分之几；lo 小角＝低于平均至少百分之几；gap 差距偏大＝大的是小的至少几倍。
+   传中远射、中路射门两行用同样的 hi、lo 显示高于或低于平均，整个面板只有一套标准 */
+const FRK = 'corner-reach-frec';
+const FR0 = { hi: 25, lo: 30, gap: 2 };
+const FRR = { hi: { lo: 5, hi: 100, st: 1, u: '%' }, lo: { lo: 5, hi: 90, st: 1, u: '%' }, gap: { lo: 1.1, hi: 4, st: 0.1, u: ' 倍' } };
+function fixFrec(o){
+  const r = {};
+  for (const k of Object.keys(FR0)){
+    const c = FRR[k], v = o && o[k] != null ? +o[k] : NaN;
+    r[k] = v === v ? clamp(+(Math.round(v / c.st) * c.st).toFixed(1), c.lo, c.hi) : FR0[k];
+  }
+  return r;
+}
+let FREC = fixFrec(LS.get(FRK, null));
+const saveFrec = () => LS.set(FRK, FREC);
 let FDRAG = null;   // 正在拖的那一条：{ x 哪一条, v 拖到哪里 }（还没记下）
 
 /* 公式本身：y、h 是百分比 */
@@ -37,19 +54,37 @@ function fTeam(i){
   const a = v.fa == null ? 1 : v.fa, b = v.fb == null ? 1 : v.fb;
   return Object.assign({ ok: true, v: v, a: a, b: b, miss: [] }, fCalc(v.fx, v.fy || 0, v.fh || 0, a, b));
 }
-/* 跟平均值比：n＝高或低百分之几（画面上的数字），差 10% 以上才算高于或低于平均 */
-function fCmp(v, avg){
-  const r = (v / avg - 1) * 100, n = Math.round(Math.abs(r)), k = n >= FNEAR ? (r > 0 ? 'fhi' : 'flo') : 'feq';
-  return { k: k, t: k === 'fhi' ? '高于平均' : k === 'flo' ? '低于平均' : '接近平均', s: k === 'fhi' ? '高' : k === 'flo' ? '低' : '近', n: (r < 0 && n ? '−' : '+') + n + '%' };
+/* 跟平均值比：n＝高或低百分之几（画面上的数字，判断也用这个数，看到的和算的一样） */
+function fPct(v, avg){
+  const r = (v / avg - 1) * 100, n = Math.round(Math.abs(r));
+  return { up: r > 0, n: n, tx: (r < 0 && n ? '−' : '+') + n + '%' };
 }
-/* 两队对比：i＝指数大的那队；r＝倍数（对方是 0 时是 Infinity）；clear＝到了 2 倍 */
+/* 跟平均值比算哪一档：b 高（最终结果就是大角）、s 低（小角）、m 差不多（平均水平） */
+function fBand(v, avg){ const p = fPct(v, avg); return p.up && p.n >= FREC.hi ? 'b' : !p.up && p.n >= FREC.lo ? 's' : 'm'; }
+const fLevel = v => fBand(v, FAV.s);
+/* 面板上每一行的比较：最终结果说大角／小角／平均水平，两部分说高于／低于／接近平均 */
+function fChip(key, v){
+  const L = fBand(v, FAV[key]), k = L === 'b' ? 'fhi' : L === 's' ? 'flo' : 'feq', W = key === 's' ? { b: ['大角', '大'], s: ['小角', '小'], m: ['平均水平', '平'] } : { b: ['高于平均', '高'], s: ['低于平均', '低'], m: ['接近平均', '近'] };
+  return { k: k, t: W[L][0], s: W[L][1], n: fPct(v, FAV[key]).tx };
+}
+/* 两队对比：i＝最终结果大的那队；r＝倍数（对方是 0 时是 Infinity）；clear＝差距偏大（跟画面上的两位小数比） */
 function fJudge(a, b){
   if (!a.ok || !b.ok) return null;
   const big = Math.max(a.s, b.s), small = Math.min(a.s, b.s);
-  if (big <= 0) return { same: 1, r: 1 };
-  if (Math.abs(a.s - b.s) < 1e-9) return { same: 1, r: 1 };
+  if (big <= 0 || Math.abs(a.s - b.s) < 1e-9) return { same: 1, r: 1 };
   const r = small > 0 ? big / small : Infinity;
-  return { i: a.s > b.s ? 0 : 1, r: r, clear: r >= FRATIO - 1e-9 };
+  return { i: a.s > b.s ? 0 : 1, r: r, clear: +r.toFixed(2) >= FREC.gap };
+}
+/* 两队合起来的推荐：k＝big 大角、small 小角、hc 让球（i＝投哪一队，add＝同时推荐大角 b 或小角 s）、none 不推荐（w＝为什么） */
+function fRec(a, b){
+  const J = fJudge(a, b); if (!J) return null;
+  const x = fLevel(a.s), y = fLevel(b.s);
+  if (x === 'b' && y === 'b') return { k: 'big' };
+  if (x === 's' && y === 's') return { k: 'small' };
+  if (x !== 'm' && y !== 'm') return { k: 'hc', i: J.i };   // 一队大角、一队小角
+  if (x === 'm' && y === 'm') return { k: 'none', w: 'm' };
+  const w = x === 'm' ? y : x;   // 一队大角或小角，另一队平均水平
+  return J.clear ? { k: 'hc', i: J.i, add: w } : { k: 'none', w: w };
 }
 
 /* ---------- 三种选择：一条轴、两个滑块 ----------
@@ -202,7 +237,17 @@ function fInput(x, v){
 }
 const fDragEnd = () => { FDRAG = null; };
 
-/* ---------- 上方的面板：每队的最终结果和内部两部分，每一项都跟平均值比 ---------- */
+/* ---------- 上方的面板：每队的最终结果和内部两部分，每一项都跟平均值比，最下面是推荐 ---------- */
+const frPill = (c, ic, tx) => '<span class="frp ' + c + '">' + ic + '<span class="frpt">' + tx + '</span></span>';
+const frSide = w => w === 'b' ? frPill('pb', ICM.up, '大角') : frPill('ps', ICM.dn, '小角');
+function fRecHTML(T, R){
+  if (!T[0].ok && !T[1].ok) return '拖动下面的条，结果自动算出';
+  if (!R) return '等另一队的数据';
+  if (R.k === 'none') return '不推荐：' + (R.w === 'm' ? '两队都在平均水平' : '<span class="frdl">一队' + (R.w === 'b' ? '大角' : '小角') + '、一队平均水平，</span>差距不到 ' + fp(FREC.gap) + ' 倍');
+  const head = '<span class="frl">推荐</span>';
+  if (R.k !== 'hc') return head + frSide(R.k === 'big' ? 'b' : 's');
+  return head + frPill('p' + R.i, ICM.hc, '让球 ' + esc(teamName(R.i))) + (R.add ? '<span class="frpa">＋</span>' + frSide(R.add) : '');
+}
 function renderFres(){
   const el = $('#fres'); if (!el) return;
   const show = PREF.mode === 'f' && M.st !== 2;
@@ -210,28 +255,48 @@ function renderFres(){
   if (!show) return;
   const T = [fTeam(0), fTeam(1)], J = fJudge(T[0], T[1]);
   const cell = (i, key, id, big) => {
-    const t = T[i], c = t.ok ? fCmp(t[key], FAV[key]) : null, tx = t.ok ? t[key].toFixed(1) : '—';
+    const t = T[i], c = t.ok ? fChip(key, t[key]) : null, tx = t.ok ? t[key].toFixed(1) : '—';
     const num = '<b class="frv' + (t.ok ? '' : ' na') + (tx.length > 4 ? ' l' : '') + '" id="' + id + i + '">' + tx + '</b>';
     const chip = c ? '<span class="frd ' + c.k + '" id="' + id + i + 'd"><span class="frdl">' + c.t + '</span><span class="frds">' + c.s + '</span> ' + c.n + '</span>' : big ? '<span class="frd miss">还差 ' + t.miss.length + ' 项</span>' : '';
     return '<div class="frc ' + (i ? 'a' : 'h') + '">' + (i ? chip + num : num + chip) + '</div>';
   };
   const row = (key, id, name, short, big) => '<div class="frw' + (big ? ' big' : '') + '">' + cell(0, key, id, big)
     + '<div class="frm"><span class="frml">' + name + '</span><span class="frms">' + short + '</span><span class="frma"><span class="frmw">平均 </span><b>' + FAV[key].toFixed(1) + '</b></span></div>' + cell(1, key, id, big) + '</div>';
-  let rt = '', jt, jc = '';
-  if (!T[0].ok && !T[1].ok) jt = '拖动下面的条，结果自动算出';
-  else if (!J) jt = '等另一队的数据';
-  else if (J.same) { rt = '1.00<small>倍</small>'; jt = '两队一样，不下结论'; }
-  else {
-    rt = J.r === Infinity ? '' : J.r.toFixed(2) + '<small>倍</small>';
-    if (J.clear){ jt = '判断：' + esc(teamName(J.i)) + ' 角球更多'; jc = ' c' + J.i; }
-    else jt = '相差不到 ' + FRATIO + ' 倍，不下结论';
-  }
+  const rt = !J ? '' : J.same ? '1.00<small>倍</small>' : J.r === Infinity ? '' : J.r.toFixed(2) + '<small>倍</small>';
   el.innerHTML = '<div class="frhd"><span class="frn h">' + esc(teamName(0)) + '</span><b class="frr" id="frr">' + rt + '</b><span class="frn a">' + esc(teamName(1)) + '</span></div>'
     + row('s', 'frv', '最终结果', '最终结果', 1) + row('cross', 'frx', '传中远射频率', '传中远射') + row('centre', 'frz', '中路渗透射门频率', '中路射门')
-    + '<div class="frjr"><span class="frj' + jc + '" id="frj">' + jt + '</span></div>';
-  // 手机的字体比预想的宽、一格放不下时，先省掉“高／低／近”这个字，靠颜色和正负号看
+    + '<div class="frjr"><div class="frj" id="frj">' + fRecHTML(T, fRec(T[0], T[1])) + '</div><button type="button" class="frtn" data-a="frec" aria-label="微调推荐的标准">微调</button></div>';
+  // 手机的字体比预想的宽、一格放不下时，先省掉“大／小／平”这个字，靠颜色和正负号看
   el.querySelectorAll('.frc').forEach(c => {
     const gap = parseFloat(getComputedStyle(c).columnGap) || 0;
     if ([...c.children].reduce((w, e) => w + e.getBoundingClientRect().width + gap, -gap) > c.clientWidth) c.classList.add('tight');
   });
+}
+
+/* ---------- 微调：推荐的标准 ---------- */
+const FRI = {
+  hi: { n: '大角', d: '最终结果比平均值高多少才算大角', v: v => '+' + v + '%', t: v => '最终结果大约 ' + (FAV.s * (1 + v / 100)).toFixed(1) + ' 以上' },
+  lo: { n: '小角', d: '最终结果比平均值低多少才算小角', v: v => '−' + v + '%', t: v => '最终结果大约 ' + (FAV.s * (1 - v / 100)).toFixed(1) + ' 以下' },
+  gap: { n: '差距偏大', d: '一队大角或小角、一队平均水平时，差几倍才推荐让球', v: v => v.toFixed(1) + ' 倍', t: () => '最终结果大的是小的这么多倍以上' }
+};
+const frecNow = () => { const T = [fTeam(0), fTeam(1)]; return fRecHTML(T, fRec(T[0], T[1])); };
+function frecSheetHTML(){
+  const group = k => {
+    const c = FRR[k], x = FRI[k];
+    return '<div class="p1g frgp"><h4><span>' + x.n + '</span><small>' + x.d + '</small></h4><div class="p1val"><b id="frs_' + k + '">' + x.v(FREC[k]) + '</b><span id="frn_' + k + '">' + x.t(FREC[k]) + '</span></div>'
+      + slHTML('frec', k, FREC[k], { lo: c.lo, hi: c.hi, st: c.st, u: c.u, cls: 'h', lab: x.n })
+      + '<div class="slends"><span>' + c.lo + c.u + '</span><span>' + c.hi + c.u + '</span></div></div>';
+  };
+  const same = Object.keys(FR0).every(k => FREC[k] === FR0[k]);
+  return '<div class="card-h"><h3>角球公式：推荐标准</h3><button class="pill dark" data-a="close">完成</button></div>'
+    + '<div class="frnow"><span>现在</span><div class="frj" id="frecNow">' + frecNow() + '</div></div>'
+    + Object.keys(FR0).map(group).join('')
+    + '<div class="defs"><div><h4>两队合起来（固定）</h4><ul><li>两队都大角：推荐大角</li><li>两队都小角：推荐小角</li><li>一队大角、一队小角：推荐让球</li><li>一队大角或小角、一队平均水平，而且差距偏大：推荐让球和对应的大角或小角</li><li>其他情况：不推荐</li><li>让球投最终结果大的那队</li></ul></div></div>'
+    + '<button class="pill" data-a="frecr"' + (same ? ' disabled' : '') + '>恢复初始值</button>'
+    + '<p class="hint">传中远射、中路射门两行也用大角、小角这两个百分比，显示高于或低于平均。改了马上生效，存在这台设备上，不会改任何记录。</p>';
+}
+function frecInput(k, v){
+  FREC[k] = v;
+  setTx('frs_' + k, FRI[k].v(v)); setTx('frn_' + k, FRI[k].t(v)); setTx('frecNow', frecNow());
+  renderFres();
 }

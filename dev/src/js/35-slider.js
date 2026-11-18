@@ -206,6 +206,11 @@ const SLK = {
     input(x, v){ fInput(x, v); },
     commit(x, v){ const p = x.split('_'); fDragEnd(); pickQ(+p[0], p[1], v); }
   },
+  // 角球公式的推荐标准（视窗里）：x＝hi、lo、gap、near
+  frec: {
+    input(k, v){ frecInput(k, v); },
+    commit(k, v){ frecInput(k, v); saveFrec(); }
+  },
   // 全部记录里改一笔：x＝那一笔的 k
   sve: {
     input(k, v){ const s = svByK(+k); if (s) setTx('svev', esc(svValText(s, v))); },

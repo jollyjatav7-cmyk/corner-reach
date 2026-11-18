@@ -798,10 +798,24 @@ textarea.fi{height:140px;padding:10px 12px;font:12px/1.4 ui-monospace,Menlo,mono
 .frw.big .frm{font-size:16px;font-weight:800;color:var(--ink)}
 .frma{font-size:13px;font-weight:600;color:var(--muted)}
 .frma b{font:700 15px/1 var(--f-num);color:var(--ink)}
-.frjr{display:flex;justify-content:center;margin-top:4px}
-.frj{max-width:100%;min-height:28px;padding:3px 14px;border-radius:14px;font-size:15px;line-height:22px;font-weight:700;color:var(--ink2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.frj.c0{background:var(--hc0);color:var(--on-hc0)}
-.frj.c1{background:var(--hc1);color:var(--on-hc1)}
+.frjr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,auto) minmax(0,1fr);align-items:center;gap:8px;margin-top:4px}
+.frj{grid-column:2;min-width:0;min-height:28px;display:flex;align-items:center;justify-content:center;gap:6px;font-size:15px;line-height:22px;font-weight:700;color:var(--ink2);white-space:nowrap}
+.frl{flex:none;font-size:14px;font-weight:800;color:var(--ink)}
+.frp{min-width:0;height:28px;padding:0 12px 0 9px;border-radius:14px;display:inline-flex;align-items:center;gap:5px;font-size:15px;font-weight:800}
+.frp svg{width:15px;height:15px;flex:none}
+.frp.pb{flex:none;background:var(--big);color:var(--on-big)}
+.frp.ps{flex:none;background:var(--small);color:var(--on-small)}
+.frp.p0{background:var(--hc0);color:var(--on-hc0)}
+.frp.p1{background:var(--hc1);color:var(--on-hc1)}
+.frpt{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.frpa{flex:none;font-weight:800;color:var(--ink2)}
+.frtn{grid-column:3;justify-self:end;position:relative;height:26px;padding:0 10px;border:0;border-radius:13px;background:var(--paper);color:var(--ink2);box-shadow:inset 0 0 0 1px var(--rule);font-size:13px;font-weight:700;white-space:nowrap}
+.frtn::after{content:'';position:absolute;top:-12px;right:-6px;bottom:-2px;left:-6px}
+.frnow{display:flex;align-items:center;gap:10px;min-height:44px;padding:6px 10px;border-radius:10px;background:var(--paper);font-size:13px;font-weight:700;color:var(--ink2)}
+.frnow>span{flex:none}
+.frgp h4{flex-wrap:wrap;row-gap:1px}
+.frgp h4>span{flex:none}
+.frnow .frj{flex:1;justify-content:flex-start;font-size:14px}
 
 /* 两队放在同一页：主队一块在上，客队一块在下 */
 body.fmode .main{grid-template-columns:minmax(0,1fr);grid-template-areas:"home";grid-template-rows:auto}
@@ -876,7 +890,9 @@ body.fmode:not(.gmode) .slw.big .slb{width:38px;height:38px;border-radius:19px}
   .frw.big .frv{font-size:40px}
   .frv{font-size:21px}
   .frjr{margin-top:2px}
-  .frj{min-height:24px;padding:1px 12px;font-size:14px}
+  .frj{min-height:24px;font-size:14px}
+  .frp{height:24px;font-size:14px}
+  .frtn{height:24px}
   body.fmode .qck{height:30px}
   .ftmh{height:36px}
   .fl{min-height:68px}
@@ -894,7 +910,7 @@ body.fmode:not(.gmode) .slw.big .slb{width:38px;height:38px;border-radius:19px}
   .fres{margin:2px 10px 4px;padding:1px 9px 4px;border-radius:14px}
   .frhd{grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:6px;min-height:20px}
   .frw{grid-template-columns:minmax(0,1fr) 100px minmax(0,1fr);gap:4px;min-height:21px}
-  .frw.big{min-height:33px}
+  .frw.big{min-height:31px}
   .frn{font-size:13px}
   .frr{font-size:16px}
   .frr small{font-size:11px}
@@ -909,8 +925,13 @@ body.fmode:not(.gmode) .slw.big .slb{width:38px;height:38px;border-radius:19px}
   .frm,.frw.big .frm{justify-content:space-between;gap:3px;font-size:11px;font-weight:700}
   .frma{font-size:10.5px}
   .frma b{font-size:11.5px}
-  .frjr{margin-top:2px}
-  .frj{min-height:0;padding:0 9px;font-size:12px;line-height:18px;border-radius:9px}
+  .frjr{grid-template-columns:minmax(0,1fr) auto;gap:5px;margin-top:2px}
+  .frj{grid-column:1;min-height:20px;gap:4px;font-size:12px;line-height:18px}
+  .frl{font-size:12px}
+  .frp{height:20px;padding:0 8px 0 6px;gap:3px;border-radius:10px;font-size:12px}
+  .frp svg{width:12px;height:12px}
+  .frtn{grid-column:2;height:20px;padding:0 7px;border-radius:10px;font-size:11px}
+  .frnow .frj{font-size:12.5px}
   /* 手机：主队一块在上，客队一块在下，每项一行 */
   body.fmode .main{grid-template-rows:minmax(0,1fr)}
   body.fmode .main .pad{overflow-y:auto;-webkit-overflow-scrolling:touch}
@@ -958,7 +979,8 @@ body.fmode:not(.gmode) .slw.big .slb{width:38px;height:38px;border-radius:19px}
   .frw.big{min-height:28px}
   .frw.big .frv{font-size:min(24px,6.15vw)}
   .frv{font-size:14px}
-  .frj{line-height:16px}
+  .frj{min-height:18px;line-height:16px}
+  .frp,.frtn{height:18px}
   .ftmh{height:21px}
   .fl{min-height:34px}
   .fln{font-size:10.5px;line-height:1.1}
@@ -978,7 +1000,8 @@ body.fmode:not(.gmode) .slw.big .slb{width:38px;height:38px;border-radius:19px}
   body.pip-on.fmode .frw.big{min-height:28px}
   body.pip-on.fmode .frw.big .frv{font-size:min(24px,6.15vw)}
   body.pip-on.fmode .frv{font-size:14px}
-  body.pip-on.fmode .frj{line-height:16px}
+  body.pip-on.fmode .frj{min-height:18px;line-height:16px}
+  body.pip-on.fmode .frp,body.pip-on.fmode .frtn{height:18px}
   body.pip-on.fmode .ftmh{height:19px}
   body.pip-on.fmode .ftmh .qck{height:19px}
   body.pip-on.fmode .fl{min-height:32px}
