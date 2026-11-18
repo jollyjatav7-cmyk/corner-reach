@@ -33,7 +33,6 @@ document.addEventListener('click', ev => {
     case 'close': closeSheet(); break;
     // 记录
     case 'mode': PREF.mode = ['q', 'g', 'f'].indexOf(b.dataset.v) >= 0 ? b.dataset.v : 'rec'; savePref(); setMid(false); renderAll(); break;
-    case 'fside': FSIDE = +b.dataset.v ? 1 : 0; renderPads(); renderFres(); break;
     case 'favg': setMid(false); openSheet('favg'); break;
     case 'favclr': favClear(); renderAll(); renderSheet(); break;
     case 'goal': tapGoal(+b.dataset.i); break;

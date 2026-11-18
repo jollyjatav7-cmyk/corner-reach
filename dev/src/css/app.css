@@ -772,7 +772,7 @@ textarea.fi{height:140px;padding:10px 12px;font:12px/1.4 ui-monospace,Menlo,mono
   body.qmode:not(.gmode) .slw.big .slb{width:36px;height:36px;border-radius:18px}
 }
 
-/* ---------- 角球公式：上方是两队的结果，下面每队五条拖动条 ---------- */
+/* ---------- 角球公式：上方是两队的结果，下面同一项的两队拖动条上下排在一起 ---------- */
 .fres{margin:0 20px 8px;padding:10px 16px 6px;background:var(--card);border:1px solid var(--line2);border-radius:18px;flex:none}
 .fres[hidden]{display:none}
 .frt{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1.3fr) auto minmax(0,1fr);align-items:center;gap:10px}
@@ -801,75 +801,105 @@ textarea.fi{height:140px;padding:10px 12px;font:12px/1.4 ui-monospace,Menlo,mono
 .fra{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:30px;margin-top:2px;padding:0;border:0;background:none;font-size:13px;color:var(--ink2)}
 .fra b{font:700 16px/1 var(--f-num);color:var(--ink)}
 .frc{color:var(--ink);font-weight:700;text-decoration:underline;text-underline-offset:3px}
-.fsw{display:none}
-.fab{display:none}
-.fcard{background:var(--card);border:1px solid var(--line2);border-radius:18px;padding:4px 14px 8px}
-.frow{padding:7px 0 2px;border-bottom:1px solid var(--line2)}
-.frow:last-of-type{border-bottom:0}
-.frh{display:flex;align-items:center;gap:8px;height:36px}
-.frl{flex:1;min-width:0;margin:0;font-size:18px;line-height:1.3;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.frl em{margin-left:6px;font:italic 600 14px var(--f-ui);color:var(--muted)}
-.fw{flex:none;font-size:13.5px;font-weight:700;color:var(--ink2);white-space:nowrap}
-.fval{flex:none;font:700 32px/1 var(--f-num);font-variant-numeric:tabular-nums;white-space:nowrap}
-.fval small{font:700 15px var(--f-ui);margin-left:2px}
-.fval.na{font:600 14px/1.2 var(--f-ui);color:var(--muted)}
-.fval .nh svg{width:24px;height:24px}
-.fd{font-size:12.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-body.fmode .sl.big{height:46px}
-body.fmode .sl.big .sl-t{height:10px;border-radius:5px}
-body.fmode .sl.big .sl-k{width:34px;height:34px;margin:-17px 0 0 -17px}
-body.fmode .slw.big .slb{width:36px;height:36px;border-radius:18px}
-.sl-c{position:absolute;top:0;bottom:0;right:0;border-radius:0 6px 6px 0;background:repeating-linear-gradient(135deg,var(--rule) 0 3px,var(--card) 3px 6px)}
-.fmix{padding:7px 0;border-bottom:1px solid var(--line2)}
-.fmb{display:flex;height:8px;border-radius:4px;overflow:hidden;background:var(--trk)}
-.fmb i{display:block;height:100%}
-.fmb .c-x{background:var(--cx)} .fmb .c-m{background:var(--cm)} .fmb .c-b{background:var(--cb)}
-.fmt{display:flex;justify-content:space-between;gap:8px;margin-top:4px;font-size:12.5px;color:var(--ink2);white-space:nowrap}
-.fmt span{display:inline-flex;align-items:center;gap:4px;min-width:0}
-.fmt i{width:9px;height:9px;border-radius:3px;flex:none}
-.fmt b{font-weight:700;color:var(--ink)}
-.fcalc{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding-top:6px;font-size:13px;color:var(--ink2);white-space:nowrap}
+
+/* 两队放在同一块 */
+body.fmode .main{grid-template-columns:minmax(0,1fr);grid-template-areas:"home";grid-template-rows:auto}
+body.fmode .pad[data-i="1"]{display:none}
+.fteams{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;padding:0 4px 8px}
+.ft{display:flex;align-items:center;gap:8px;min-width:0}
+.ft>i{width:10px;height:10px;border-radius:50%;flex:none}
+.ft.h>i{background:var(--home)} .ft.a>i{background:var(--away)}
+.ft>b{flex:1;min-width:0;font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ft.h>b{color:var(--home)} .ft.a>b{color:var(--away)}
+.ft .qck{flex:none}
+.fboard{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+.fg{min-width:0;padding:8px 14px 6px;background:var(--card);border:1px solid var(--line2);border-radius:16px}
+.fgh{display:flex;align-items:center;gap:8px;min-width:0;height:28px}
+.fgt{flex:none;margin:0;font-size:17px;line-height:1.2;font-weight:800;white-space:nowrap}
+.fgt em{margin-left:5px;font:italic 600 14px var(--f-ui);color:var(--muted)}
+.fgs{display:none}
+.fgd{flex:1;min-width:0;font-size:12.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fgl{flex:1;min-width:0;display:flex;justify-content:flex-end;gap:10px;font-size:12.5px;color:var(--ink2);white-space:nowrap}
+.fgl span{display:inline-flex;align-items:center;gap:4px}
+.fgl i{width:10px;height:10px;border-radius:3px;flex:none}
+.fl{display:grid;grid-template-columns:7em minmax(0,1fr);align-items:center;gap:8px;min-height:54px}
+.flv{display:flex;flex-direction:column;justify-content:center;min-width:0}
+.fln{max-width:100%;font-size:13px;font-weight:700;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fl.h .fln,.fl.h .fval{color:var(--home)} .fl.a .fln,.fl.a .fval{color:var(--away)}
+.flx{display:flex;align-items:baseline;gap:6px;min-width:0}
+.fw{flex:none;order:2;font-size:12.5px;font-weight:700;color:var(--ink2);white-space:nowrap}
+.fval{flex:none;font:700 28px/1.05 var(--f-num);font-variant-numeric:tabular-nums;white-space:nowrap}
+.fval small{font:700 13px var(--f-ui);margin-left:2px}
+.fval.na{font:600 13.5px/1.5 var(--f-ui)}
+.fval .nh svg{width:22px;height:22px}
+body.fmode:not(.gmode) .sl.big{height:46px}
+body.fmode:not(.gmode) .sl.big .sl-t{height:10px;border-radius:5px}
+body.fmode:not(.gmode) .sl.big .sl-k{width:32px;height:32px;margin:-16px 0 0 -16px}
+body.fmode:not(.gmode) .slw.big .slb{width:36px;height:36px;border-radius:18px}
+.fcalcs{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;padding:7px 6px 0}
+.fcalc{display:flex;justify-content:space-between;align-items:baseline;gap:10px;min-width:0;font-size:13px;color:var(--ink2);white-space:nowrap}
 .fcalc b{color:var(--ink);font-weight:800}
 .fcs{min-width:0;overflow:hidden;text-overflow:ellipsis}
-.fcm{color:var(--muted);white-space:normal}
+.fcm{color:var(--muted)}
+
+/* 三种选择：一条轴、两个滑块，分成传中远射、中路渗透、回传三段 */
+.tri{position:relative;height:46px;padding:0 13px;cursor:pointer;touch-action:pan-y;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+.tri.lock{touch-action:none}
+.tri-r{position:relative;height:100%}
+.tri-t{position:absolute;left:0;right:0;top:50%;height:30px;margin-top:-15px;display:flex;border-radius:9px;overflow:hidden;background:var(--trk)}
+.tri-s{display:flex;align-items:center;justify-content:center;height:100%;min-width:0;overflow:hidden;color:#fff}
+.tri-s.c-b{color:var(--tcb)}
+.tri-s b{font:700 15px/1 var(--f-num);font-variant-numeric:tabular-nums}
+.tri-s small{font-size:10.5px;margin-left:1px}
+.tri.na .tri-s{background:none}
+.tri-hint{position:absolute;left:0;right:0;top:0;bottom:0;display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--muted);white-space:nowrap}
+.tri-k{position:absolute;top:50%;width:20px;height:40px;margin:-20px 0 0 -10px;border-radius:9px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.3),inset 0 0 0 2.5px var(--hm);outline:none}
+.tri.a .tri-k{box-shadow:0 1px 4px rgba(0,0,0,.3),inset 0 0 0 2.5px var(--am)}
+.tri.n .tri-k{box-shadow:0 1px 4px rgba(0,0,0,.3),inset 0 0 0 2.5px var(--ink2)}
+.tri.na .tri-k{box-shadow:0 1px 3px rgba(0,0,0,.2),inset 0 0 0 2px var(--muted)}
+.tri-k::after{content:"";position:absolute;left:50%;top:50%;width:6px;height:14px;margin:-7px 0 0 -3px;border-left:2px solid var(--rule);border-right:2px solid var(--rule);box-sizing:border-box}
+.tri-k:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.tri-k.top{z-index:2}
+.tri-tip{display:none;position:absolute;left:50%;bottom:calc(100% - 2px);transform:translateX(-50%);padding:3px 9px;border-radius:9px;background:var(--ink);color:var(--paper);font-size:12px;line-height:17px;font-weight:700;white-space:nowrap;z-index:5;pointer-events:none}
+.tri.drag .tri-tip{display:block}
+.favm{margin:2px 0 8px}
+.favl{display:flex;justify-content:space-between;gap:8px;margin:0 0 2px;font-size:12.5px;color:var(--ink2);white-space:nowrap}
+.favl span{display:inline-flex;align-items:center;gap:4px}
+.favl i{width:10px;height:10px;border-radius:3px;flex:none}
+
 @media (min-width:600px){
   body.fmode .fres{position:sticky;top:env(safe-area-inset-top);z-index:6}
 }
-/* iPad 横放：高度不够时压缩，结果和五条拖动条放得下一个画面 */
+/* iPad 直放：每项一整行，条比较长 */
+@media (min-width:600px) and (max-width:899px){
+  .fboard{grid-template-columns:minmax(0,1fr)}
+  .frv{font-size:44px}
+  .frg{height:24px;padding:0 8px;font-size:12.5px}
+  .frt{gap:8px}
+  .fcalc{font-size:12px}
+}
+/* iPad 横放：高度不够时压缩，结果和两队的拖动条放得下一个画面 */
 @media (min-width:600px) and (max-height:900px){
   .fres{padding:6px 14px 2px;margin-bottom:6px}
   .frv{font-size:44px}
   .frr{font-size:28px}
   .frb{margin-top:5px;height:6px}
   .fra{min-height:24px}
-  body.fmode .pad-h{padding-bottom:4px}
+  .fteams{padding-bottom:5px}
   body.fmode .qck{height:30px}
-  .fcard{padding:1px 14px 5px}
-  .frow{padding:2px 0 0}
-  .frh{height:30px}
-  .fd{display:none}
-  .fval{font-size:26px}
-  .fval small{font-size:13px}
-  body.fmode .sl.big{height:38px}
-  body.fmode .sl.big .sl-k{width:30px;height:30px;margin:-15px 0 0 -15px}
-  body.fmode .slw.big .slb{width:32px;height:32px;border-radius:16px}
-  .fmix{padding:4px 0}
-  .fcalc{padding-top:4px}
+  .fg{padding:5px 12px 3px}
+  .fgh{height:24px}
+  .fl{min-height:64px}
+  .fcalcs{padding-top:5px}
 }
 @media (min-width:600px) and (max-height:800px){
   .frv{font-size:40px}
-  .frh{height:27px}
-  .frow{padding:1px 0 0}
-  body.fmode .sl.big{height:35px}
-  .fmix{padding:3px 0}
-  .fmt{margin-top:2px}
-}
-@media (min-width:600px) and (max-width:899px){
-  .frv{font-size:44px}
-  .frg{height:24px;padding:0 8px;font-size:12.5px}
-  .frt{gap:8px}
-  .frl{font-size:16px}
-  .fcs{font-size:12px}
+  .fl{min-height:44px}
+  .fval{font-size:24px}
+  body.fmode:not(.gmode) .sl.big{height:40px}
+  .tri{height:40px}
+  .tri-t{height:27px;margin-top:-13.5px}
+  .tri-k{height:36px;margin-top:-18px}
 }
 @media (max-width:599px){
   .fres{margin:2px 10px 4px;padding:6px 10px 2px;border-radius:14px}
@@ -888,76 +918,90 @@ body.fmode .slw.big .slb{width:36px;height:36px;border-radius:18px}
   .frt.notag .frj{max-width:100%}
   .frg.t0{grid-area:2 / 1;justify-self:start} .frg.t1{grid-area:2 / 3;justify-self:end}
   .frb{height:6px;margin-top:4px}
-  .fra{min-height:24px;margin-top:0;font-size:11.5px;gap:6px}
+  .fra{min-height:22px;margin-top:0;font-size:11.5px;gap:6px}
   .fra b{font-size:14px}
-  /* 手机：一次调整一队，点球队名字切换 */
-  body.fmode .main{grid-template-areas:"home";grid-template-rows:minmax(0,1fr)}
-  body.fmode:not(.ended) .pad{grid-area:home}
-  body.fmode:not(.ended):not(.fs1) .pad[data-i="1"]{display:none}
-  body.fmode.fs1:not(.ended) .pad[data-i="0"]{display:none}
+  /* 手机：两队的拖动条也在同一页，只留数字和条 */
+  body.fmode .main{grid-template-rows:minmax(0,1fr)}
   body.fmode .main .pad{overflow-y:auto;-webkit-overflow-scrolling:touch}
-  body.fmode .pad-h{padding:0 0 4px;gap:6px}
-  body.fmode .pad-h>i,body.fmode .pad-h>b,body.fmode .pad-h .who,body.fmode .pad-h .sp{display:none}
-  .fsw{flex:1;min-width:0;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);padding:2px;border-radius:12px;background:var(--card);border:1px solid var(--line2)}
-  .fsw button{min-width:0;height:30px;padding:0 6px;border:0;border-radius:9px;background:none;display:flex;align-items:center;justify-content:center;gap:5px;font-size:13.5px;font-weight:700;color:var(--ink2)}
-  .fsw button span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .fsw i{width:8px;height:8px;border-radius:50%;flex:none}
-  .fsw .h i{background:var(--hm)} .fsw .a i{background:var(--am)}
-  .fsw .h[aria-pressed="true"]{background:var(--hm);color:#fff}
-  .fsw .a[aria-pressed="true"]{background:var(--am);color:#fff}
-  .fsw button[aria-pressed="true"] i{background:#fff}
-  .fcard{padding:0 10px 3px;border-radius:14px}
-  .frow{padding:2px 0 0}
-  .frh{height:24px}
-  .frl{font-size:15.5px}
-  .frl em{font-size:12.5px;margin-left:4px}
-  .fw{font-size:12px}
-  .fval{font-size:24px}
-  .fval small{font-size:12px}
-  .fval.na{font-size:12.5px}
-  .fd{display:none}
-  body.fmode .sl.big{height:38px}
-  .fmix{padding:3px 0}
-  .fmb{height:6px}
-  .fmt{margin-top:2px;font-size:11.5px}
-  .fcalc{padding-top:3px;font-size:11.5px;gap:6px}
-  /* 浮窗模式：每条一行（短名字和值在左边，拖动条在右边），只留结果和拖动条 */
-  body.pip-on.fmode .fres{padding:3px 8px 3px}
-  body.pip-on.fmode .frv{font-size:26px}
-  body.pip-on.fmode .frr{font-size:20px;padding-top:12px}
-  body.pip-on.fmode .frb,body.pip-on.fmode .fra,body.pip-on.fmode .fmix,body.pip-on.fmode .fcalc{display:none}
-  body.pip-on.fmode .frow{display:grid;grid-template-columns:5em minmax(0,1fr);align-items:center;gap:0 4px;padding:1px 0}
-  body.pip-on.fmode .frh{flex-direction:column;align-items:flex-start;justify-content:center;gap:0;height:auto;min-width:0}
-  body.pip-on.fmode .frl,body.pip-on.fmode .fw{display:none}
-  body.pip-on.fmode .fab{display:block;font-size:12px;font-weight:700;line-height:1.2;white-space:nowrap}
-  body.pip-on.fmode .fval{font-size:17px} body.pip-on.fmode .fval small{font-size:10.5px} body.pip-on.fmode .fval.na{font-size:11px}
-  body.pip-on.fmode .sl.big{height:34px}
-  body.pip-on.fmode .sl.big .sl-k{width:28px;height:28px;margin:-14px 0 0 -14px}
-  body.pip-on.fmode .slw.big .slb{width:30px;height:30px;border-radius:15px}
-  body.pip-on.fmode .fsw button{height:24px;font-size:12.5px}
-  body.pip-on.fmode .pad-h{padding-bottom:2px}
+  .fteams{gap:8px;padding:0 2px 3px}
+  .ft{gap:5px}
+  .ft>i{width:8px;height:8px}
+  .ft>b{font-size:13px}
+  body.fmode .ft .qck{height:26px;padding:0 7px 0 6px;gap:3px;font-size:12px}
+  body.fmode .ft .qck svg{width:12px;height:12px}
+  body.fmode .ft .qck b{font-size:16px}
+  .fboard{grid-template-columns:minmax(0,1fr);gap:3px}
+  .fg{padding:1px 8px 1px;border-radius:12px}
+  .fgh{height:20px;gap:6px}
+  .fgt{font-size:13.5px}
+  .fgt em{font-size:12px;margin-left:3px}
+  .fgd{display:none}
+  .fgl{gap:7px;font-size:11px}
+  .fgl i{width:8px;height:8px;border-radius:2px}
+  .fl{grid-template-columns:48px minmax(0,1fr);gap:2px;min-height:37px}
+  .fln,.fw{display:none}
+  .flc .fln{display:block;font-size:12px}
+  .fval{font-size:20px}
+  .fval small{font-size:11px}
+  .fval.na{font-size:12px}
+  .fval .nh svg{width:18px;height:18px}
+  body.fmode:not(.gmode) .sl.big{height:37px}
+  body.fmode:not(.gmode) .sl.big .sl-t{height:8px;border-radius:4px}
+  body.fmode:not(.gmode) .sl.big .sl-k{width:28px;height:28px;margin:-14px 0 0 -14px}
+  body.fmode:not(.gmode) .slw.big .slb{width:30px;height:30px;border-radius:15px}
+  .tri{height:37px;padding:0 10px}
+  .tri-t{height:26px;margin-top:-13px;border-radius:8px}
+  .tri-s b{font-size:13px}
+  .tri-s small{display:none}
+  .tri-k{width:18px;height:33px;margin:-16.5px 0 0 -9px;border-radius:8px}
+  .tri-hint{font-size:12px}
+  .fcalcs{display:none}
 }
-/* 比较矮的手机（iPhone SE 这类）：每条一行（短名字和值在左边，拖动条在右边），一个画面放得下 */
+/* 比较矮的手机和浮窗模式：项目的名字放在左边，每条再矮一点 */
 @media (max-width:599px) and (max-height:700px){
   .frv{font-size:30px}
-  .frow{display:grid;grid-template-columns:5em minmax(0,1fr);align-items:center;gap:0 4px;padding:1px 0}
-  .frh{flex-direction:column;align-items:flex-start;justify-content:center;gap:0;height:auto;min-width:0}
-  .frl,.fw{display:none}
-  .fab{display:block;font-size:12.5px;font-weight:700;line-height:1.2;white-space:nowrap}
-  .fval{font-size:19px} .fval small{font-size:11px} .fval.na{font-size:11.5px}
-  body.fmode .sl.big{height:38px}
-  body.fmode .sl.big .sl-k{width:30px;height:30px;margin:-15px 0 0 -15px}
-  body.fmode .slw.big .slb{width:32px;height:32px;border-radius:16px}
+  .fg{display:grid;grid-template-columns:2.5em minmax(0,1fr);align-items:center;padding:0 6px}
+  .fgh{height:auto}
+  .fgt,.fgl{display:none}
+  .fgs{display:block;font-size:12.5px;font-weight:800;line-height:1.15}
+  .fl{grid-template-columns:46px minmax(0,1fr);min-height:32px}
+  .fval{font-size:17px}
+  .fval small{font-size:10px}
+  .fval.na{font-size:11px}
+  .flc .fln{font-size:11px}
+  body.fmode:not(.gmode) .sl.big{height:32px}
+  body.fmode:not(.gmode) .sl.big .sl-k{width:26px;height:26px;margin:-13px 0 0 -13px}
+  body.fmode:not(.gmode) .slw.big .slb{width:28px;height:28px;border-radius:14px}
+  .tri{height:32px}
+  .tri-t{height:23px;margin-top:-11.5px}
+  .tri-k{height:30px;margin-top:-15px}
+}
+@media (max-width:599px){
+  body.pip-on.fmode .fres{padding:3px 8px 2px}
+  body.pip-on.fmode .frv{font-size:26px}
+  body.pip-on.fmode .frr{font-size:20px;padding-top:12px}
+  body.pip-on.fmode .frb,body.pip-on.fmode .fra{display:none}
+  body.pip-on.fmode .fg{display:grid;grid-template-columns:2.5em minmax(0,1fr);align-items:center;padding:0 6px}
+  body.pip-on.fmode .fgh{height:auto}
+  body.pip-on.fmode .fgt,body.pip-on.fmode .fgl{display:none}
+  body.pip-on.fmode .fgs{display:block;font-size:12.5px;font-weight:800;line-height:1.15}
+  body.pip-on.fmode .fl{grid-template-columns:46px minmax(0,1fr);min-height:31px}
+  body.pip-on.fmode .fval{font-size:17px}
+  body.pip-on.fmode .fval small{font-size:10px}
+  body.pip-on.fmode .fval.na{font-size:11px}
+  body.pip-on.fmode .flc .fln{font-size:11px}
+  body.pip-on.fmode:not(.gmode) .sl.big{height:31px}
+  body.pip-on.fmode:not(.gmode) .sl.big .sl-k{width:26px;height:26px;margin:-13px 0 0 -13px}
+  body.pip-on.fmode:not(.gmode) .slw.big .slb{width:28px;height:28px;border-radius:14px}
+  body.pip-on.fmode .tri{height:31px}
+  body.pip-on.fmode .tri-t{height:23px;margin-top:-11.5px}
+  body.pip-on.fmode .tri-k{height:29px;margin-top:-14.5px}
 }
 @media (max-width:599px) and (max-height:620px){
   .frv{font-size:26px}
-  .frb,.fmix,.fcalc{display:none}
-  body.fmode .sl.big{height:34px}
-  body.fmode .sl.big .sl-k{width:28px;height:28px;margin:-14px 0 0 -14px}
-  body.fmode .slw.big .slb{width:30px;height:30px;border-radius:15px}
-  .fsw button{height:26px;font-size:12.5px}
+  .frb{display:none}
 }
-/* 比较窄的手机：数字和“高于平均”放得下一行 */
+/* 比较窄的手机 */
 @media (max-width:389px){
   .frv{font-size:32px}
   .frg{padding:0 5px;font-size:11px}

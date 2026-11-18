@@ -211,8 +211,9 @@ function renderPads(){
     $('.pad[data-i="1"]').innerHTML = '';
     return;
   }
+  if (PREF.mode === 'f'){ $('.pad[data-i="0"]').innerHTML = fBoardHTML(); $('.pad[data-i="1"]').innerHTML = ''; return; }   // 角球公式：两队放在同一块
   const sc = 'h' + curP();
-  for (const i of [0, 1]) $('.pad[data-i="' + i + '"]').innerHTML = PREF.mode === 'q' ? qPadHTML(i) : PREF.mode === 'g' ? gPadHTML(i) : PREF.mode === 'f' ? fPadHTML(i) : recPadHTML(i, sc);
+  for (const i of [0, 1]) $('.pad[data-i="' + i + '"]').innerHTML = PREF.mode === 'q' ? qPadHTML(i) : PREF.mode === 'g' ? gPadHTML(i) : recPadHTML(i, sc);
 }
 /* 最近的一笔（事件或主观选择） */
 function lastAny(){

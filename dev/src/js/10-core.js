@@ -91,7 +91,7 @@ const GS = [
   { f: 'g2', pct: 1, pg: 'g', n: '对面球门前漏洞大不大？', s: '对面门前漏洞大不大', ab: '门前漏洞', d: '对方门前防守的空当和失误', lo: '很小', hi: '很大', bk: BK5(['很小', '小', '一般', '大', '很大']) },
   { f: 'g3', pct: 1, pg: 'g', n: '自己的进攻质量高不高？', s: '自己的进攻质量高不高', ab: '进攻质量', d: '传中、射门、基本功、战术配合……', lo: '很低', hi: '很高', bk: BK5(['很低', '低', '一般', '高', '很高']) }
 ];
-/* 角球公式：每队五条拖动条（公式在 37-formula.js）。
+/* 角球公式：每队五个数（公式在 37-formula.js）；y、h 在画面上是同一条轴的两个滑块。
    min、max、step＝条的范围和每格多少（没写的是 0–100%，每格跟着“功能 → 拖动条”）；u＝单位（没写的是 %）；
    sym＝公式里的符号；def＝没设时按这个值算（a、b 没设就当联赛平均 1）；ab＝浮窗模式里的短名字 */
 const BKF = w => [[0, 0.55, '0–0.5', w[0]], [0.55, 0.85, '0.6–0.8', w[1]], [0.85, 1.15, '0.9–1.1', w[2]], [1.15, 1.55, '1.2–1.5', w[3]], [1.55, 2.01, '1.6–2', w[4]]];
@@ -314,11 +314,11 @@ function svPair(s){
   for (const x of M.sv) if (x !== s && x.f === 'bq' && x.g === s.g && x.i !== s.i) return x;
   return null;
 }
-let SL = null, SB = null, rdPend = 0;   // 正在拖的拖动条、正在按的 −／＋；这时候先不重画画面
+let SL = null, SB = null, TRI = null, rdPend = 0;   // 正在拖的拖动条、正在按的 −／＋、正在拖的三段轴（角球公式）；这时候先不重画画面
 // 正在打备注：画面先不重画（不然键盘会收起来），放开以后再重画
 const typing = () => { const a = document.activeElement; return !!(a && a.classList && a.classList.contains('qnta')); };
-const slBusy = () => !!((SL && SL.s === 'd') || SB) || typing();
-const slBusyEl = () => SL && SL.s === 'd' ? SL.el : SB ? SB.el : null;
+const slBusy = () => !!((SL && SL.s === 'd') || SB || (TRI && TRI.on)) || typing();
+const slBusyEl = () => SL && SL.s === 'd' ? SL.el : SB ? SB.el : TRI && TRI.on ? TRI.el : null;
 const lastSvK = (i, f) => { let k = 0; for (const s of M.sv) if (s.i === i && s.f === f && s.k > k) k = s.k; return k; };
 /* 现在的选择：最后记的那一笔；某个时间点的选择：那个时间以前最后一笔 */
 function svCur(m, i, f){ let best = null; for (const s of m.sv) if (s.i === i && s.f === f && (!best || s.k > best.k)) best = s; return best; }
