@@ -1,7 +1,7 @@
 /* ================= 角球公式 =================
    角球指数 = x × [ y + (1 − y − h) × z ]，z = 1 ÷ (1 + 3 × a × b)
    x 到达次数、y 传中和远射占比、h 回传占比、a 打门门槛、b 对方禁区内防守（a、b 的 1 是联赛平均，没设时按 1 算）。
-   画面上两队同一项上下排在一起，可以直接比较比例；y、h 在同一条轴上（两个滑块分成传中远射、中路渗透、回传三段）。
+   画面上主队一块在上、客队一块在下，都在同一页；y、h 在同一条轴上（两个滑块分成传中远射、中路渗透、回传三段）。
    跟两个问题一样每次放开都记下时间；拖的时候上方的结果跟着算。
    两队对比：大的是小的 2 倍以上才下判断。高于／低于平均：比联赛平均线高或低 10% 以上。
    联赛平均（FAVG）不属于哪一场，一直留着。指数只用来比较高低，不是角球数。 */
@@ -83,8 +83,8 @@ function triParts(y, h){
   return { y: Y, h: H, m: r1(100 - Y - H) };
 }
 function triSegs(p){
-  const seg = (c, v) => '<i class="tri-s ' + c + '" style="width:' + v + '%">' + (v >= 10 && !hideNum() ? '<b>' + fp(v) + '<small>%</small></b>' : '') + '</i>';
-  return seg('c-x', p.y) + seg('c-m', p.m) + seg('c-b', p.h);
+  const seg = (c, n, v) => '<i class="tri-s ' + c + '" style="width:' + v + '%">' + (v >= 24 ? '<span class="tri-n">' + n + '</span>' : '') + (v >= 10 && !hideNum() ? '<b>' + fp(v) + '<small>%</small></b>' : '') + '</i>';
+  return seg('c-x', '传中', p.y) + seg('c-m', '中路', p.m) + seg('c-b', '回传', p.h);
 }
 function triHTML(kind, x, y, h, o){
   const un = y == null && h == null, p = triParts(y, h);
@@ -179,7 +179,7 @@ document.addEventListener('keydown', ev => {
   if (again) again.querySelector('.k' + k).focus();
 });
 
-/* ---------- 两队放在同一块：同一项的两条上下对齐 ---------- */
+/* ---------- 两队放在同一页：主队一块在上，客队一块在下 ---------- */
 const fNum = (q, v) => q.step === 0.1 ? v.toFixed(1) : fp(v);
 const fUnit = q => q.u == null ? '%' : q.u.trim();
 function fValHTML(q, v){
@@ -187,37 +187,33 @@ function fValHTML(q, v){
   if (hideNum()) return '<span class="nh" title="数字已隐藏">' + ICE.off + '</span>';
   return fNum(q, v) + (fUnit(q) ? '<small>' + fUnit(q) + '</small>' : '');
 }
-/* d＝这一行是哪一队；own＝这一行是那一队自己的防守，记在对方的 b 上（算对方的指数时用） */
-function fNumRow(g, d, vals){
-  const q = SVF[g.f], i = g.own ? 1 - d : d, v = vals[i][g.f], x = i + '_' + g.f;
-  return '<div class="fl ' + (d ? 'a' : 'h') + '"><div class="flv"><span class="fln">' + esc(teamName(d)) + '</span><span class="flx"><span class="fval' + (v == null ? ' na' : '') + '" id="fv_' + x + '">' + fValHTML(q, v) + '</span><span class="fw" id="fw_' + x + '">' + wordHTML(q.f, v) + '</span></span></div>'
-    + slHTML('f', x, v, { lo: q.min, hi: q.max, st: q.step, u: q.u, cls: 'big lock ' + (d ? 'a' : 'h'), lab: teamName(d) + ' ' + g.t }) + '</div>';
-}
-function fGroupHTML(g, vals){
-  return '<section class="fg"><div class="fgh"><span class="fgs" aria-hidden="true">' + g.ab + '</span><h3 class="fgt">' + g.t + '<em>' + g.sym + '</em></h3><span class="fgd">' + g.d + '</span></div>'
-    + '<div class="fgb">' + fNumRow(g, 0, vals) + fNumRow(g, 1, vals) + '</div></section>';
-}
 const FLEG = '<span><i class="c-x"></i>传中远射</span><span><i class="c-m"></i>中路渗透</span><span><i class="c-b"></i>回传</span>';
-function fChoiceHTML(vals){
-  const row = d => '<div class="fl flc ' + (d ? 'a' : 'h') + '"><div class="flv"><span class="fln">' + esc(teamName(d)) + '</span></div>'
-    + triHTML('f', String(d), vals[d].fy, vals[d].fh, { cls: 'lock ' + (d ? 'a' : 'h'), lab: teamName(d) }) + '</div>';
-  return '<section class="fg"><div class="fgh"><span class="fgs" aria-hidden="true">选择</span><h3 class="fgt">到达后的选择</h3><span class="fgl">' + FLEG + '</span></div><div class="fgb">' + row(0) + row(1) + '</div></section>';
+/* 每队的四项：t 全名（iPad）、s 短名（手机） */
+const FITEMS = [
+  { f: 'fx', t: '到达次数', s: '到达', sym: 'x' },
+  { choice: 1, t: '到达后的选择', s: '选择' },
+  { f: 'fa', t: '打门门槛', s: '门槛', sym: 'a' },
+  { f: 'fb', t: '对方禁区内防守', s: '对方防守', sym: 'b' }
+];
+function fItemHTML(g, i, v){
+  const name = '<span class="fln"><span class="fll">' + g.t + (g.sym ? '<em>' + g.sym + '</em>' : '') + '</span><span class="fls">' + g.s + '</span></span>', c = i ? 'a' : 'h';
+  if (g.choice) return '<div class="fl flc"><div class="flv">' + name + '</div>' + triHTML('f', String(i), v.fy, v.fh, { cls: 'lock ' + c, lab: teamName(i) }) + '</div>';
+  const q = SVF[g.f], x = i + '_' + g.f, val = v[g.f];
+  return '<div class="fl"><div class="flv">' + name + '<span class="flx"><span class="fval' + (val == null ? ' na' : '') + '" id="fv_' + x + '">' + fValHTML(q, val) + '</span><span class="fw" id="fw_' + x + '">' + wordHTML(q.f, val) + '</span></span></div>'
+    + slHTML('f', x, val, { lo: q.min, hi: q.max, st: q.step, u: q.u, cls: 'big lock ' + c, lab: teamName(i) + ' ' + g.t }) + '</div>';
 }
 /* 这一队的算式 */
 function fCalcHTML(t){
   if (!t.ok) return '<span class="fcm">还差：' + esc(t.miss.join('、')) + '</span>';
   return '<span>打门比例 z <b>' + Math.round(t.z * 100) + '%</b></span><span class="fcs">传中远射 ' + t.cross.toFixed(1) + ' ＋ 中路打门 ' + t.centre.toFixed(1) + ' ＝ <b>' + t.s.toFixed(1) + '</b></span>';
 }
-function fBoardHTML(){
-  const T = [fTeam(0), fTeam(1)], vals = [T[0].v, T[1].v];
-  const team = i => '<div class="ft ' + (i ? 'a' : 'h') + '"><i></i><b>' + esc(teamName(i)) + '</b><button class="qck" data-a="ck" data-i="' + i + '" aria-label="' + esc(teamName(i)) + ' 角球加一">' + FLAG + '<span>角球</span><b>' + statOf(M, i, 'ft').ck + '</b><small>＋1</small></button></div>';
-  return '<div class="fteams">' + team(0) + team(1) + '</div><div class="fboard">'
-    + fGroupHTML({ f: 'fx', t: '到达次数', sym: 'x', ab: '到达', d: '这段时间到对方禁区附近几次' }, vals)
-    + fChoiceHTML(vals)
-    + fGroupHTML({ f: 'fa', t: '打门门槛', sym: 'a', ab: '门槛', d: '中路渗透后要多大的机会才打门，1 是联赛平均' }, vals)
-    + fGroupHTML({ f: 'fb', t: '禁区内防守', sym: 'b', ab: '防守', own: 1, d: '每行是那一队自己的防守，1 是联赛平均' }, vals)
-    + '</div><div class="fcalcs"><div class="fcalc" id="fcalc_0">' + fCalcHTML(T[0]) + '</div><div class="fcalc" id="fcalc_1">' + fCalcHTML(T[1]) + '</div></div>';
+function fTeamHTML(i){
+  const t = fTeam(i);
+  return '<section class="ftm ' + (i ? 'a' : 'h') + '" aria-label="' + esc(teamName(i)) + '"><div class="ftmh"><b>' + esc(teamName(i)) + '</b><div class="fcalc" id="fcalc_' + i + '">' + fCalcHTML(t) + '</div>'
+    + '<button class="qck" data-a="ck" data-i="' + i + '" aria-label="' + esc(teamName(i)) + ' 角球加一">' + FLAG + '<span>角球</span><b>' + statOf(M, i, 'ft').ck + '</b><small>＋1</small></button></div>'
+    + '<div class="ftmb">' + FITEMS.map(g => fItemHTML(g, i, t.v)).join('') + '</div></section>';
 }
+const fBoardHTML = () => '<div class="ftms">' + fTeamHTML(0) + fTeamHTML(1) + '</div>';
 /* 拖的时候：这一条的数字、算式和上方的结果跟着变，整个画面放开以后才重画 */
 function fInput(x, v){
   const p = x.split('_'), i = +p[0], q = SVF[p[1]];

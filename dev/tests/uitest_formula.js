@@ -52,7 +52,7 @@ async function choice(p, sel, y, h){
 }
 const seed = (p, rows) => p.evaluate(rows => { const M = window.__reach.M; M.sv = M.sv.filter(s => s.f[0] !== 'f'); for (const r of rows) window.__reach.pickQ(r[0], r[1], r[2]); window.__reach.render(); }, rows);
 const row = (i, o) => Object.keys(o).map(f => [i, f, o[f]]);
-const segs = (p, sel) => p.$$eval(sel + ' .tri-s', a => a.map(e => e.textContent.replace('%', '')));
+const segs = (p, sel) => p.$$eval(sel + ' .tri-s', a => a.map(e => e.textContent.replace(/\D/g, '')));
 
 (async () => {
   const b = await chromium.launch();
@@ -63,8 +63,10 @@ const segs = (p, sel) => p.$$eval(sel + ' .tri-s', a => a.map(e => e.textContent
     check((await p.$$('.pad .sl')).length === 6 && (await p.$$('.pad .tri')).length === 2, 'three bars and one choice axis for each team');
     check(!(await p.$('.pad .sl[data-x$="_fy"]')) && !(await p.$('.pad .sl[data-x$="_fh"]')), 'the separate cross and back-pass bars are gone');
     check(!(await p.$('.fsw')) && !(await p.$('[data-a="fside"]')), 'no switching between the teams');
-    const pair = await p.$$eval('.fg', gs => gs.map(g => { const r = [...g.querySelectorAll('.fl')], box = e => { const t = e.querySelector('.sl-t,.tri-r').getBoundingClientRect(); return [Math.round(t.left), Math.round(t.width)]; }; return { n: r.length, order: r.map(e => e.classList.contains('h') ? 'h' : 'a').join(''), same: JSON.stringify(box(r[0])) === JSON.stringify(box(r[1])) }; }));
-    check(pair.length === 4 && pair.every(g => g.n === 2 && g.order === 'ha' && g.same), 'each item has the two teams directly above each other on the same scale');
+    const blocks = await p.$$eval('.ftm', t => t.map(e => { const r = e.getBoundingClientRect(); return { top: r.top, bottom: r.bottom, team: e.classList.contains('h') ? 0 : 1, bars: e.querySelectorAll('.sl').length, axes: e.querySelectorAll('.tri').length, own: [...e.querySelectorAll('.sl,.tri')].every(x => x.dataset.x[0] === (e.classList.contains('h') ? '0' : '1')), tracks: [...e.querySelectorAll('.sl-t,.tri-r')].map(x => { const b = x.getBoundingClientRect(); return [Math.round(b.left), Math.round(b.width)]; }) }; }));
+    check(blocks.length === 2 && blocks[0].team === 0 && blocks[1].team === 1 && blocks[0].bottom <= blocks[1].top, 'the home team is one block on top, the away team one block below');
+    check(blocks.every(x => x.bars === 3 && x.axes === 1 && x.own), 'each block holds the four items of that team only');
+    check(JSON.stringify(blocks[0].tracks) === JSON.stringify(blocks[1].tracks), 'the same item sits at the same place in both blocks');
     check(!(await p.$('.pad input[type="number"], .pad input[type="text"]')), 'no typing: every value is a slider');
     check(!(await p.isVisible('#mBan')) && await p.isVisible('#fres'), 'the result panel replaces the model banner');
     check((await txt(p, '#frj')).indexOf('拖动') >= 0 && (await txt(p, '#frv0')) === '—', 'before any input the panel asks for the sliders');
@@ -83,8 +85,8 @@ const segs = (p, sel) => p.$$eval(sel + ' .tri-s', a => a.map(e => e.textContent
     check((await txt(p, '#frj')).indexOf('等另一队') >= 0, 'one team filled: waits for the other team');
     await exact(p, 1, 'fx', 12); await choice(p, TR(1), 50, 30); await exact(p, 1, 'fa', 1.5);
     await exact(p, 1, 'fb', 2);
-    check(await p.$eval(sl(1, 'fb'), e => e.closest('.fl').classList.contains('h')), 'the defence row of the home team feeds the away index');
-    check((await txt(p, '#frv1')) === '6.2' && (await txt(p, '#frv0')) === '13.0', 'home defence 2.0 lowers only the away index: 6.24 shown as 6.2 (' + await txt(p, '#frv1') + ')');
+    check(await p.$eval(sl(1, 'fb'), e => e.closest('.ftm').classList.contains('a')), 'the opponent defence is set inside the block of the attacking team');
+    check((await txt(p, '#frv1')) === '6.2' && (await txt(p, '#frv0')) === '13.0', 'the opponent defence of the away block lowers only the away index: 6.24 shown as 6.2 (' + await txt(p, '#frv1') + ')');
     check((await txt(p, '#frr')).replace(/\s/g, '') === '2.08倍', 'the ratio of the two teams is 2.08 (' + await txt(p, '#frr') + ')');
     check((await txt(p, '#frj')).indexOf('判断：鹿岛鹿角 角球更多') >= 0, 'at 2 times or more it names the team (' + await txt(p, '#frj') + ')');
     check((await txt(p, '#fcalc_0')).indexOf('传中远射 12.0 ＋ 中路打门 1.0 ＝ 13.0') >= 0 && (await txt(p, '#fcalc_0')).indexOf('25%') >= 0, 'the working of the sum is shown (' + await txt(p, '#fcalc_0') + ')');
@@ -220,7 +222,7 @@ const segs = (p, sel) => p.$$eval(sel + ' .tri-s', a => a.map(e => e.textContent
     await p.click('#qbMenu'); await p.click('#card [data-a="exp1"]'); await p.waitForTimeout(100);
     const js = await p.evaluate(() => { const t = document.querySelector('#card textarea'); return t ? t.value : null; });
     if (js){ const o = JSON.parse(js);
-      check(o.ver === 'v8' && o.sv.fx.u === '次' && o.sv.fy.u === '%' && o.sv.fa.u === '' && o.favg.x === 15 && o.matches[0].sv.some(s => s.f === 'fx' && s.v === 20), 'JSON export carries the values, their units and the league average');
+      check(o.ver === 'v9' && o.sv.fx.u === '次' && o.sv.fy.u === '%' && o.sv.fa.u === '' && o.favg.x === 15 && o.matches[0].sv.some(s => s.f === 'fx' && s.v === 20), 'JSON export carries the values, their units and the league average');
       check(o.readme.indexOf('fx 到达次数') >= 0 && o.readme.indexOf('z＝1÷(1+3×a×b)') >= 0, 'the export explains the formula');
     } else check(false, 'export text not found');
     await p.keyboard.press('Escape');
@@ -263,8 +265,8 @@ const segs = (p, sel) => p.$$eval(sel + ' .tri-s', a => a.map(e => e.textContent
     await cdp.detach(); await p.waitForTimeout(120);
     check(cur(await MM(p), 1, 'fx') === 40, 'the normal bars work by finger next to the axis');
     await p.screenshot({ path: `${out}/formula_phone.png` });
-    await p.tap('.ft.a [data-a="ck"]'); await p.waitForTimeout(80);
-    await p.tap('.ft.h [data-a="ck"]'); await p.waitForTimeout(80);
+    await p.tap('.ftm.a [data-a="ck"]'); await p.waitForTimeout(80);
+    await p.tap('.ftm.h [data-a="ck"]'); await p.waitForTimeout(80);
     check((await txt(p, '#ckA')) === '角球 1' && (await txt(p, '#ckH')) === '角球 1', 'the corner pills of both teams work here');
     await p.click('#mseg [data-v="q"]');
     check(await p.isVisible('.pad[data-i="0"] .qcard') && await p.isVisible('.pad[data-i="1"] .qcard') && !(await p.isVisible('#fres')), 'two questions is untouched: both teams on screen, no formula panel');
@@ -289,7 +291,7 @@ const segs = (p, sel) => p.$$eval(sel + ' .tri-s', a => a.map(e => e.textContent
     await p.waitForTimeout(60);
     const r = await p.evaluate(() => {
       const de = document.documentElement, pad = document.querySelector('.pad[data-i="0"]'), bad = [];
-      for (const el of document.querySelectorAll('.frg,.frj,.fra,.frr,.frv,.fval,.fw,.fgt,.fgl span,.fgs,.tri-s b,#mseg button')){ if (el.offsetParent && el.scrollWidth > el.clientWidth + 1 && getComputedStyle(el).textOverflow !== 'ellipsis') bad.push(el.className + ':' + el.textContent.slice(0, 8)); }
+      for (const el of document.querySelectorAll('.frg,.frj,.fra,.frr,.frv,.fval,.fw,.fll,.fls,.tri-s b,.tri-n,#mseg button')){ if (el.offsetParent && el.scrollWidth > el.clientWidth + 1 && getComputedStyle(el).textOverflow !== 'ellipsis') bad.push(el.className + ':' + el.textContent.slice(0, 8)); }
       const box = el => el.getBoundingClientRect();
       const a = box(document.querySelector('.frs.h')), m = document.querySelector('#frr') ? box(document.querySelector('#frr')) : null, c = box(document.querySelector('.frs.a'));
       for (const s of document.querySelectorAll('.frs')){ const inner = s.querySelector('.frx'); if (inner.scrollWidth > inner.clientWidth + 1) bad.push('result overflows ' + inner.textContent.slice(0, 12)); }
